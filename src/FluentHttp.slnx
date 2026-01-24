@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="FluentHttp.Tests/FluentHttp.Tests.csproj" Id="b4468df4-1918-441f-8ebe-659d9d6d2d39" />
+  <Project Path="FluentHttp/FluentHttp.csproj" />
+</Solution>
