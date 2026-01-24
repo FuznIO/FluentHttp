@@ -1,4 +1,4 @@
-﻿namespace Fuzn.TestFuzn.Plugins.Http;
+﻿namespace Fuzn.FluentHttp;
 
 /// <summary>
 /// Represents authentication credentials for HTTP requests.

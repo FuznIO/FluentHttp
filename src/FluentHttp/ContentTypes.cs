@@ -1,4 +1,4 @@
-﻿namespace Fuzn.TestFuzn.Plugins.Http;
+﻿namespace Fuzn.FluentHttp;
 
 /// <summary>
 /// Specifies the content type for HTTP request bodies.

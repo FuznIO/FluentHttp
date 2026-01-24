@@ -1,5 +1,4 @@
 ﻿using Fuzn.FluentHttp.Internals;
-using Fuzn.TestFuzn.Plugins.Http;
 using System.Net;
 
 namespace Fuzn.FluentHttp;

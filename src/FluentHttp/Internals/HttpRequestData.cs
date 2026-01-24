@@ -1,5 +1,4 @@
 ﻿//using Microsoft.Extensions.Logging;
-using Fuzn.TestFuzn.Plugins.Http;
 using System.Net;
 using System.Text;
 using System.Text.Json;

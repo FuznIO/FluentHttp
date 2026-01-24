@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using Fuzn.FluentHttp;
 using Fuzn.FluentHttp.Internals;
 
-namespace Fuzn.TestFuzn.Plugins.Http;
+namespace Fuzn.FluentHttp;
 
 /// <summary>
 /// Represents an HTTP response received from executing an HTTP request.
