@@ -1,4 +1,5 @@
 ﻿using Fuzn.FluentHttp.Internals;
+using System;
 using System.Net;
 
 namespace Fuzn.FluentHttp;
@@ -8,7 +9,6 @@ namespace Fuzn.FluentHttp;
 /// </summary>
 public class HttpRequestBuilder
 {
-    private HttpClient _httpClient;
     private HttpRequestData _data = new();
 
     /// <summary>
@@ -24,16 +24,22 @@ public class HttpRequestBuilder
         if (string.IsNullOrEmpty(url))
             throw new ArgumentNullException(nameof(url));
 
-        _httpClient = httpClient;
-        
-        if (_httpClient.BaseAddress == null)
+        _data.HttpClient = httpClient;
+
+        if (httpClient.BaseAddress == null)
         {
-            _data.Uri = new Uri(url);
-            _httpClient.BaseAddress = _data.BaseUri;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri != null)
+                throw new ArgumentException("The provided URL is not a valid absolute URL and the HttpClient does not have a BaseAddress set.");
+
+            _data.BaseUri = new UriBuilder(uri.Scheme, uri.Host, uri.IsDefaultPort ? -1 : uri.Port).Uri;
+            _data.RequestUrl = url;
+            _data.AbsoluteUri = uri;
         }
         else
         {
-            _data.Uri = new Uri(_httpClient.BaseAddress, url);
+            _data.BaseUri = httpClient.BaseAddress;
+            _data.RequestUrl = url;
+            _data.AbsoluteUri = new Uri(httpClient.BaseAddress, url);
         }
     }
 
@@ -145,6 +151,82 @@ public class HttpRequestBuilder
         _data.ContentType = ContentTypes.Multipart;
         foreach (var field in fields)
             _data.FormFields[field.Key] = field.Value;
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a query parameter to the request URL.
+    /// </summary>
+    /// <param name="key">The parameter name.</param>
+    /// <param name="value">The parameter value. Will be converted to string and URL-encoded.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder QueryParam(string key, object? value)
+    {
+        if (value != null)
+        {
+            var stringValue = value switch
+            {
+                string s => s,
+                bool b => b.ToString().ToLowerInvariant(),
+                DateTime dt => dt.ToString("O"), // ISO 8601 format
+                DateTimeOffset dto => dto.ToString("O"),
+                _ => value.ToString()
+            };
+
+            _data.QueryParams.Add(new KeyValuePair<string, string>(key, stringValue ?? string.Empty));
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds multiple query parameters to the request URL.
+    /// </summary>
+    /// <param name="parameters">A dictionary of parameter names and values.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder QueryParams(IDictionary<string, object?> parameters)
+    {
+        foreach (var param in parameters)
+        {
+            QueryParam(param.Key, param.Value);
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds multiple values for the same query parameter (e.g., ?tags=c#&tags=dotnet&tags=http).
+    /// </summary>
+    /// <param name="key">The parameter name.</param>
+    /// <param name="values">The collection of values.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder QueryParam(string key, IEnumerable<object?> values)
+    {
+        foreach (var value in values)
+        {
+            QueryParam(key, value);
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds query parameters from an anonymous object.
+    /// </summary>
+    /// <param name="parameters">An anonymous object whose properties become query parameters.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder QueryParams(object parameters)
+    {
+        if (parameters == null)
+            return this;
+
+        var properties = parameters.GetType().GetProperties();
+        foreach (var prop in properties)
+        {
+            var value = prop.GetValue(parameters);
+            QueryParam(prop.Name, value);
+        }
+
         return this;
     }
 
@@ -397,21 +479,17 @@ public class HttpRequestBuilder
 
         try
         {
-            var client = _httpClient;
-            client.BaseAddress = _data.BaseUri;
-
             var cts = new CancellationTokenSource(_data.Timeout);
-
 
             if (request.Content != null)
             {
                 var requestBody = await request.Content.ReadAsStringAsync(cts.Token);
             }
 
-            response = await client.SendAsync(request, cts.Token);
+            response = await _data.HttpClient.SendAsync(request, cts.Token);
             responseBody = await response.Content.ReadAsStringAsync(cts.Token);
 
-            responseCookies = ExtractResponseCookies(response, _data.Uri);
+            responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
 
             if (!response.IsSuccessStatusCode)
                 outputRequestResponse = true;
@@ -439,7 +517,7 @@ public class HttpRequestBuilder
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken);
 
             // Use ResponseHeadersRead for streaming to avoid buffering the entire response
-            response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+            response = await _data.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
 
             return new HttpStreamResponse(response);
         }

@@ -2,13 +2,17 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Web;
 
 namespace Fuzn.FluentHttp.Internals;
 
 internal class HttpRequestData
 {
+    internal HttpClient HttpClient { get; set; }
+    internal Uri AbsoluteUri { get; set; }
+    internal Uri BaseUri { get; set; }
+    internal string RequestUrl { get; set; }
     internal ContentTypes ContentType { get; set; } = ContentTypes.Json;
-    internal Uri Uri { get; set; }
     internal HttpMethod Method { get; set; }
     internal Authentication Auth { get; set; }
     internal object? Body { get; set; }
@@ -18,41 +22,29 @@ internal class HttpRequestData
     internal Dictionary<string, object> Options { get; set; } = new();
     internal string UserAgent { get; set; }
     internal TimeSpan Timeout { get; set; }
-    internal HttpClient? HttpClient { get; set; }
     internal JsonSerializerOptions SerializerOptions { get; set; }
     internal ISerializerProvider SerializerProvider { get; set; }
-    
-    /// <summary>
-    /// Files to be uploaded in a multipart/form-data request.
-    /// </summary>
     internal List<FileContent> Files { get; set; } = new();
-    
-    /// <summary>
-    /// Form fields for multipart/form-data requests.
-    /// </summary>
     internal Dictionary<string, string> FormFields { get; set; } = new();
-    
-    internal Uri BaseUri
-    {
-        get
-        {
-            if (field == null)
-                field = new UriBuilder(Uri.Scheme, Uri.Host, Uri.IsDefaultPort ? -1 : Uri.Port).Uri;
+    internal List<KeyValuePair<string, string>> QueryParams { get; set; } = new();
 
-            return field;
-        }
-    }
-    internal string RelativeUri
+    private string BuildQueryString()
     {
-        get
+        var queryPairs = new List<string>();
+        
+        foreach (var param in QueryParams)
         {
-            return Uri.PathAndQuery;
+            var encodedKey = HttpUtility.UrlEncode(param.Key);
+            var encodedValue = HttpUtility.UrlEncode(param.Value);
+            queryPairs.Add($"{encodedKey}={encodedValue}");
         }
+        
+        return string.Join("&", queryPairs);
     }
 
     public HttpRequestMessage MapToHttpRequestMessage()
     {
-        var request = new HttpRequestMessage(Method, RelativeUri);
+        var request = new HttpRequestMessage(Method, GetRequestUrlWithPathAndQuery());
         
         foreach (var option in Options)
         {
@@ -77,7 +69,7 @@ internal class HttpRequestData
                 cookieContainer.Add(BaseUri, cookie);
             }
 
-            var cookieHeader = cookieContainer.GetCookieHeader(Uri);
+            var cookieHeader = cookieContainer.GetCookieHeader(AbsoluteUri);
             request.Headers.Remove("Cookie");
             if (!string.IsNullOrEmpty(cookieHeader))
                 request.Headers.Add("Cookie", cookieHeader);
@@ -118,6 +110,30 @@ internal class HttpRequestData
         request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
 
         return request;
+    }
+
+    private string GetRequestUrlWithPathAndQuery()
+    {
+        var pathAndQuery = AbsoluteUri.PathAndQuery;
+            
+        if (QueryParams.Count == 0)
+            return pathAndQuery;
+
+        // Build query string
+        var queryString = BuildQueryString();
+            
+        // Check if URL already has query parameters
+        if (pathAndQuery.Contains('?'))
+        {
+            // Append with &
+            return $"{pathAndQuery}&{queryString}";
+        }
+        else
+        {
+            // Remove existing query from pathAndQuery if present, add new one
+            var path = pathAndQuery.Split('?')[0];
+            return $"{path}?{queryString}";
+        }
     }
 
     private MultipartFormDataContent BuildMultipartContent()
