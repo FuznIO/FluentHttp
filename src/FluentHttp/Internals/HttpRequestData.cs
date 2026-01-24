@@ -16,7 +16,6 @@ internal class HttpRequestData
     internal List<Cookie> Cookies { get; set; } = new();
     internal Dictionary<string, string> Headers { get; set; } = new();
     internal Dictionary<string, object> Options { get; set; } = new();
-    internal Action<HttpRequestMessage>? BeforeSend { get; set; }
     internal string UserAgent { get; set; }
     internal TimeSpan Timeout { get; set; }
     internal HttpClient? HttpClient { get; set; }

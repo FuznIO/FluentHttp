@@ -9,7 +9,7 @@ namespace Fuzn.FluentHttp;
 public class HttpRequestBuilder
 {
     private HttpClient _httpClient;
-    private HttpRequestData _configuration = new();
+    private HttpRequestData _data = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HttpRequestBuilder"/> class.
@@ -18,12 +18,28 @@ public class HttpRequestBuilder
     /// <param name="url">The target URL for the request.</param>
     internal HttpRequestBuilder(HttpClient httpClient, string url)
     {
+        if (httpClient == null)
+            throw new ArgumentNullException(nameof(httpClient));
+
+        if (string.IsNullOrEmpty(url))
+            throw new ArgumentNullException(nameof(url));
+
         _httpClient = httpClient;
+        
 
         if (_httpClient.BaseAddress == null)
-            _configuration.Uri = new Uri(url);
+        {
+            _data.Uri = new Uri(url);
+            _httpClient.BaseAddress = _data.BaseUri;
+            
+        }
         else
-            _configuration.Uri = new Uri(_httpClient.BaseAddress, url);
+        {
+            _data.Uri = new Uri(_httpClient.BaseAddress, url);
+        }
+
+            var client = _httpClient;
+            client.BaseAddress = _data.BaseUri;
     }
 
     /// <summary>
@@ -33,7 +49,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder SerializerProvider(ISerializerProvider serializerProvider)
     {
-        _configuration.SerializerProvider = serializerProvider;
+        _data.SerializerProvider = serializerProvider;
         return this;
     }
 
@@ -44,7 +60,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder ContentType(ContentTypes contentType)
     {
-        _configuration.ContentType = contentType;
+        _data.ContentType = contentType;
         return this;
     }
 
@@ -55,7 +71,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Body(object body)
     {
-        _configuration.Body = body;
+        _data.Body = body;
         return this;
     }
 
@@ -65,7 +81,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder AsMultipart()
     {
-        _configuration.ContentType = ContentTypes.Multipart;
+        _data.ContentType = ContentTypes.Multipart;
         return this;
     }
 
@@ -79,8 +95,8 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder AttachFile(string name, string fileName, Stream content, string contentType = "application/octet-stream")
     {
-        _configuration.ContentType = ContentTypes.Multipart;
-        _configuration.Files.Add(new FileContent(name, fileName, content, contentType));
+        _data.ContentType = ContentTypes.Multipart;
+        _data.Files.Add(new FileContent(name, fileName, content, contentType));
         return this;
     }
 
@@ -94,8 +110,8 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder AttachFile(string name, string fileName, byte[] content, string contentType = "application/octet-stream")
     {
-        _configuration.ContentType = ContentTypes.Multipart;
-        _configuration.Files.Add(new FileContent(name, fileName, content, contentType));
+        _data.ContentType = ContentTypes.Multipart;
+        _data.Files.Add(new FileContent(name, fileName, content, contentType));
         return this;
     }
 
@@ -106,8 +122,8 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder AttachFile(FileContent file)
     {
-        _configuration.ContentType = ContentTypes.Multipart;
-        _configuration.Files.Add(file);
+        _data.ContentType = ContentTypes.Multipart;
+        _data.Files.Add(file);
         return this;
     }
 
@@ -119,8 +135,8 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder FormField(string name, string value)
     {
-        _configuration.ContentType = ContentTypes.Multipart;
-        _configuration.FormFields[name] = value;
+        _data.ContentType = ContentTypes.Multipart;
+        _data.FormFields[name] = value;
         return this;
     }
 
@@ -131,9 +147,9 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder FormFields(IDictionary<string, string> fields)
     {
-        _configuration.ContentType = ContentTypes.Multipart;
+        _data.ContentType = ContentTypes.Multipart;
         foreach (var field in fields)
-            _configuration.FormFields[field.Key] = field.Value;
+            _data.FormFields[field.Key] = field.Value;
         return this;
     }
 
@@ -144,7 +160,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Accept(AcceptTypes acceptTypes)
     {
-        _configuration.AcceptTypes = acceptTypes;
+        _data.AcceptTypes = acceptTypes;
         return this;
     }
 
@@ -155,7 +171,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Cookie(Cookie cookie)
     {
-        _configuration.Cookies.Add(cookie);
+        _data.Cookies.Add(cookie);
         return this;
     }
 
@@ -172,7 +188,7 @@ public class HttpRequestBuilder
     {
         var cookie = new Cookie(name, value, path, domain);
         cookie.Expires = duration.HasValue ? DateTime.UtcNow.Add(duration.Value) : DateTime.UtcNow.AddSeconds(10);
-        _configuration.Cookies.Add(cookie);
+        _data.Cookies.Add(cookie);
         return this;
     }
 
@@ -184,7 +200,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Header(string key, string value)
     {
-        _configuration.Headers[key] = value;
+        _data.Headers[key] = value;
         return this;
     }
 
@@ -196,7 +212,7 @@ public class HttpRequestBuilder
     public HttpRequestBuilder Headers(IDictionary<string, string> headers)
     {
         foreach (var header in headers)
-            _configuration.Headers[header.Key] = header.Value;
+            _data.Headers[header.Key] = header.Value;
         return this;
     }
 
@@ -208,10 +224,10 @@ public class HttpRequestBuilder
     /// <exception cref="InvalidOperationException">Thrown when Basic authentication is already configured.</exception>
     public HttpRequestBuilder AuthBearer(string token)
     {
-        if (!string.IsNullOrEmpty(_configuration.Auth.Basic))
+        if (!string.IsNullOrEmpty(_data.Auth.Basic))
             throw new InvalidOperationException("Cannot set both Bearer and Basic authentication.");
             
-        _configuration.Auth = new Authentication { BearerToken = token };
+        _data.Auth = new Authentication { BearerToken = token };
 
         return this;
     }
@@ -225,21 +241,10 @@ public class HttpRequestBuilder
     /// <exception cref="InvalidOperationException">Thrown when Bearer authentication is already configured.</exception>
     public HttpRequestBuilder AuthBasic(string username, string password)
     {
-        if (!string.IsNullOrEmpty(_configuration.Auth.BearerToken))
+        if (!string.IsNullOrEmpty(_data.Auth.BearerToken))
             throw new InvalidOperationException("Cannot set both Bearer and Basic authentication.");
 
-        _configuration.Auth = new Authentication { Basic = BasicAuthenticationHelper.ToBase64String(username, password) };
-        return this;
-    }
-
-    /// <summary>
-    /// Registers an action to be invoked just before the request is sent.
-    /// </summary>
-    /// <param name="action">The action to execute with the constructed <see cref="HttpRequestMessage"/>.</param>
-    /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder BeforeSend(Action<HttpRequestMessage> action)
-    {
-        _configuration.BeforeSend = action;
+        _data.Auth = new Authentication { Basic = BasicAuthenticationHelper.ToBase64String(username, password) };
         return this;
     }
 
@@ -261,7 +266,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder UserAgent(string userAgent)
     {
-        _configuration.UserAgent = userAgent;
+        _data.UserAgent = userAgent;
         return this;
     }
 
@@ -272,13 +277,13 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Timeout(TimeSpan timeout)
     {
-        _configuration.Timeout = timeout;
+        _data.Timeout = timeout;
         return this;
     }
 
     public HttpRequestBuilder Options(string key, object value)
     {
-        _configuration.Options.Add(key, value);
+        _data.Options.Add(key, value);
         return this;
     }
 
@@ -288,7 +293,7 @@ public class HttpRequestBuilder
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     public Task<HttpResponse> Get()
     {
-        _configuration.Method = HttpMethod.Get;
+        _data.Method = HttpMethod.Get;
         return Send();
     }
 
@@ -298,7 +303,7 @@ public class HttpRequestBuilder
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     public Task<HttpResponse> Post()
     {
-        _configuration.Method = HttpMethod.Post;
+        _data.Method = HttpMethod.Post;
         return Send();
     }
 
@@ -308,7 +313,7 @@ public class HttpRequestBuilder
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     public Task<HttpResponse> Put()
     {
-        _configuration.Method = HttpMethod.Put;
+        _data.Method = HttpMethod.Put;
         return Send();
     }
 
@@ -318,7 +323,7 @@ public class HttpRequestBuilder
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     public Task<HttpResponse> Delete()
     {
-        _configuration.Method = HttpMethod.Delete;
+        _data.Method = HttpMethod.Delete;
         return Send();
     }
 
@@ -328,7 +333,7 @@ public class HttpRequestBuilder
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     public Task<HttpResponse> Patch()
     {
-        _configuration.Method = HttpMethod.Patch;
+        _data.Method = HttpMethod.Patch;
         return Send();
     }
 
@@ -338,7 +343,7 @@ public class HttpRequestBuilder
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     public Task<HttpResponse> Head()
     {
-        _configuration.Method = HttpMethod.Head;
+        _data.Method = HttpMethod.Head;
         return Send();
     }
 
@@ -348,7 +353,7 @@ public class HttpRequestBuilder
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     public Task<HttpResponse> Options()
     {
-        _configuration.Method = HttpMethod.Options;
+        _data.Method = HttpMethod.Options;
         return Send();
     }
 
@@ -358,13 +363,37 @@ public class HttpRequestBuilder
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     public Task<HttpResponse> Trace()
     {
-        _configuration.Method = HttpMethod.Trace;
+        _data.Method = HttpMethod.Trace;
         return Send();
     }
-    
+
+    /// <summary>
+    /// Downloads the response as a stream using HTTP GET. 
+    /// The returned HttpStreamResponse should be disposed after use.
+    /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation, containing the streaming response.</returns>
+    public Task<HttpStreamResponse> GetStream(CancellationToken cancellationToken = default)
+    {
+        _data.Method = HttpMethod.Get;
+        return SendForStream(cancellationToken);
+    }
+
+    /// <summary>
+    /// Sends a POST request and returns the response as a stream.
+    /// The returned HttpStreamResponse should be disposed after use.
+    /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation, containing the streaming response.</returns>
+    public Task<HttpStreamResponse> PostStream(CancellationToken cancellationToken = default)
+    {
+        _data.Method = HttpMethod.Post;
+        return SendForStream(cancellationToken);
+    }
+
     internal async Task<HttpResponse> Send()
     {
-        var request = _configuration.MapToHttpRequestMessage();
+        var request = _data.MapToHttpRequestMessage();
 
         var outputRequestResponse = false;
         HttpResponseMessage? response = null;
@@ -374,9 +403,9 @@ public class HttpRequestBuilder
         try
         {
             var client = _httpClient;
-            client.BaseAddress = _configuration.BaseUri;
+            client.BaseAddress = _data.BaseUri;
 
-            var cts = new CancellationTokenSource(_configuration.Timeout);
+            var cts = new CancellationTokenSource(_data.Timeout);
 
 
             if (request.Content != null)
@@ -384,13 +413,10 @@ public class HttpRequestBuilder
                 var requestBody = await request.Content.ReadAsStringAsync(cts.Token);
             }
 
-            if (BeforeSend != null)
-                _configuration.BeforeSend?.Invoke(request);
-
             response = await client.SendAsync(request, cts.Token);
             responseBody = await response.Content.ReadAsStringAsync(cts.Token);
 
-            responseCookies = ExtractResponseCookies(response, _configuration.Uri);
+            responseCookies = ExtractResponseCookies(response, _data.Uri);
 
             if (!response.IsSuccessStatusCode)
                 outputRequestResponse = true;
@@ -404,7 +430,29 @@ public class HttpRequestBuilder
         {
         }
 
-        return new HttpResponse(request, response, responseCookies, body: responseBody, _configuration.SerializerProvider);
+        return new HttpResponse(request, response, responseCookies, body: responseBody, _data.SerializerProvider);
+    }
+
+    internal async Task<HttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
+    {
+        var request = _data.MapToHttpRequestMessage();
+        HttpResponseMessage? response = null;
+
+        try
+        {
+            using var timeoutCts = new CancellationTokenSource(_data.Timeout);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken);
+
+            // Use ResponseHeadersRead for streaming to avoid buffering the entire response
+            response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+
+            return new HttpStreamResponse(response);
+        }
+        catch
+        {
+            response?.Dispose();
+            throw;
+        }
     }
 
     private static CookieContainer? ExtractResponseCookies(HttpResponseMessage response, Uri uri)

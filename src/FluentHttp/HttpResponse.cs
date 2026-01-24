@@ -63,6 +63,11 @@ public class HttpResponse
     }
 
     /// <summary>
+    /// Gets the content headers (e.g., Content-Type, Content-Length).
+    /// </summary>
+    public HttpContentHeaders ContentHeaders => InnerResponse.Content.Headers;
+
+    /// <summary>
     /// Gets the response body as a string.
     /// </summary>
     public string Body
@@ -91,6 +96,18 @@ public class HttpResponse
     /// Gets a value indicating whether the response was successful (status code 2xx).
     /// </summary>
     public bool Ok => InnerResponse.IsSuccessStatusCode;
+
+    /// <summary>
+    /// Gets the response body as a byte array.
+    /// </summary>
+    /// <returns>A byte array containing the response body.</returns>
+    public byte[] BodyAsBytes()
+    {
+        if (string.IsNullOrEmpty(Body))
+            return [];
+
+        return System.Text.Encoding.UTF8.GetBytes(Body);
+    }
 
     /// <summary>
     /// Deserializes the response body into the specified type.
