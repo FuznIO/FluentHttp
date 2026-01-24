@@ -26,20 +26,15 @@ public class HttpRequestBuilder
 
         _httpClient = httpClient;
         
-
         if (_httpClient.BaseAddress == null)
         {
             _data.Uri = new Uri(url);
             _httpClient.BaseAddress = _data.BaseUri;
-            
         }
         else
         {
             _data.Uri = new Uri(_httpClient.BaseAddress, url);
         }
-
-            var client = _httpClient;
-            client.BaseAddress = _data.BaseUri;
     }
 
     /// <summary>
