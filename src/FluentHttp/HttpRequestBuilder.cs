@@ -1,38 +1,30 @@
-﻿using System.Net;
-using Fuzn.FluentHttp;
-using Fuzn.FluentHttp.Internals;
+﻿using Fuzn.FluentHttp.Internals;
+using Fuzn.TestFuzn.Plugins.Http;
+using System.Net;
 
-namespace Fuzn.TestFuzn.Plugins.Http;
+namespace Fuzn.FluentHttp;
 
 /// <summary>
 /// Fluent builder for constructing and sending HTTP requests.
 /// </summary>
 public class HttpRequestBuilder
 {
-    private static readonly string DefaultUserAgent = 
-        $"TestFuzn.Http/{typeof(HttpRequestBuilder).Assembly.GetName().Version!.ToString(3)}";
-    private string _userAgent = DefaultUserAgent;
-    //private readonly Context _context;
-    private readonly string _url;
-    private ContentTypes _contentType = ContentTypes.Json;
-    private object? _body;
-    private AcceptTypes _acceptTypes = AcceptTypes.Json;
-    private readonly List<Cookie> _cookies = new();
-    private readonly Dictionary<string, string> _headers = new();
-    private Authentication _auth = new();
-    private Action<HttpRequestMessage>? _beforeSend;
-    //private LoggingVerbosity _loggingVerbosity = GlobalState.LoggingVerbosity;
-    private TimeSpan _timeout = TimeSpan.MinValue; //HttpGlobalState.Configuration.DefaultRequestTimeout;
-    private ISerializerProvider _serializerProvider;
+    private HttpClient _httpClient;
+    private HttpRequestData _configuration = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HttpRequestBuilder"/> class.
     /// </summary>
-    /// <param name="context">The step context for where the request is created from.</param>
+    /// <param name="httpClient">The HttpClient instance to use for sending requests.</param>
     /// <param name="url">The target URL for the request.</param>
-    internal HttpRequestBuilder(HttpClient context, string url)
+    internal HttpRequestBuilder(HttpClient httpClient, string url)
     {
-        _url = url;
+        _httpClient = httpClient;
+
+        if (_httpClient.BaseAddress == null)
+            _configuration.Uri = new Uri(url);
+        else
+            _configuration.Uri = new Uri(_httpClient.BaseAddress, url);
     }
 
     /// <summary>
@@ -42,7 +34,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder SerializerProvider(ISerializerProvider serializerProvider)
     {
-        _serializerProvider = serializerProvider;
+        _configuration.SerializerProvider = serializerProvider;
         return this;
     }
 
@@ -53,7 +45,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder ContentType(ContentTypes contentType)
     {
-        _contentType = contentType;
+        _configuration.ContentType = contentType;
         return this;
     }
 
@@ -64,7 +56,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Body(object body)
     {
-        _body = body;
+        _configuration.Body = body;
         return this;
     }
 
@@ -75,7 +67,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Accept(AcceptTypes acceptTypes)
     {
-        _acceptTypes = acceptTypes;
+        _configuration.AcceptTypes = acceptTypes;
         return this;
     }
 
@@ -86,7 +78,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Cookie(Cookie cookie)
     {
-        _cookies.Add(cookie);
+        _configuration.Cookies.Add(cookie);
         return this;
     }
 
@@ -103,7 +95,7 @@ public class HttpRequestBuilder
     {
         var cookie = new Cookie(name, value, path, domain);
         cookie.Expires = duration.HasValue ? DateTime.UtcNow.Add(duration.Value) : DateTime.UtcNow.AddSeconds(10);
-        _cookies.Add(cookie);
+        _configuration.Cookies.Add(cookie);
         return this;
     }
 
@@ -115,7 +107,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Header(string key, string value)
     {
-        _headers[key] = value;
+        _configuration.Headers[key] = value;
         return this;
     }
 
@@ -127,7 +119,7 @@ public class HttpRequestBuilder
     public HttpRequestBuilder Headers(IDictionary<string, string> headers)
     {
         foreach (var header in headers)
-            _headers[header.Key] = header.Value;
+            _configuration.Headers[header.Key] = header.Value;
         return this;
     }
 
@@ -139,10 +131,10 @@ public class HttpRequestBuilder
     /// <exception cref="InvalidOperationException">Thrown when Basic authentication is already configured.</exception>
     public HttpRequestBuilder AuthBearer(string token)
     {
-        if (!string.IsNullOrEmpty(_auth.Basic))
+        if (!string.IsNullOrEmpty(_configuration.Auth.Basic))
             throw new InvalidOperationException("Cannot set both Bearer and Basic authentication.");
             
-        _auth = new Authentication { BearerToken = token };
+        _configuration.Auth = new Authentication { BearerToken = token };
 
         return this;
     }
@@ -156,10 +148,10 @@ public class HttpRequestBuilder
     /// <exception cref="InvalidOperationException">Thrown when Bearer authentication is already configured.</exception>
     public HttpRequestBuilder AuthBasic(string username, string password)
     {
-        if (!string.IsNullOrEmpty(_auth.BearerToken))
+        if (!string.IsNullOrEmpty(_configuration.Auth.BearerToken))
             throw new InvalidOperationException("Cannot set both Bearer and Basic authentication.");
-            
-        _auth = new Authentication{ Basic = BasicAuthenticationHelper.ToBase64String(username, password)};
+
+        _configuration.Auth = new Authentication { Basic = BasicAuthenticationHelper.ToBase64String(username, password) };
         return this;
     }
 
@@ -170,7 +162,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder BeforeSend(Action<HttpRequestMessage> action)
     {
-        _beforeSend = action;
+        _configuration.BeforeSend = action;
         return this;
     }
 
@@ -192,7 +184,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder UserAgent(string userAgent)
     {
-        _userAgent = userAgent;
+        _configuration.UserAgent = userAgent;
         return this;
     }
 
@@ -203,87 +195,161 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Timeout(TimeSpan timeout)
     {
-        _timeout = timeout;
+        _configuration.Timeout = timeout;
         return this;
     }
 
-    internal HttpRequest Build(HttpMethod method)
+    public HttpRequestBuilder Options(string key, object value)
     {
-        var request = new HttpRequest()
-        {
-            //Context = _context,
-            Method = method,
-            Url = _url,
-            ContentType = _contentType,
-            Body = _body,
-            AcceptTypes = _acceptTypes,
-            Auth = _auth,
-            BeforeSend = _beforeSend,
-            Cookies = new List<Cookie>(_cookies),
-            UserAgent = _userAgent,
-            Timeout = _timeout,
-            SerializerProvider = _serializerProvider,
-            //LoggingVerbosity = _loggingVerbosity,
-            Headers = _headers
-        };
-
-        //request.Headers.TryAdd(HttpGlobalState.Configuration.CorrelationIdHeaderName, _context.Info.CorrelationId);
-
-        return request;
+        _configuration.Options.Add(key, value);
+        return this;
     }
-
-    /// <summary>
-    /// Sends the request using the specified HTTP method.
-    /// </summary>
-    /// <param name="httpMethod">The HTTP method to use.</param>
-    /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Send(HttpMethod httpMethod) => Build(httpMethod).Send();
 
     /// <summary>
     /// Sends the request using the HTTP GET method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Get() => Build(HttpMethod.Get).Send();
+    public Task<HttpResponse> Get()
+    {
+        _configuration.Method = HttpMethod.Get;
+        return Send();
+    }
 
     /// <summary>
     /// Sends the request using the HTTP POST method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Post() => Build(HttpMethod.Post).Send();
+    public Task<HttpResponse> Post()
+    {
+        _configuration.Method = HttpMethod.Post;
+        return Send();
+    }
 
     /// <summary>
     /// Sends the request using the HTTP PUT method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Put() => Build(HttpMethod.Put).Send();
+    public Task<HttpResponse> Put()
+    {
+        _configuration.Method = HttpMethod.Put;
+        return Send();
+    }
 
     /// <summary>
     /// Sends the request using the HTTP DELETE method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Delete() => Build(HttpMethod.Delete).Send();
+    public Task<HttpResponse> Delete()
+    {
+        _configuration.Method = HttpMethod.Delete;
+        return Send();
+    }
 
     /// <summary>
     /// Sends the request using the HTTP PATCH method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Patch() => Build(HttpMethod.Patch).Send();
+    public Task<HttpResponse> Patch()
+    {
+        _configuration.Method = HttpMethod.Patch;
+        return Send();
+    }
 
     /// <summary>
     /// Sends the request using the HTTP HEAD method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Head() => Build(HttpMethod.Head).Send();
+    public Task<HttpResponse> Head()
+    {
+        _configuration.Method = HttpMethod.Head;
+        return Send();
+    }
 
     /// <summary>
     /// Sends the request using the HTTP OPTIONS method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Options() => Build(HttpMethod.Options).Send();
+    public Task<HttpResponse> Options()
+    {
+        _configuration.Method = HttpMethod.Options;
+        return Send();
+    }
 
     /// <summary>
     /// Sends the request using the HTTP TRACE method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Trace() => Build(HttpMethod.Trace).Send();
+    public Task<HttpResponse> Trace()
+    {
+        _configuration.Method = HttpMethod.Trace;
+        return Send();
+    }
+    
+    internal async Task<HttpResponse> Send()
+    {
+        var request = _configuration.MapToHttpRequestMessage();
+
+        var outputRequestResponse = false;
+        HttpResponseMessage? response = null;
+        string? responseBody = null;
+        CookieContainer? responseCookies = null;
+
+        try
+        {
+            var client = _httpClient;
+            client.BaseAddress = _configuration.BaseUri;
+
+            var cts = new CancellationTokenSource(_configuration.Timeout);
+
+
+            if (request.Content != null)
+            {
+                var requestBody = await request.Content.ReadAsStringAsync(cts.Token);
+            }
+
+            if (BeforeSend != null)
+                _configuration.BeforeSend?.Invoke(request);
+
+            response = await client.SendAsync(request, cts.Token);
+            responseBody = await response.Content.ReadAsStringAsync(cts.Token);
+
+            responseCookies = ExtractResponseCookies(response, _configuration.Uri);
+
+            if (!response.IsSuccessStatusCode)
+                outputRequestResponse = true;
+        }
+        catch (Exception ex)
+        {
+            outputRequestResponse = true;
+            throw;
+        }
+        finally
+        {
+        }
+
+        return new HttpResponse(request, response, responseCookies, body: responseBody, _configuration.SerializerProvider);
+    }
+
+    private static CookieContainer? ExtractResponseCookies(HttpResponseMessage response, Uri uri)
+    {
+        if (response.Headers.TryGetValues("Set-Cookie", out var setCookieHeaders))
+        {
+            var responseCookies = new CookieContainer();
+            foreach (var setCookieHeader in setCookieHeaders)
+            {
+                try
+                {
+                    responseCookies.SetCookies(uri, setCookieHeader);
+                }
+                catch
+                {
+                    // Ignore malformed cookies
+                }
+            }
+
+            return responseCookies;
+        }
+
+        return null;
+    }
 }

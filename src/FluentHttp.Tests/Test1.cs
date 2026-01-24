@@ -11,7 +11,9 @@ public sealed class Test1 : Test
         await Scenario()
             .Step("Step 1", async context =>
             {
-
+                var httpClient = new HttpClient();
+                await httpClient.Url("https://fuzn.io")
+                    .Get();
             })
             .Run();
     }
