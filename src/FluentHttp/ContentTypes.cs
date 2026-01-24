@@ -13,5 +13,10 @@ public enum ContentTypes
     /// <summary>
     /// JSON content (application/json).
     /// </summary>
-    Json
+    Json,
+
+    /// <summary>
+    /// Multipart form data (multipart/form-data). Used for file uploads.
+    /// </summary>
+    Multipart
 }

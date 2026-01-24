@@ -60,6 +60,84 @@ public class HttpRequestBuilder
     }
 
     /// <summary>
+    /// Configures the request as multipart/form-data for file uploads.
+    /// </summary>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder AsMultipart()
+    {
+        _configuration.ContentType = ContentTypes.Multipart;
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a file to the request. Automatically sets the content type to multipart/form-data.
+    /// </summary>
+    /// <param name="name">The form field name for the file.</param>
+    /// <param name="fileName">The file name to be sent in the Content-Disposition header.</param>
+    /// <param name="content">The file content as a stream.</param>
+    /// <param name="contentType">The MIME type of the file. Defaults to "application/octet-stream".</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder AttachFile(string name, string fileName, Stream content, string contentType = "application/octet-stream")
+    {
+        _configuration.ContentType = ContentTypes.Multipart;
+        _configuration.Files.Add(new FileContent(name, fileName, content, contentType));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a file to the request. Automatically sets the content type to multipart/form-data.
+    /// </summary>
+    /// <param name="name">The form field name for the file.</param>
+    /// <param name="fileName">The file name to be sent in the Content-Disposition header.</param>
+    /// <param name="content">The file content as a byte array.</param>
+    /// <param name="contentType">The MIME type of the file. Defaults to "application/octet-stream".</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder AttachFile(string name, string fileName, byte[] content, string contentType = "application/octet-stream")
+    {
+        _configuration.ContentType = ContentTypes.Multipart;
+        _configuration.Files.Add(new FileContent(name, fileName, content, contentType));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a file to the request using a FileContent object. Automatically sets the content type to multipart/form-data.
+    /// </summary>
+    /// <param name="file">The file content to attach.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder AttachFile(FileContent file)
+    {
+        _configuration.ContentType = ContentTypes.Multipart;
+        _configuration.Files.Add(file);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a form field to the multipart request. Automatically sets the content type to multipart/form-data.
+    /// </summary>
+    /// <param name="name">The form field name.</param>
+    /// <param name="value">The form field value.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder FormField(string name, string value)
+    {
+        _configuration.ContentType = ContentTypes.Multipart;
+        _configuration.FormFields[name] = value;
+        return this;
+    }
+
+    /// <summary>
+    /// Adds multiple form fields to the multipart request. Automatically sets the content type to multipart/form-data.
+    /// </summary>
+    /// <param name="fields">A dictionary of form field names and values.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder FormFields(IDictionary<string, string> fields)
+    {
+        _configuration.ContentType = ContentTypes.Multipart;
+        foreach (var field in fields)
+            _configuration.FormFields[field.Key] = field.Value;
+        return this;
+    }
+
+    /// <summary>
     /// Sets the Accept header for the request.
     /// </summary>
     /// <param name="acceptTypes">The accepted response content types.</param>

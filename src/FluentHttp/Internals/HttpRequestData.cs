@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
@@ -21,6 +22,17 @@ internal class HttpRequestData
     internal HttpClient? HttpClient { get; set; }
     internal JsonSerializerOptions SerializerOptions { get; set; }
     internal ISerializerProvider SerializerProvider { get; set; }
+    
+    /// <summary>
+    /// Files to be uploaded in a multipart/form-data request.
+    /// </summary>
+    internal List<FileContent> Files { get; set; } = new();
+    
+    /// <summary>
+    /// Form fields for multipart/form-data requests.
+    /// </summary>
+    internal Dictionary<string, string> FormFields { get; set; } = new();
+    
     internal Uri BaseUri
     {
         get
@@ -88,6 +100,10 @@ internal class HttpRequestData
         {
             request.Content = new FormUrlEncodedContent(dictBody);
         }
+        else if (ContentType == ContentTypes.Multipart)
+        {
+            request.Content = BuildMultipartContent();
+        }
 
         if (!string.IsNullOrEmpty(Auth?.BearerToken))
         {
@@ -103,5 +119,26 @@ internal class HttpRequestData
         request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
 
         return request;
+    }
+
+    private MultipartFormDataContent BuildMultipartContent()
+    {
+        var multipartContent = new MultipartFormDataContent();
+
+        // Add form fields
+        foreach (var field in FormFields)
+        {
+            multipartContent.Add(new StringContent(field.Value, Encoding.UTF8), field.Key);
+        }
+
+        // Add files
+        foreach (var file in Files)
+        {
+            var streamContent = new StreamContent(file.Content);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            multipartContent.Add(streamContent, file.Name, file.FileName);
+        }
+
+        return multipartContent;
     }
 }
