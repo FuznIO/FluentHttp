@@ -18,5 +18,20 @@ public enum ContentTypes
     /// <summary>
     /// Multipart form data (multipart/form-data). Used for file uploads.
     /// </summary>
-    Multipart
+    Multipart,
+
+    /// <summary>
+    /// XML content (application/xml).
+    /// </summary>
+    Xml,
+
+    /// <summary>
+    /// Plain text content (text/plain).
+    /// </summary>
+    PlainText,
+
+    /// <summary>
+    /// Binary content (application/octet-stream).
+    /// </summary>
+    OctetStream
 }

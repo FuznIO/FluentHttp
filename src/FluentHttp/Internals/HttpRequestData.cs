@@ -12,11 +12,11 @@ internal class HttpRequestData
     internal Uri AbsoluteUri { get; set; }
     internal Uri BaseUri { get; set; }
     internal string RequestUrl { get; set; }
-    internal ContentTypes ContentType { get; set; } = ContentTypes.Json;
+    internal string ContentType { get; set; } = "application/json";
     internal HttpMethod Method { get; set; }
     internal Authentication Auth { get; set; }
     internal object? Body { get; set; }
-    internal AcceptTypes AcceptTypes { get; set; } = AcceptTypes.Json;
+    internal string AcceptType { get; set; } = "application/json";
     internal List<Cookie> Cookies { get; set; } = new();
     internal Dictionary<string, string> Headers { get; set; } = new();
     internal Dictionary<string, object> Options { get; set; } = new();
@@ -51,10 +51,8 @@ internal class HttpRequestData
             request.Options.Set(new HttpRequestOptionsKey<object>(option.Key), option.Value);
         }
 
-        if (AcceptTypes == AcceptTypes.Json)
-            request.Headers.Add("Accept", "application/json");
-        else if (AcceptTypes == AcceptTypes.Html)
-            request.Headers.Add("Accept", $"text/html,application/xhtml+xml");
+        // Add Accept header
+        request.Headers.Add("Accept", AcceptType);
         
         foreach (var header in Headers)
             request.Headers.TryAddWithoutValidation(header.Key, header.Value);
@@ -75,25 +73,45 @@ internal class HttpRequestData
                 request.Headers.Add("Cookie", cookieHeader);
         }
 
-        if (ContentType == ContentTypes.Json && Body != null)
+        // Handle Content-Type and body based on content type string
+        if (ContentType == "multipart/form-data")
         {
-            if (Body is string rawJson)
-            {
-                request.Content = new StringContent(rawJson, Encoding.UTF8, "application/json");
-            }
-            else
-            {
-                var jsonContent = JsonSerializer.Serialize(Body, SerializerOptions);
-                request.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-            }
+            request.Content = BuildMultipartContent();
         }
-        else if (ContentType == ContentTypes.XFormUrlEncoded && Body is Dictionary<string, string> dictBody)
+        else if (ContentType == "application/x-www-form-urlencoded" && Body is Dictionary<string, string> dictBody)
         {
             request.Content = new FormUrlEncodedContent(dictBody);
         }
-        else if (ContentType == ContentTypes.Multipart)
+        else if (ContentType == "application/octet-stream" && Body != null)
         {
-            request.Content = BuildMultipartContent();
+            if (Body is byte[] byteArray)
+            {
+                request.Content = new ByteArrayContent(byteArray);
+                request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            }
+            else if (Body is Stream stream)
+            {
+                request.Content = new StreamContent(stream);
+                request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            }
+        }
+        else if (Body != null)
+        {
+            // Handle JSON, XML, plain text, and custom content types
+            if (Body is string rawContent)
+            {
+                request.Content = new StringContent(rawContent, Encoding.UTF8, ContentType);
+            }
+            else if (ContentType == "text/plain")
+            {
+                request.Content = new StringContent(Body.ToString() ?? string.Empty, Encoding.UTF8, "text/plain");
+            }
+            else
+            {
+                // Default to JSON serialization for objects
+                var jsonContent = JsonSerializer.Serialize(Body, SerializerOptions);
+                request.Content = new StringContent(jsonContent, Encoding.UTF8, ContentType);
+            }
         }
 
         if (!string.IsNullOrEmpty(Auth?.BearerToken))

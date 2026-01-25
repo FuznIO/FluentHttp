@@ -13,5 +13,25 @@ public enum AcceptTypes
     /// <summary>
     /// Accept HTML responses (text/html).
     /// </summary>
-    Html
+    Html,
+
+    /// <summary>
+    /// Accept XML responses (application/xml).
+    /// </summary>
+    Xml,
+
+    /// <summary>
+    /// Accept plain text responses (text/plain).
+    /// </summary>
+    PlainText,
+
+    /// <summary>
+    /// Accept any content type (*/*).
+    /// </summary>
+    Any,
+
+    /// <summary>
+    /// Accept binary content (application/octet-stream).
+    /// </summary>
+    OctetStream
 }

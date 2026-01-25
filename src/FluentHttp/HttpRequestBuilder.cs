@@ -61,6 +61,26 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder ContentType(ContentTypes contentType)
     {
+        _data.ContentType = contentType switch
+        {
+            ContentTypes.Json => "application/json",
+            ContentTypes.Xml => "application/xml",
+            ContentTypes.PlainText => "text/plain",
+            ContentTypes.XFormUrlEncoded => "application/x-www-form-urlencoded",
+            ContentTypes.Multipart => "multipart/form-data",
+            ContentTypes.OctetStream => "application/octet-stream",
+            _ => "application/json"
+        };
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a custom Content-Type header for the request.
+    /// </summary>
+    /// <param name="contentType">The custom content type string (e.g., "application/graphql", "application/x-yaml").</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder ContentType(string contentType)
+    {
         _data.ContentType = contentType;
         return this;
     }
@@ -82,7 +102,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder AsMultipart()
     {
-        _data.ContentType = ContentTypes.Multipart;
+        _data.ContentType = "multipart/form-data";
         return this;
     }
 
@@ -96,7 +116,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder AttachFile(string name, string fileName, Stream content, string contentType = "application/octet-stream")
     {
-        _data.ContentType = ContentTypes.Multipart;
+        _data.ContentType = "multipart/form-data";
         _data.Files.Add(new FileContent(name, fileName, content, contentType));
         return this;
     }
@@ -111,7 +131,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder AttachFile(string name, string fileName, byte[] content, string contentType = "application/octet-stream")
     {
-        _data.ContentType = ContentTypes.Multipart;
+        _data.ContentType = "multipart/form-data";
         _data.Files.Add(new FileContent(name, fileName, content, contentType));
         return this;
     }
@@ -123,7 +143,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder AttachFile(FileContent file)
     {
-        _data.ContentType = ContentTypes.Multipart;
+        _data.ContentType = "multipart/form-data";
         _data.Files.Add(file);
         return this;
     }
@@ -136,7 +156,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder FormField(string name, string value)
     {
-        _data.ContentType = ContentTypes.Multipart;
+        _data.ContentType = "multipart/form-data";
         _data.FormFields[name] = value;
         return this;
     }
@@ -148,7 +168,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder FormFields(IDictionary<string, string> fields)
     {
-        _data.ContentType = ContentTypes.Multipart;
+        _data.ContentType = "multipart/form-data";
         foreach (var field in fields)
             _data.FormFields[field.Key] = field.Value;
         return this;
@@ -237,7 +257,27 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Accept(AcceptTypes acceptTypes)
     {
-        _data.AcceptTypes = acceptTypes;
+        _data.AcceptType = acceptTypes switch
+        {
+            AcceptTypes.Json => "application/json",
+            AcceptTypes.Html => "text/html,application/xhtml+xml",
+            AcceptTypes.Xml => "application/xml",
+            AcceptTypes.PlainText => "text/plain",
+            AcceptTypes.Any => "*/*",
+            AcceptTypes.OctetStream => "application/octet-stream",
+            _ => "application/json"
+        };
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a custom Accept header for the request.
+    /// </summary>
+    /// <param name="acceptType">The custom accept type string (e.g., "application/pdf", "image/png").</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder Accept(string acceptType)
+    {
+        _data.AcceptType = acceptType;
         return this;
     }
 
@@ -303,7 +343,7 @@ public class HttpRequestBuilder
     {
         if (!string.IsNullOrEmpty(_data.Auth.Basic))
             throw new InvalidOperationException("Cannot set both Bearer and Basic authentication.");
-            
+
         _data.Auth = new Authentication { BearerToken = token };
 
         return this;
