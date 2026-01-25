@@ -1,6 +1,7 @@
 ﻿using Fuzn.FluentHttp.Internals;
 using System;
 using System.Net;
+using System.Text;
 
 namespace Fuzn.FluentHttp;
 
@@ -354,11 +355,10 @@ public class HttpRequestBuilder
     /// <exception cref="InvalidOperationException">Thrown when Basic authentication is already configured.</exception>
     public HttpRequestBuilder AuthBearer(string token)
     {
-        if (!string.IsNullOrEmpty(_data.Auth.Basic))
-            throw new InvalidOperationException("Cannot set both Bearer and Basic authentication.");
+        if (_data.Headers.ContainsKey("Authorization"))
+            throw new InvalidOperationException("Authentication is already configured.");
 
-        _data.Auth = new Authentication { BearerToken = token };
-
+        _data.Headers["Authorization"] = $"Bearer {token}";
         return this;
     }
 
@@ -371,10 +371,11 @@ public class HttpRequestBuilder
     /// <exception cref="InvalidOperationException">Thrown when Bearer authentication is already configured.</exception>
     public HttpRequestBuilder AuthBasic(string username, string password)
     {
-        if (!string.IsNullOrEmpty(_data.Auth.BearerToken))
-            throw new InvalidOperationException("Cannot set both Bearer and Basic authentication.");
+        if (_data.Headers.ContainsKey("Authorization"))
+            throw new InvalidOperationException("Authentication is already configured.");
 
-        _data.Auth = new Authentication { Basic = BasicAuthenticationHelper.ToBase64String(username, password) };
+        var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+        _data.Headers["Authorization"] = $"Basic {credentials}";
         return this;
     }
 

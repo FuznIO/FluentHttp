@@ -14,7 +14,6 @@ internal class HttpRequestData
     internal string RequestUrl { get; set; }
     internal string? ContentType { get; set; }
     internal HttpMethod Method { get; set; }
-    internal Authentication Auth { get; set; }
     internal object? Body { get; set; }
     internal string AcceptType { get; set; } = "application/json";
     internal List<Cookie> Cookies { get; set; } = new();
@@ -115,17 +114,6 @@ internal class HttpRequestData
                     request.Content = new StringContent(jsonContent, Encoding.UTF8, ContentType);
                 }
             }
-        }
-
-        if (!string.IsNullOrEmpty(Auth?.BearerToken))
-        {
-            request.Headers.Remove("Authorization");
-            request.Headers.Add("Authorization", $"Bearer {Auth.BearerToken}");
-        }
-        else if (!string.IsNullOrEmpty(Auth?.Basic))
-        {
-            request.Headers.Remove("Authorization");
-            request.Headers.Add("Authorization", $"Basic {Auth.Basic}");
         }
 
         request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
