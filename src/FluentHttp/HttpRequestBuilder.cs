@@ -417,6 +417,12 @@ public class HttpRequestBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds a custom option to the HTTP request. Options can be used to store additional metadata or configuration for the request.
+    /// </summary>
+    /// <param name="key">The option key.</param>
+    /// <param name="value">The option value.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Options(string key, object value)
     {
         _data.Options.Add(key, value);
