@@ -1,4 +1,6 @@
-﻿namespace Fuzn.FluentHttp.Tests;
+﻿using Fuzn.TestFuzn;
+
+namespace Fuzn.FluentHttp.Tests;
 
 [TestClass]
 public class Startup : IStartup, IBeforeSuite, IAfterSuite

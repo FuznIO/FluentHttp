@@ -1,4 +1,5 @@
 namespace Fuzn.FluentHttp.Tests;
+using Fuzn.TestFuzn;
 
 [TestClass]
 public class StreamingTests : Test
