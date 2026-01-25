@@ -231,6 +231,9 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder QueryParam(string key, IEnumerable<object?> values)
     {
+        if (values == null)
+            return this;
+
         foreach (var value in values)
         {
             QueryParam(key, value);
@@ -544,10 +547,10 @@ public class HttpRequestBuilder
         ISerializerProvider serializerProvider = null;
         if (_data.SerializerProvider == null)
         {
-            JsonSerializerOptions serializerOptions = _data.SerializerOptions
-                                                            ?? new JsonSerializerOptions() { PropertyNameCaseInsensitive = true };
-
-            serializerProvider = new SystemTextJsonSerializerProvider(serializerOptions);            ;
+            if (_data.SerializerOptions == null)
+                serializerProvider = new SystemTextJsonSerializerProvider();
+            else
+                serializerProvider = new SystemTextJsonSerializerProvider(_data.SerializerOptions);
         }
         else
             serializerProvider = _data.SerializerProvider;

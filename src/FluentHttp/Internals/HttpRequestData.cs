@@ -50,7 +50,6 @@ internal class HttpRequestData
             request.Options.Set(new HttpRequestOptionsKey<object>(option.Key), option.Value);
         }
 
-        // Add Accept header
         request.Headers.Add("Accept", AcceptType);
         
         foreach (var header in Headers)
@@ -72,51 +71,54 @@ internal class HttpRequestData
                 request.Headers.Add("Cookie", cookieHeader);
         }
 
-        // Handle Content-Type and body based on content type string
-        if (Body != null && !string.IsNullOrEmpty(ContentType))
+        request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
+
+        if (string.IsNullOrEmpty(ContentType))
+            return request;
+
+        
+
+        if (ContentType == "multipart/form-data")
         {
-            if (ContentType == "multipart/form-data")
+            request.Content = BuildMultipartContent();
+            return request;
+        }
+
+        if (ContentType == "application/x-www-form-urlencoded" && Body is Dictionary<string, string> dictBody)
+        {
+            request.Content = new FormUrlEncodedContent(dictBody);
+            return request;
+        }
+
+        if (ContentType == "application/octet-stream")
+        {
+            if (Body is byte[] byteArray)
             {
-                request.Content = BuildMultipartContent();
+                request.Content = new ByteArrayContent(byteArray);
             }
-            else if (ContentType == "application/x-www-form-urlencoded" && Body is Dictionary<string, string> dictBody)
+            else if (Body is Stream stream)
             {
-                request.Content = new FormUrlEncodedContent(dictBody);
-            }
-            else if (ContentType == "application/octet-stream")
-            {
-                if (Body is byte[] byteArray)
-                {
-                    request.Content = new ByteArrayContent(byteArray);
-                    request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                }
-                else if (Body is Stream stream)
-                {
-                    request.Content = new StreamContent(stream);
-                    request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                }
-            }
-            else
-            {
-                // Handle JSON, XML, plain text, and custom content types
-                if (Body is string rawContent)
-                {
-                    request.Content = new StringContent(rawContent, Encoding.UTF8, ContentType);
-                }
-                else if (ContentType == "text/plain")
-                {
-                    request.Content = new StringContent(Body.ToString() ?? string.Empty, Encoding.UTF8, "text/plain");
-                }
-                else
-                {
-                    // Default to JSON serialization for objects
-                    var jsonContent = JsonSerializer.Serialize(Body, SerializerOptions);
-                    request.Content = new StringContent(jsonContent, Encoding.UTF8, ContentType);
-                }
+                request.Content = new StreamContent(stream);
             }
         }
 
-        request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
+        // Handle JSON, XML, plain text, and custom content types
+        if (Body is string rawContent)
+        {
+            request.Content = new StringContent(rawContent, Encoding.UTF8, ContentType);
+        }
+        else if (ContentType == "text/plain")
+        {
+            request.Content = new StringContent(Body.ToString() ?? string.Empty, Encoding.UTF8, "text/plain");
+        }
+        else
+        {
+            // Default to JSON serialization for objects
+            var jsonContent = JsonSerializer.Serialize(Body, SerializerOptions);
+            request.Content = new StringContent(jsonContent, Encoding.UTF8, ContentType);
+        }    
+        
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue(ContentType);
 
         return request;
     }

@@ -1,11 +1,11 @@
 ﻿using System.Text.Json;
 
-namespace Fuzn.FluentHttp;
+namespace Fuzn.FluentHttp.Internals;
 
 /// <summary>
 /// Default serializer provider using System.Text.Json for JSON serialization and deserialization.
 /// </summary>
-public class SystemTextJsonSerializerProvider : ISerializerProvider
+internal class SystemTextJsonSerializerProvider : ISerializerProvider
 {
     private readonly JsonSerializerOptions _options;
 
