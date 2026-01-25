@@ -85,27 +85,48 @@ internal class HttpRequestData
 
     private HttpContent? MapContent()
     {
+        // Multipart is handled separately and doesn't require Body
         if (ContentType == "multipart/form-data")
             return BuildMultipartContent();
 
-        if (ContentType == "application/x-www-form-urlencoded" && Body is Dictionary<string, string> dictBody)
-            return new FormUrlEncodedContent(dictBody);
+        // For all other content types, Body is required
+        if (Body is null)
+            return null;
 
-        if (ContentType == "application/octet-stream")
+        // Handle form URL encoded
+        if (ContentType == "application/x-www-form-urlencoded")
         {
-            if (Body is byte[] byteArray)
-                return new ByteArrayContent(byteArray);
-            else if (Body is Stream stream)
-                return new StreamContent(stream);
+            if (Body is Dictionary<string, string> dictBody)
+                return new FormUrlEncodedContent(dictBody);
+            
+            if (Body is IEnumerable<KeyValuePair<string, string>> kvpBody)
+                return new FormUrlEncodedContent(kvpBody);
+
+            throw new InvalidOperationException(
+                $"Body must be Dictionary<string, string> or IEnumerable<KeyValuePair<string, string>> for content type '{ContentType}'.");
         }
 
-        // Handle JSON, XML, plain text, and custom content types
-        if (Body is string rawContent)
-            return new StringContent(rawContent, Encoding.UTF8, ContentType);
-        else if (ContentType == "text/plain")
-            return new StringContent(Body.ToString() ?? string.Empty, Encoding.UTF8, "text/plain");
-        
-        // Default to JSON serialization for objects
+        // Handle binary content
+        if (ContentType == "application/octet-stream")
+        {
+            return Body switch
+            {
+                byte[] byteArray => new ByteArrayContent(byteArray),
+                Stream stream => new StreamContent(stream),
+                _ => throw new InvalidOperationException(
+                    $"Body must be byte[] or Stream for content type '{ContentType}'.")
+            };
+        }
+
+        // Handle string body - use as-is for any content type
+        if (Body is string stringContent)
+            return new StringContent(stringContent, Encoding.UTF8, ContentType);
+
+        // Handle plain text - convert object to string
+        if (ContentType == "text/plain")
+            return new StringContent(Body.ToString() ?? string.Empty, Encoding.UTF8, ContentType);
+
+        // For JSON and other content types, serialize as JSON
         var jsonContent = JsonSerializer.Serialize(Body, SerializerOptions);
         return new StringContent(jsonContent, Encoding.UTF8, ContentType);
     }
