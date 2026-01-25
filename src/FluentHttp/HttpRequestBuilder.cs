@@ -306,12 +306,18 @@ public class HttpRequestBuilder
     /// <param name="value">The value of the cookie.</param>
     /// <param name="path">The path for which the cookie is valid. Defaults to null.</param>
     /// <param name="domain">The domain for which the cookie is valid. Defaults to null.</param>
-    /// <param name="duration">The duration until the cookie expires. Defaults to 10 seconds if not specified.</param>
+    /// <param name="duration">The duration until the cookie expires. If not specified, creates a session cookie (no expiration).</param>
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder Cookie(string name, string value, string? path = null, string? domain = null, TimeSpan? duration = null)
     {
         var cookie = new Cookie(name, value, path, domain);
-        cookie.Expires = duration.HasValue ? DateTime.UtcNow.Add(duration.Value) : DateTime.UtcNow.AddSeconds(10);
+        
+        if (duration.HasValue)
+        {
+            cookie.Expires = DateTime.UtcNow.Add(duration.Value);
+        }
+        // If duration is not specified, don't set Expires - creates a session cookie
+        
         _data.Cookies.Add(cookie);
         return this;
     }
