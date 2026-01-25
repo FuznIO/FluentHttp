@@ -76,51 +76,38 @@ internal class HttpRequestData
         if (string.IsNullOrEmpty(ContentType))
             return request;
 
-        
+        request.Content = MapContent();
+        if (request.Content == null)
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue(ContentType);
 
+        return request;
+    }
+
+    private HttpContent? MapContent()
+    {
         if (ContentType == "multipart/form-data")
-        {
-            request.Content = BuildMultipartContent();
-            return request;
-        }
+            return BuildMultipartContent();
 
         if (ContentType == "application/x-www-form-urlencoded" && Body is Dictionary<string, string> dictBody)
-        {
-            request.Content = new FormUrlEncodedContent(dictBody);
-            return request;
-        }
+            return new FormUrlEncodedContent(dictBody);
 
         if (ContentType == "application/octet-stream")
         {
             if (Body is byte[] byteArray)
-            {
-                request.Content = new ByteArrayContent(byteArray);
-            }
+                return new ByteArrayContent(byteArray);
             else if (Body is Stream stream)
-            {
-                request.Content = new StreamContent(stream);
-            }
+                return new StreamContent(stream);
         }
 
         // Handle JSON, XML, plain text, and custom content types
         if (Body is string rawContent)
-        {
-            request.Content = new StringContent(rawContent, Encoding.UTF8, ContentType);
-        }
+            return new StringContent(rawContent, Encoding.UTF8, ContentType);
         else if (ContentType == "text/plain")
-        {
-            request.Content = new StringContent(Body.ToString() ?? string.Empty, Encoding.UTF8, "text/plain");
-        }
-        else
-        {
-            // Default to JSON serialization for objects
-            var jsonContent = JsonSerializer.Serialize(Body, SerializerOptions);
-            request.Content = new StringContent(jsonContent, Encoding.UTF8, ContentType);
-        }    
+            return new StringContent(Body.ToString() ?? string.Empty, Encoding.UTF8, "text/plain");
         
-        request.Content.Headers.ContentType = new MediaTypeHeaderValue(ContentType);
-
-        return request;
+        // Default to JSON serialization for objects
+        var jsonContent = JsonSerializer.Serialize(Body, SerializerOptions);
+        return new StringContent(jsonContent, Encoding.UTF8, ContentType);
     }
 
     private string GetRequestUrlWithPathAndQuery()
