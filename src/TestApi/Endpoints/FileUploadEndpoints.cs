@@ -1,3 +1,6 @@
+using Fuzn.FluentHttp.TestApi.Models;
+using Fuzn.FluentHttp.TestApi.Models;
+
 namespace Fuzn.FluentHttp.TestApi.Endpoints;
 
 public static class FileUploadEndpoints
@@ -7,18 +10,16 @@ public static class FileUploadEndpoints
         app.MapPost("/api/files/upload", async (HttpContext context) =>
         {
             var form = await context.Request.ReadFormAsync();
-            var files = form.Files.Select(f => new
+            var files = form.Files.Select(f => new MultipleFileUploadResponse.FileInfo
             {
-                name = f.Name,
-                fileName = f.FileName,
-                contentType = f.ContentType,
-                length = f.Length
+                Name = f.Name,
+                FileName = f.FileName
             }).ToList();
             
             var fields = form.Where(f => f.Key != null && !form.Files.Any(file => file.Name == f.Key))
                              .ToDictionary(f => f.Key, f => f.Value.ToString());
             
-            return Results.Ok(new { files, fields });
+            return Results.Ok(new MultipleFileUploadResponse { Files = files, Fields = fields });
         });
 
         app.MapPost("/api/files/upload-single", async (HttpContext context) =>
@@ -33,13 +34,12 @@ public static class FileUploadEndpoints
             await file.CopyToAsync(ms);
             var content = ms.ToArray();
             
-            return Results.Ok(new
+            return Results.Ok(new SingleFileUploadResponse
             {
-                name = file.Name,
-                fileName = file.FileName,
-                contentType = file.ContentType,
-                length = file.Length,
-                contentPreview = content.Length <= 100 ? Convert.ToBase64String(content) : Convert.ToBase64String(content.Take(100).ToArray()) + "..."
+                Name = file.Name,
+                FileName = file.FileName,
+                ContentType = file.ContentType,
+                Length = file.Length
             });
         });
     }

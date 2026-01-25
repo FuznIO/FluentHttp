@@ -1,3 +1,6 @@
+using Fuzn.FluentHttp.TestApi.Models;
+using Fuzn.FluentHttp.TestApi.Models;
+
 namespace Fuzn.FluentHttp.Tests;
 
 [TestClass]
@@ -16,9 +19,9 @@ public class HttpMethodTests : Test
                 Assert.IsTrue(response.Ok);
                 Assert.AreEqual(System.Net.HttpStatusCode.OK, response.StatusCode);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("GET", (string)body!.method);
-                Assert.IsTrue((bool)body!.success);
+                var body = response.As<MethodResponse>();
+                Assert.AreEqual("GET", body!.Method);
+                Assert.IsTrue(body.Success);
             })
             .Run();
     }
@@ -38,9 +41,9 @@ public class HttpMethodTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("POST", (string)body!.method);
-                Assert.IsTrue((bool)body!.success);
+                var body = response.As<MethodResponse>();
+                Assert.AreEqual("POST", body!.Method);
+                Assert.IsTrue(body.Success);
             })
             .Run();
     }
@@ -60,8 +63,8 @@ public class HttpMethodTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("PUT", (string)body!.method);
+                var body = response.As<MethodResponse>();
+                Assert.AreEqual("PUT", body!.Method);
             })
             .Run();
     }
@@ -78,8 +81,8 @@ public class HttpMethodTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("DELETE", (string)body!.method);
+                var body = response.As<MethodResponse>();
+                Assert.AreEqual("DELETE", body!.Method);
             })
             .Run();
     }
@@ -99,8 +102,8 @@ public class HttpMethodTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("PATCH", (string)body!.method);
+                var body = response.As<MethodResponse>();
+                Assert.AreEqual("PATCH", body!.Method);
             })
             .Run();
     }

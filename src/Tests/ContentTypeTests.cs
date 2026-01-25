@@ -1,4 +1,5 @@
-using System.Text;
+using Fuzn.FluentHttp.TestApi.Models;
+using Fuzn.FluentHttp.TestApi.Models;
 
 namespace Fuzn.FluentHttp.Tests;
 
@@ -22,8 +23,8 @@ public class ContentTypeTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("application/json", (string)body!.contentType);
+                var body = response.As<ContentTypeResponse>();
+                Assert.AreEqual("application/json", body!.ContentType);
             })
             .Run();
     }
@@ -44,8 +45,8 @@ public class ContentTypeTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.IsTrue(((string)body!.contentType).Contains("application/json"));
+                var body = response.As<ContentTypeResponse>();
+                Assert.IsTrue(body!.ContentType.Contains("application/json"));
             })
             .Run();
     }
@@ -65,8 +66,8 @@ public class ContentTypeTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.IsTrue(((string)body!.contentType).Contains("application/xml"));
+                var body = response.As<ContentTypeResponse>();
+                Assert.IsTrue(body!.ContentType.Contains("application/xml"));
             })
             .Run();
     }

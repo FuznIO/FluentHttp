@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using System.Net.Http.Headers;
-using Fuzn.FluentHttp.Internals;
 
 namespace Fuzn.FluentHttp;
 
@@ -110,27 +109,6 @@ public class HttpResponse
         catch (Exception ex)
         {
             throw new Exception($"Unable to deserialize into {typeof(T)}. \nURL: {_request?.RequestUri} \nResponse body: \n{Body}\nException message: \n{ex?.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Parses the response body as a dynamic JSON object.
-    /// </summary>
-    /// <returns>A dynamic object representing the JSON response, or null if the body is null.</returns>
-    /// <exception cref="Exception">Thrown when the body is not valid JSON.</exception>
-    public dynamic? BodyAsJson()
-    {
-        if (Body == null)
-            return null;
-
-        try
-        {
-            dynamic? json = DynamicHelper.ParseJsonToDynamic(Body);
-            return json;
-        }
-        catch (Exception)
-        {
-            throw new Exception($"The response body was not a valid JSON. \nURL: {_request.RequestUri} \nResponse body: \n{Body}");
         }
     }
 

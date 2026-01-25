@@ -1,3 +1,4 @@
+using Fuzn.FluentHttp.TestApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fuzn.FluentHttp.TestApi.Endpoints;
@@ -27,7 +28,7 @@ public static class CookiesEndpoints
         app.MapGet("/api/cookies/echo", (HttpContext context) =>
         {
             var cookies = context.Request.Cookies.ToDictionary(c => c.Key, c => c.Value);
-            return Results.Ok(new { cookies });
+            return Results.Ok(new CookiesEchoResponse { Cookies = cookies });
         });
     }
 }

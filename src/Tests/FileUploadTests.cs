@@ -1,3 +1,5 @@
+using Fuzn.FluentHttp.TestApi.Models;
+using Fuzn.FluentHttp.TestApi.Models;
 using System.Text;
 
 namespace Fuzn.FluentHttp.Tests;
@@ -21,10 +23,10 @@ public class FileUploadTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("test.txt", (string)body!.fileName);
-                Assert.AreEqual("text/plain", (string)body!.contentType);
-                Assert.AreEqual(fileContent.Length, (long)body!.length);
+                var body = response.As<SingleFileUploadResponse>();
+                Assert.AreEqual("test.txt", body!.FileName);
+                Assert.AreEqual("text/plain", body.ContentType);
+                Assert.AreEqual(fileContent.Length, body.Length);
             })
             .Run();
     }
@@ -46,8 +48,8 @@ public class FileUploadTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("stream-test.txt", (string)body!.fileName);
+                var body = response.As<SingleFileUploadResponse>();
+                Assert.AreEqual("stream-test.txt", body!.FileName);
             })
             .Run();
     }
@@ -69,9 +71,9 @@ public class FileUploadTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("document", (string)body!.name);
-                Assert.AreEqual("document.txt", (string)body!.fileName);
+                var body = response.As<SingleFileUploadResponse>();
+                Assert.AreEqual("document", body!.Name);
+                Assert.AreEqual("document.txt", body.FileName);
             })
             .Run();
     }
@@ -94,9 +96,8 @@ public class FileUploadTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                var files = (IEnumerable<dynamic>)body!.files;
-                Assert.AreEqual(2, files.Count());
+                var body = response.As<MultipleFileUploadResponse>();
+                Assert.AreEqual(2, body!.Files.Count);
             })
             .Run();
     }
@@ -119,10 +120,9 @@ public class FileUploadTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                var fields = body!.fields;
-                Assert.AreEqual("Test file description", (string)fields["description"]);
-                Assert.AreEqual("documents", (string)fields["category"]);
+                var body = response.As<MultipleFileUploadResponse>();
+                Assert.AreEqual("Test file description", body!.Fields["description"]);
+                Assert.AreEqual("documents", body.Fields["category"]);
             })
             .Run();
     }
@@ -149,10 +149,9 @@ public class FileUploadTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                var fields = body!.fields;
-                Assert.AreEqual("value1", (string)fields["field1"]);
-                Assert.AreEqual("value2", (string)fields["field2"]);
+                var body = response.As<MultipleFileUploadResponse>();
+                Assert.AreEqual("value1", body!.Fields["field1"]);
+                Assert.AreEqual("value2", body.Fields["field2"]);
             })
             .Run();
     }

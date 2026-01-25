@@ -1,4 +1,5 @@
 using System.Text;
+using Fuzn.FluentHttp.TestApi.Models;
 
 namespace Fuzn.FluentHttp.TestApi.Endpoints;
 
@@ -13,7 +14,7 @@ public static class AuthenticationEndpoints
                 return Results.Unauthorized();
             
             var token = authHeader["Bearer ".Length..];
-            return Results.Ok(new { authenticated = true, tokenReceived = token });
+            return Results.Ok(new BearerAuthResponse { Authenticated = true, TokenReceived = token });
         });
 
         app.MapGet("/api/auth/basic", (HttpContext context) =>
@@ -24,7 +25,7 @@ public static class AuthenticationEndpoints
             
             var credentials = Encoding.UTF8.GetString(Convert.FromBase64String(authHeader["Basic ".Length..]));
             var parts = credentials.Split(':');
-            return Results.Ok(new { authenticated = true, username = parts[0], password = parts.Length > 1 ? parts[1] : "" });
+            return Results.Ok(new BasicAuthResponse { Authenticated = true, Username = parts[0], Password = parts.Length > 1 ? parts[1] : "" });
         });
 
         app.MapGet("/api/auth/apikey", (HttpContext context) =>
@@ -33,7 +34,7 @@ public static class AuthenticationEndpoints
             if (string.IsNullOrEmpty(apiKey))
                 return Results.Unauthorized();
             
-            return Results.Ok(new { authenticated = true, apiKey });
+            return Results.Ok(new ApiKeyAuthResponse { Authenticated = true, ApiKey = apiKey });
         });
 
         app.MapGet("/api/auth/apikey-custom", (HttpContext context) =>
@@ -42,7 +43,7 @@ public static class AuthenticationEndpoints
             if (string.IsNullOrEmpty(apiKey))
                 return Results.Unauthorized();
             
-            return Results.Ok(new { authenticated = true, apiKey });
+            return Results.Ok(new ApiKeyAuthResponse { Authenticated = true, ApiKey = apiKey });
         });
     }
 }

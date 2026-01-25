@@ -1,3 +1,6 @@
+using Fuzn.FluentHttp.TestApi.Models;
+using Fuzn.FluentHttp.TestApi.Models;
+
 namespace Fuzn.FluentHttp.Tests;
 
 [TestClass]
@@ -18,9 +21,9 @@ public class QueryParameterTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("TestName", (string)body!.name);
-                Assert.AreEqual(42, (int)body!.count);
+                var body = response.As<SingleQueryParamsResponse>();
+                Assert.AreEqual("TestName", body!.Name);
+                Assert.AreEqual(42, body.Count);
             })
             .Run();
     }
@@ -39,12 +42,11 @@ public class QueryParameterTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                var tags = ((IEnumerable<dynamic>)body!.tags).Select(t => (string)t).ToList();
-                Assert.AreEqual(3, tags.Count);
-                Assert.IsTrue(tags.Contains("csharp"));
-                Assert.IsTrue(tags.Contains("dotnet"));
-                Assert.IsTrue(tags.Contains("http"));
+                var body = response.As<MultipleQueryParamsResponse>();
+                Assert.AreEqual(3, body!.Tags.Count);
+                Assert.IsTrue(body.Tags.Contains("csharp"));
+                Assert.IsTrue(body.Tags.Contains("dotnet"));
+                Assert.IsTrue(body.Tags.Contains("http"));
             })
             .Run();
     }
@@ -71,11 +73,11 @@ public class QueryParameterTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("test query", (string)body!.search);
-                Assert.AreEqual(2, (int)body!.page);
-                Assert.AreEqual(25, (int)body!.pageSize);
-                Assert.IsTrue((bool)body!.includeDeleted);
+                var body = response.As<ComplexQueryParamsResponse>();
+                Assert.AreEqual("test query", body!.Search);
+                Assert.AreEqual(2, body.Page);
+                Assert.AreEqual(25, body.PageSize);
+                Assert.IsTrue(body.IncludeDeleted);
             })
             .Run();
     }
@@ -94,11 +96,11 @@ public class QueryParameterTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("anonymous", (string)body!.search);
-                Assert.AreEqual(3, (int)body!.page);
-                Assert.AreEqual(50, (int)body!.pageSize);
-                Assert.IsFalse((bool)body!.includeDeleted);
+                var body = response.As<ComplexQueryParamsResponse>();
+                Assert.AreEqual("anonymous", body!.Search);
+                Assert.AreEqual(3, body.Page);
+                Assert.AreEqual(50, body.PageSize);
+                Assert.IsFalse(body.IncludeDeleted);
             })
             .Run();
     }
@@ -118,8 +120,8 @@ public class QueryParameterTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("TestName", (string)body!.name);
+                var body = response.As<SingleQueryParamsResponse>();
+                Assert.AreEqual("TestName", body!.Name);
             })
             .Run();
     }

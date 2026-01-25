@@ -1,3 +1,6 @@
+using Fuzn.FluentHttp.TestApi.Models;
+using Fuzn.FluentHttp.TestApi.Models;
+
 namespace Fuzn.FluentHttp.Tests;
 
 [TestClass]
@@ -17,9 +20,9 @@ public class AuthenticationTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.IsTrue((bool)body!.authenticated);
-                Assert.AreEqual("my-test-token-12345", (string)body!.tokenReceived);
+                var body = response.As<BearerAuthResponse>();
+                Assert.IsTrue(body!.Authenticated);
+                Assert.AreEqual("my-test-token-12345", body.TokenReceived);
             })
             .Run();
     }
@@ -53,10 +56,10 @@ public class AuthenticationTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.IsTrue((bool)body!.authenticated);
-                Assert.AreEqual("testuser", (string)body!.username);
-                Assert.AreEqual("testpassword", (string)body!.password);
+                var body = response.As<BasicAuthResponse>();
+                Assert.IsTrue(body!.Authenticated);
+                Assert.AreEqual("testuser", body.Username);
+                Assert.AreEqual("testpassword", body.Password);
             })
             .Run();
     }
@@ -90,9 +93,9 @@ public class AuthenticationTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.IsTrue((bool)body!.authenticated);
-                Assert.AreEqual("my-api-key-secret", (string)body!.apiKey);
+                var body = response.As<ApiKeyAuthResponse>();
+                Assert.IsTrue(body!.Authenticated);
+                Assert.AreEqual("my-api-key-secret", body.ApiKey);
             })
             .Run();
     }
@@ -111,9 +114,9 @@ public class AuthenticationTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.IsTrue((bool)body!.authenticated);
-                Assert.AreEqual("custom-api-key", (string)body!.apiKey);
+                var body = response.As<ApiKeyAuthResponse>();
+                Assert.IsTrue(body!.Authenticated);
+                Assert.AreEqual("custom-api-key", body.ApiKey);
             })
             .Run();
     }

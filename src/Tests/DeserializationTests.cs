@@ -47,26 +47,6 @@ public class DeserializationTests : Test
     }
 
     [Test]
-    public async Task BodyAsJson_ReturnsDynamicObject()
-    {
-        await Scenario()
-            .Step("Get response body as dynamic JSON", async _ =>
-            {
-                var client = SuiteData.Factory.CreateClient();
-                
-                var response = await client.Url("/api/deserialize/person").Get();
-
-                Assert.IsTrue(response.Ok);
-                
-                var body = response.BodyAsJson();
-                Assert.IsNotNull(body);
-                Assert.AreEqual(1, (int)body!.Id);
-                Assert.AreEqual("John Doe", (string)body!.Name);
-            })
-            .Run();
-    }
-
-    [Test]
     public async Task AsBytes_ReturnsRawBytes()
     {
         await Scenario()

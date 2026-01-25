@@ -1,3 +1,5 @@
+using Fuzn.FluentHttp.TestApi.Models;
+using Fuzn.FluentHttp.TestApi.Models;
 using System.Net;
 
 namespace Fuzn.FluentHttp.Tests;
@@ -19,9 +21,8 @@ public class CookieTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                var cookies = body!.cookies;
-                Assert.AreEqual("abc123", (string)cookies["session"]);
+                var body = response.As<CookiesEchoResponse>();
+                Assert.AreEqual("abc123", body!.Cookies["session"]);
             })
             .Run();
     }
@@ -41,9 +42,9 @@ public class CookieTests : Test
 
                 Assert.IsTrue(response.Ok);
 
-                var cookies = response.As<EchoResponse>();
-                Assert.AreEqual("abc123", (string)cookies.cookies["session"]);
-                Assert.AreEqual("john", (string)cookies.cookies["user"]);
+                var cookies = response.As<CookiesEchoResponse>();
+                Assert.AreEqual("abc123", cookies!.Cookies["session"]);
+                Assert.AreEqual("john", cookies.Cookies["user"]);
             })
             .Run();
     }
@@ -64,9 +65,8 @@ public class CookieTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                var cookies = body!.cookies;
-                Assert.AreEqual("token123", (string)cookies["auth"]);
+                var body = response.As<CookiesEchoResponse>();
+                Assert.AreEqual("token123", body!.Cookies["auth"]);
             })
             .Run();
     }
@@ -92,10 +92,5 @@ public class CookieTests : Test
                 Assert.AreEqual("testValue", cookie!.Value);
             })
             .Run();
-    }
-
-    internal class EchoResponse
-    {
-        public Dictionary<string, string> cookies { get; set; } = new();
     }
 }

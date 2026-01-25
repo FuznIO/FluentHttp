@@ -544,7 +544,8 @@ public class HttpRequestBuilder
         ISerializerProvider serializerProvider = null;
         if (_data.SerializerProvider == null)
         {
-            JsonSerializerOptions serializerOptions = _data.SerializerOptions ?? new JsonSerializerOptions();
+            JsonSerializerOptions serializerOptions = _data.SerializerOptions
+                                                            ?? new JsonSerializerOptions() { PropertyNameCaseInsensitive = true };
 
             serializerProvider = new SystemTextJsonSerializerProvider(serializerOptions);            ;
         }

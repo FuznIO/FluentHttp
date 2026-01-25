@@ -1,3 +1,6 @@
+using Fuzn.FluentHttp.TestApi.Models;
+using Fuzn.FluentHttp.TestApi.Models;
+
 namespace Fuzn.FluentHttp.Tests;
 
 [TestClass]
@@ -17,8 +20,8 @@ public class HeaderTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("CustomValue123", (string)body!.customHeader);
+                var body = response.As<CustomHeaderResponse>();
+                Assert.AreEqual("CustomValue123", body!.CustomHeader);
             })
             .Run();
     }
@@ -43,10 +46,9 @@ public class HeaderTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                var responseHeaders = body!.headers;
-                Assert.AreEqual("Value1", (string)responseHeaders["X-Custom-Header"]);
-                Assert.AreEqual("Value2", (string)responseHeaders["X-Another-Header"]);
+                var body = response.As<HeadersEchoResponse>();
+                Assert.AreEqual("Value1", body!.Headers["X-Custom-Header"]);
+                Assert.AreEqual("Value2", body!.Headers["X-Another-Header"]);
             })
             .Run();
     }
@@ -65,8 +67,8 @@ public class HeaderTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.AreEqual("FluentHttp-Test/1.0", (string)body!.userAgent);
+                var body = response.As<CustomHeaderResponse>();
+                Assert.AreEqual("FluentHttp-Test/1.0", body!.UserAgent);
             })
             .Run();
     }
@@ -85,8 +87,8 @@ public class HeaderTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.IsTrue(((string)body!.accept).Contains("application/json"));
+                var body = response.As<AcceptHeaderResponse>();
+                Assert.IsTrue(body!.Accept.Contains("application/json"));
             })
             .Run();
     }
@@ -105,8 +107,8 @@ public class HeaderTests : Test
 
                 Assert.IsTrue(response.Ok);
                 
-                var body = response.BodyAsJson();
-                Assert.IsTrue(((string)body!.accept).Contains("application/pdf"));
+                var body = response.As<AcceptHeaderResponse>();
+                Assert.IsTrue(body!.Accept.Contains("application/pdf"));
             })
             .Run();
     }

@@ -1,3 +1,4 @@
+using Fuzn.FluentHttp.TestApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fuzn.FluentHttp.TestApi.Endpoints;
@@ -7,7 +8,7 @@ public static class HttpMethodsEndpoints
     public static void MapHttpMethodsEndpoints(this WebApplication app)
     {
         app.MapGet("/api/methods/get", () => 
-            Results.Ok(new { method = "GET", success = true }));
+            Results.Ok(new MethodResponse { Method = "GET", Success = true }));
 
         app.MapPost("/api/methods/post", ([FromBody] object? body) => 
             Results.Ok(new { method = "POST", success = true, receivedBody = body }));
@@ -16,7 +17,7 @@ public static class HttpMethodsEndpoints
             Results.Ok(new { method = "PUT", success = true, receivedBody = body }));
 
         app.MapDelete("/api/methods/delete", () => 
-            Results.Ok(new { method = "DELETE", success = true }));
+            Results.Ok(new MethodResponse { Method = "DELETE", Success = true }));
 
         app.MapPatch("/api/methods/patch", ([FromBody] object? body) => 
             Results.Ok(new { method = "PATCH", success = true, receivedBody = body }));
