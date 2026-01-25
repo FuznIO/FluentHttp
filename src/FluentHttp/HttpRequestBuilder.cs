@@ -526,37 +526,16 @@ public class HttpRequestBuilder
     private async Task<HttpResponse> Send()
     {
         var request = _data.MapToHttpRequestMessage();
-
-        var outputRequestResponse = false;
         HttpResponseMessage? response = null;
         string? responseBody = null;
         CookieContainer? responseCookies = null;
 
-        try
-        {
             var cts = new CancellationTokenSource(_data.Timeout);
-
-            if (request.Content != null)
-            {
-                var requestBody = await request.Content.ReadAsStringAsync(cts.Token);
-            }
 
             response = await _data.HttpClient.SendAsync(request, cts.Token);
             responseBody = await response.Content.ReadAsStringAsync(cts.Token);
-
             responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
 
-            if (!response.IsSuccessStatusCode)
-                outputRequestResponse = true;
-        }
-        catch (Exception ex)
-        {
-            outputRequestResponse = true;
-            throw;
-        }
-        finally
-        {
-        }
 
         return new HttpResponse(request, response, responseCookies, body: responseBody, _data.SerializerProvider);
     }

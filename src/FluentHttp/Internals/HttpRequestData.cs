@@ -123,10 +123,10 @@ internal class HttpRequestData
 
     private string GetRequestUrlWithPathAndQuery()
     {
-        var pathAndQuery = AbsoluteUri.PathAndQuery;
-            
         if (QueryParams.Count == 0)
-            return pathAndQuery;
+            return AbsoluteUri.PathAndQuery;
+
+        var pathAndQuery = AbsoluteUri.PathAndQuery;
 
         // Build query string
         var queryString = BuildQueryString();

@@ -32,7 +32,7 @@ public class SystemTextJsonSerializerProvider : ISerializerProvider
     /// <typeparam name="T">The type of object to serialize.</typeparam>
     /// <param name="obj">The object to serialize.</param>
     /// <returns>A JSON string representation of the object.</returns>
-    public string Serialize<T>(T obj) where T : class
+    public string Serialize<T>(T obj)
     {
         return JsonSerializer.Serialize(obj, _options);
     }
@@ -43,7 +43,7 @@ public class SystemTextJsonSerializerProvider : ISerializerProvider
     /// <typeparam name="T">The type to deserialize to.</typeparam>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>The deserialized object.</returns>
-    public T Deserialize<T>(string json) where T : class
+    public T? Deserialize<T>(string json)
     {
         return JsonSerializer.Deserialize<T>(json, _options);
     }
