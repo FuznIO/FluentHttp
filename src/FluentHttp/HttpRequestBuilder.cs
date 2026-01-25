@@ -390,17 +390,6 @@ public class HttpRequestBuilder
         return this;
     }
 
-    ///// <summary>
-    ///// Sets the logging verbosity level for the request.
-    ///// </summary>
-    ///// <param name="verbosity">The logging verbosity level.</param>
-    ///// <returns>The current builder instance for method chaining.</returns>
-    //public HttpRequestBuilder LoggingVerbosity(LoggingVerbosity verbosity)
-    //{
-    //    _loggingVerbosity = verbosity;
-    //    return this;
-    //}
-
     /// <summary>
     /// Sets a custom User-Agent header for the request.
     /// </summary>
@@ -533,7 +522,7 @@ public class HttpRequestBuilder
         return SendForStream(cancellationToken);
     }
 
-    internal async Task<HttpResponse> Send()
+    private async Task<HttpResponse> Send()
     {
         var request = _data.MapToHttpRequestMessage();
 
@@ -571,7 +560,7 @@ public class HttpRequestBuilder
         return new HttpResponse(request, response, responseCookies, body: responseBody, _data.SerializerProvider);
     }
 
-    internal async Task<HttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
+    private async Task<HttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
     {
         var request = _data.MapToHttpRequestMessage();
         HttpResponseMessage? response = null;
