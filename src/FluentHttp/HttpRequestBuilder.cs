@@ -378,6 +378,18 @@ public class HttpRequestBuilder
         return this;
     }
 
+    /// <summary>
+    /// Sets API key authentication via a custom header.
+    /// </summary>
+    /// <param name="apiKey">The API key value.</param>
+    /// <param name="headerName">The header name. Defaults to "X-API-Key".</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder AuthApiKey(string apiKey, string headerName = "X-API-Key")
+    {
+        _data.Headers[headerName] = apiKey;
+        return this;
+    }
+
     ///// <summary>
     ///// Sets the logging verbosity level for the request.
     ///// </summary>
