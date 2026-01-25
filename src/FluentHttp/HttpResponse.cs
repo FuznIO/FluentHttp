@@ -46,7 +46,8 @@ public class HttpResponse
     /// <summary>
     /// Gets or sets the raw response string representation.
     /// </summary>
-    public string RawResponse { get; set; }
+    public string RawResponse { get; internal set; }
+
 
     /// <summary>
     /// Gets the response headers.
@@ -66,7 +67,7 @@ public class HttpResponse
     /// <summary>
     /// Gets the cookies received in the response.
     /// </summary>
-    public List<Cookie> Cookies => _cookies;
+    public IReadOnlyList<Cookie> Cookies => _cookies;
 
     /// <summary>
     /// Gets the HTTP status code of the response.
@@ -101,8 +102,7 @@ public class HttpResponse
         try
         {
             var obj = _serializerProvider.Deserialize<T>(Body);
-            if (obj == null)
-                throw new Exception($"Deserialized object is null.");
+
             return obj;
         }
         catch (Exception ex)
