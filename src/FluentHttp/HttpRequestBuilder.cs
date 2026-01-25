@@ -527,17 +527,16 @@ public class HttpRequestBuilder
     {
         var request = _data.MapToHttpRequestMessage();
         HttpResponseMessage? response = null;
-        string? responseBody = null;
+        byte[]? responseBytes = null;
         CookieContainer? responseCookies = null;
 
-            var cts = new CancellationTokenSource(_data.Timeout);
+        var cts = new CancellationTokenSource(_data.Timeout);
 
-            response = await _data.HttpClient.SendAsync(request, cts.Token);
-            responseBody = await response.Content.ReadAsStringAsync(cts.Token);
-            responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
+        response = await _data.HttpClient.SendAsync(request, cts.Token);
+        responseBytes = await response.Content.ReadAsByteArrayAsync(cts.Token);
+        responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
 
-
-        return new HttpResponse(request, response, responseCookies, body: responseBody, _data.SerializerProvider);
+        return new HttpResponse(request, response, responseCookies, rawBytes: responseBytes, _data.SerializerProvider);
     }
 
     private async Task<HttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)

@@ -12,18 +12,22 @@ public class HttpResponse
     private readonly List<Cookie> _cookies = new();
     private readonly HttpRequestMessage _request;
     private readonly ISerializerProvider _serializerProvider;
+    private readonly byte[] _rawBytes;
 
     internal HttpResponse(HttpRequestMessage request,
         HttpResponseMessage response,
         CookieContainer? cookieContainer,
-        string body,
+        byte[] rawBytes,
         ISerializerProvider serializerProvider)
     {
         _request = request;
         _serializerProvider = serializerProvider;
+        _rawBytes = rawBytes;
         InnerResponse = response;
         RawResponse = response.ToString();
-        Body = body;
+
+        // Decode the body using the encoding specified in Content-Type header
+        Body = DecodeBody(rawBytes, response.Content.Headers.ContentType);
 
         if (cookieContainer != null)
         {
@@ -80,12 +84,9 @@ public class HttpResponse
     /// Gets the response body as a byte array.
     /// </summary>
     /// <returns>A byte array containing the response body.</returns>
-    public byte[] BodyAsBytes()
+    public byte[] AsBytes()
     {
-        if (string.IsNullOrEmpty(Body))
-            return [];
-
-        return System.Text.Encoding.UTF8.GetBytes(Body);
+        return _rawBytes;
     }
 
     /// <summary>
@@ -94,7 +95,7 @@ public class HttpResponse
     /// <typeparam name="T">The type to deserialize the body into.</typeparam>
     /// <returns>The deserialized object.</returns>
     /// <exception cref="Exception">Thrown when the body is empty, null, or cannot be deserialized.</exception>
-    public T? BodyAs<T>()
+    public T? As<T>()
     {
         if (string.IsNullOrEmpty(Body))
             return default;
@@ -131,5 +132,18 @@ public class HttpResponse
         {
             throw new Exception($"The response body was not a valid JSON. \nURL: {_request.RequestUri} \nResponse body: \n{Body}");
         }
+    }
+
+    private static string DecodeBody(byte[] bytes, System.Net.Http.Headers.MediaTypeHeaderValue? contentType)
+    {
+        if (bytes.Length == 0)
+            return string.Empty;
+
+        // Get encoding from Content-Type header, default to UTF-8
+        var encoding = contentType?.CharSet != null
+            ? System.Text.Encoding.GetEncoding(contentType.CharSet)
+            : System.Text.Encoding.UTF8;
+
+        return encoding.GetString(bytes);
     }
 }
