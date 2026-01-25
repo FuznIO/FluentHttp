@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace Fuzn.FluentHttp;
 
 /// <summary>

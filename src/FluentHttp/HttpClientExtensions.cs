@@ -1,4 +1,6 @@
-﻿namespace Fuzn.FluentHttp;
+﻿using System.Net.Http;
+
+namespace Fuzn.FluentHttp;
 
 public static class HttpClientExtensions
 {

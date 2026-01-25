@@ -1,8 +1,12 @@
 ﻿using Fuzn.FluentHttp.Internals;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Text;
-using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Fuzn.FluentHttp;
 
@@ -11,7 +15,7 @@ namespace Fuzn.FluentHttp;
 /// </summary>
 public class HttpRequestBuilder
 {
-    private HttpRequestData _data = new();
+    private readonly HttpRequestData _data = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HttpRequestBuilder"/> class.
@@ -20,11 +24,8 @@ public class HttpRequestBuilder
     /// <param name="url">The target URL for the request.</param>
     internal HttpRequestBuilder(HttpClient httpClient, string url)
     {
-        if (httpClient == null)
-            throw new ArgumentNullException(nameof(httpClient));
-
-        if (string.IsNullOrEmpty(url))
-            throw new ArgumentNullException(nameof(url));
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(url);
 
         _data.HttpClient = httpClient;
 
@@ -227,12 +228,12 @@ public class HttpRequestBuilder
     }
 
     /// <summary>
-    /// Adds multiple values for the same query parameter (e.g., ?tags=c#&tags=dotnet&tags=http).
+    /// Adds multiple values for the same query parameter (e.g., ?tags=c%23&amp;tags=dotnet&amp;tags=http).
     /// </summary>
     /// <param name="key">The parameter name.</param>
     /// <param name="values">The collection of values.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder QueryParam(string key, IEnumerable<object?> values)
+    public HttpRequestBuilder QueryParam(string key, IEnumerable<object?>? values)
     {
         if (values == null)
             return this;
@@ -250,7 +251,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="parameters">An anonymous object whose properties become query parameters.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder QueryParams(object parameters)
+    public HttpRequestBuilder QueryParams(object? parameters)
     {
         if (parameters == null)
             return this;
@@ -436,80 +437,80 @@ public class HttpRequestBuilder
     /// Sends the request using the HTTP GET method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Get()
+    public Task<HttpResponse> Get(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Get;
-        return Send();
+        return Send(cancellationToken);
     }
 
     /// <summary>
     /// Sends the request using the HTTP POST method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Post()
+    public Task<HttpResponse> Post(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Post;
-        return Send();
+        return Send(cancellationToken);
     }
 
     /// <summary>
     /// Sends the request using the HTTP PUT method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Put()
+    public Task<HttpResponse> Put(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Put;
-        return Send();
+        return Send(cancellationToken);
     }
 
     /// <summary>
     /// Sends the request using the HTTP DELETE method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Delete()
+    public Task<HttpResponse> Delete(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Delete;
-        return Send();
+        return Send(cancellationToken);
     }
 
     /// <summary>
     /// Sends the request using the HTTP PATCH method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Patch()
+    public Task<HttpResponse> Patch(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Patch;
-        return Send();
+        return Send(cancellationToken);
     }
 
     /// <summary>
     /// Sends the request using the HTTP HEAD method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Head()
+    public Task<HttpResponse> Head(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Head;
-        return Send();
+        return Send(cancellationToken);
     }
 
     /// <summary>
     /// Sends the request using the HTTP OPTIONS method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Options()
+    public Task<HttpResponse> Options(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Options;
-        return Send();
+        return Send(cancellationToken);
     }
 
     /// <summary>
     /// Sends the request using the HTTP TRACE method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
-    public Task<HttpResponse> Trace()
+    public Task<HttpResponse> Trace(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Trace;
-        return Send();
+        return Send(cancellationToken);
     }
 
     /// <summary>
@@ -536,33 +537,24 @@ public class HttpRequestBuilder
         return SendForStream(cancellationToken);
     }
 
-    private async Task<HttpResponse> Send()
+    private async Task<HttpResponse> Send(CancellationToken cancellationToken = default)
     {
         var request = _data.MapToHttpRequestMessage();
-        HttpResponseMessage? response = null;
-        byte[]? responseBytes = null;
-        CookieContainer? responseCookies = null;
 
-        var cts = CancellationToken.None;
-
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (_data.Timeout != TimeSpan.Zero)
-            cts = new CancellationTokenSource(_data.Timeout).Token;
+            cts.CancelAfter(_data.Timeout);
 
-        response = await _data.HttpClient.SendAsync(request, cts);
-        responseBytes = await response.Content.ReadAsByteArrayAsync(cts);
-        
-        responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
+        var response = await _data.HttpClient.SendAsync(request, cts.Token);
+        var responseBytes = await response.Content.ReadAsByteArrayAsync(cts.Token);
 
-        ISerializerProvider serializerProvider = null!;
-        if (_data.SerializerProvider == null)
+        var responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
+
+        var serializerProvider = _data.SerializerProvider ?? _data.SerializerOptions switch
         {
-            if (_data.SerializerOptions == null)
-                serializerProvider = new SystemTextJsonSerializerProvider();
-            else
-                serializerProvider = new SystemTextJsonSerializerProvider(_data.SerializerOptions);
-        }
-        else
-            serializerProvider = _data.SerializerProvider;
+            null => new SystemTextJsonSerializerProvider(),
+            var options => new SystemTextJsonSerializerProvider(options)
+        };
 
         return new HttpResponse(request, response, responseCookies, rawBytes: responseBytes, serializerProvider);
     }
@@ -572,21 +564,14 @@ public class HttpRequestBuilder
         var request = _data.MapToHttpRequestMessage();
         HttpResponseMessage? response = null;
 
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        if (_data.Timeout != TimeSpan.Zero)
+            cts.CancelAfter(_data.Timeout);
+
         try
         {
-            var cts = CancellationToken.None;
-
-            if (_data.Timeout != TimeSpan.Zero)
-            {
-                cts = new CancellationTokenSource(_data.Timeout).Token;
-
-                using var timeoutCts = new CancellationTokenSource(_data.Timeout);
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken);
-                cts = linkedCts.Token;
-            }
-
             // Use ResponseHeadersRead for streaming to avoid buffering the entire response
-            response = await _data.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts);
+            response = await _data.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
 
             return new HttpStreamResponse(response);
         }

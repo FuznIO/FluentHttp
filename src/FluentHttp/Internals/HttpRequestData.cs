@@ -1,4 +1,8 @@
-﻿using System.Net;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -16,16 +20,16 @@ internal class HttpRequestData
     internal HttpMethod Method { get; set; } = null!;
     internal object? Body { get; set; } = null;
     internal string AcceptType { get; set; } = "application/json";
-    internal List<Cookie> Cookies { get; set; } = new();
+    internal List<Cookie> Cookies { get; set; } = [];
     internal Dictionary<string, string> Headers { get; set; } = new();
     internal Dictionary<string, object> Options { get; set; } = new();
     internal string? UserAgent { get; set; } = null;
     internal TimeSpan Timeout { get; set; }
     internal JsonSerializerOptions? SerializerOptions { get; set; }
     internal ISerializerProvider? SerializerProvider { get; set; }
-    internal List<FileContent> Files { get; set; } = new();
+    internal List<FileContent> Files { get; set; } = [];
     internal Dictionary<string, string> FormFields { get; set; } = new();
-    internal List<KeyValuePair<string, string>> QueryParams { get; set; } = new();
+    internal List<KeyValuePair<string, string>> QueryParams { get; set; } = [];
 
     private string BuildQueryString()
     {
@@ -77,8 +81,7 @@ internal class HttpRequestData
             return request;
 
         request.Content = MapContent();
-        if (request.Content?.Headers?.ContentType == null)
-            request.Content?.Headers?.ContentType = new MediaTypeHeaderValue(ContentType);
+        request.Content?.Headers.ContentType ??= new MediaTypeHeaderValue(ContentType);
 
         return request;
     }

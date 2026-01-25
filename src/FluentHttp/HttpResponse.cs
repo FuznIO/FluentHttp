@@ -1,4 +1,8 @@
-﻿using System.Net;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 
 namespace Fuzn.FluentHttp;
@@ -8,7 +12,7 @@ namespace Fuzn.FluentHttp;
 /// </summary>
 public class HttpResponse
 {
-    private readonly List<Cookie> _cookies = new();
+    private readonly List<Cookie> _cookies = [];
     private readonly HttpRequestMessage _request;
     private readonly ISerializerProvider _serializerProvider;
     private readonly byte[] _rawBytes;
@@ -19,11 +23,16 @@ public class HttpResponse
         byte[] rawBytes,
         ISerializerProvider serializerProvider)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(response);
+        ArgumentNullException.ThrowIfNull(rawBytes);
+        ArgumentNullException.ThrowIfNull(serializerProvider);
+
         _request = request;
-        _serializerProvider = serializerProvider;
         _rawBytes = rawBytes;
+        _serializerProvider = serializerProvider;
         InnerResponse = response;
-        RawResponse = response.ToString();
+        RawResponse = InnerResponse.ToString();
 
         // Decode the body using the encoding specified in Content-Type header
         Body = DecodeBody(rawBytes, response.Content.Headers.ContentType);
@@ -107,11 +116,11 @@ public class HttpResponse
         }
         catch (Exception ex)
         {
-            throw new Exception($"Unable to deserialize into {typeof(T)}. \nURL: {_request?.RequestUri} \nResponse body: \n{Body}\nException message: \n{ex?.Message}");
+            throw new Exception($"Unable to deserialize into {typeof(T)}. \nURL: {_request.RequestUri} \nResponse body: \n{Body}\nException message: \n{ex.Message}");
         }
     }
 
-    private static string DecodeBody(byte[] bytes, System.Net.Http.Headers.MediaTypeHeaderValue? contentType)
+    private static string DecodeBody(byte[] bytes, MediaTypeHeaderValue? contentType)
     {
         if (bytes.Length == 0)
             return string.Empty;

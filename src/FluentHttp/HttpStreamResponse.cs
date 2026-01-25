@@ -1,5 +1,10 @@
+using System;
+using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Fuzn.FluentHttp;
 
@@ -9,49 +14,49 @@ namespace Fuzn.FluentHttp;
 /// </summary>
 public class HttpStreamResponse : IDisposable, IAsyncDisposable
 {
-    private readonly HttpResponseMessage _response;
     private Stream? _contentStream;
     private bool _disposed;
 
     internal HttpStreamResponse(HttpResponseMessage response)
     {
-        _response = response ?? throw new ArgumentNullException(nameof(response));
+        ArgumentNullException.ThrowIfNull(response);
+        InnerResponse = response;
     }
 
     /// <summary>
     /// Gets the underlying <see cref="HttpResponseMessage"/>.
     /// </summary>
-    public HttpResponseMessage InnerResponse => _response;
+    public HttpResponseMessage InnerResponse { get; }
 
     /// <summary>
     /// Gets the response headers.
     /// </summary>
-    public HttpResponseHeaders Headers => _response.Headers;
+    public HttpResponseHeaders Headers => InnerResponse.Headers;
 
     /// <summary>
     /// Gets the content headers (e.g., Content-Type, Content-Length, Content-Disposition).
     /// </summary>
-    public HttpContentHeaders ContentHeaders => _response.Content.Headers;
+    public HttpContentHeaders ContentHeaders => InnerResponse.Content.Headers;
 
     /// <summary>
     /// Gets the HTTP status code of the response.
     /// </summary>
-    public HttpStatusCode StatusCode => _response.StatusCode;
+    public HttpStatusCode StatusCode => InnerResponse.StatusCode;
 
     /// <summary>
     /// Gets a value indicating whether the response was successful (status code 2xx).
     /// </summary>
-    public bool Ok => _response.IsSuccessStatusCode;
+    public bool Ok => InnerResponse.IsSuccessStatusCode;
 
     /// <summary>
     /// Gets the content length in bytes, if available.
     /// </summary>
-    public long? ContentLength => _response.Content.Headers.ContentLength;
+    public long? ContentLength => InnerResponse.Content.Headers.ContentLength;
 
     /// <summary>
     /// Gets the content type of the response, if available.
     /// </summary>
-    public string? ContentType => _response.Content.Headers.ContentType?.MediaType;
+    public string? ContentType => InnerResponse.Content.Headers.ContentType?.MediaType;
 
     /// <summary>
     /// Gets the suggested file name from the Content-Disposition header, if available.
@@ -60,7 +65,7 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     {
         get
         {
-            var contentDisposition = _response.Content.Headers.ContentDisposition;
+            var contentDisposition = InnerResponse.Content.Headers.ContentDisposition;
             return contentDisposition?.FileNameStar ?? contentDisposition?.FileName?.Trim('"');
         }
     }
@@ -74,7 +79,7 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     public async Task<Stream> GetStream(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        _contentStream = await _response.Content.ReadAsStreamAsync(cancellationToken);
+        _contentStream = await InnerResponse.Content.ReadAsStreamAsync(cancellationToken);
         return _contentStream;
     }
 
@@ -86,7 +91,7 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     public async Task<byte[]> GetBytes(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return await _response.Content.ReadAsByteArrayAsync(cancellationToken);
+        return await InnerResponse.Content.ReadAsByteArrayAsync(cancellationToken);
     }
 
     /// <summary>
@@ -94,10 +99,10 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
+        if (Interlocked.Exchange(ref _disposed, true))
+            return;
         _contentStream?.Dispose();
-        _response.Dispose();
+        InnerResponse.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -106,11 +111,11 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_disposed) return;
-        _disposed = true;
+        if (Interlocked.Exchange(ref _disposed, true))
+            return;
         if (_contentStream != null)
             await _contentStream.DisposeAsync();
-        _response.Dispose();
+        InnerResponse.Dispose();
         GC.SuppressFinalize(this);
     }
 }

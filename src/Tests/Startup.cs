@@ -1,5 +1,7 @@
 ﻿using Fuzn.TestFuzn;
 
+[assembly: Parallelize(Scope = ExecutionScope.MethodLevel)]
+
 namespace Fuzn.FluentHttp.Tests;
 
 [TestClass]
