@@ -1,7 +1,7 @@
-﻿namespace FluentHttp.Tests;
+﻿namespace Fuzn.FluentHttp.Tests;
 
 [TestClass]
-public class Startup : IStartup
+public class Startup : IStartup, IBeforeSuite, IAfterSuite
 {
     [AssemblyInitialize]
     public static async Task Init(TestContext testContext)
@@ -17,5 +17,16 @@ public class Startup : IStartup
 
     public void Configure(TestFuznConfiguration configuration)
     {
+    }
+
+    public Task BeforeSuite(Context context)
+    {
+        SuiteData.Init();
+        return Task.CompletedTask;
+    }
+
+    public Task AfterSuite(Context context)
+    {
+        return Task.CompletedTask;
     }
 }

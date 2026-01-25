@@ -2,6 +2,7 @@
 using System;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 
 namespace Fuzn.FluentHttp;
 
@@ -530,13 +531,27 @@ public class HttpRequestBuilder
         byte[]? responseBytes = null;
         CookieContainer? responseCookies = null;
 
-        var cts = new CancellationTokenSource(_data.Timeout);
+        var cts = CancellationToken.None;
 
-        response = await _data.HttpClient.SendAsync(request, cts.Token);
-        responseBytes = await response.Content.ReadAsByteArrayAsync(cts.Token);
+        if (_data.Timeout != TimeSpan.Zero)
+            cts = new CancellationTokenSource(_data.Timeout).Token;
+
+        response = await _data.HttpClient.SendAsync(request, cts);
+        responseBytes = await response.Content.ReadAsByteArrayAsync(cts);
+        
         responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
 
-        return new HttpResponse(request, response, responseCookies, rawBytes: responseBytes, _data.SerializerProvider);
+        ISerializerProvider serializerProvider = null;
+        if (_data.SerializerProvider == null)
+        {
+            JsonSerializerOptions serializerOptions = _data.SerializerOptions ?? new JsonSerializerOptions();
+
+            serializerProvider = new SystemTextJsonSerializerProvider(serializerOptions);            ;
+        }
+        else
+            serializerProvider = _data.SerializerProvider;
+
+        return new HttpResponse(request, response, responseCookies, rawBytes: responseBytes, serializerProvider);
     }
 
     private async Task<HttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
@@ -546,11 +561,19 @@ public class HttpRequestBuilder
 
         try
         {
-            using var timeoutCts = new CancellationTokenSource(_data.Timeout);
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken);
+            var cts = CancellationToken.None;
+
+            if (_data.Timeout != TimeSpan.Zero)
+            {
+                cts = new CancellationTokenSource(_data.Timeout).Token;
+
+                using var timeoutCts = new CancellationTokenSource(_data.Timeout);
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken);
+                cts = linkedCts.Token;
+            }
 
             // Use ResponseHeadersRead for streaming to avoid buffering the entire response
-            response = await _data.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+            response = await _data.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts);
 
             return new HttpStreamResponse(response);
         }
