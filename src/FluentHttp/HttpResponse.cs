@@ -48,7 +48,6 @@ public class HttpResponse
     /// </summary>
     public string RawResponse { get; set; }
 
-
     /// <summary>
     /// Gets the response headers.
     /// </summary>
