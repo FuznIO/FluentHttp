@@ -38,7 +38,7 @@ public class StreamingTests : Test
                 
                 var bytes = await streamResponse.GetBytes();
                 Assert.IsNotNull(bytes);
-                Assert.IsTrue(bytes.Length > 0);
+                Assert.IsNotEmpty(bytes);
             })
             .Run();
     }
@@ -87,7 +87,7 @@ public class StreamingTests : Test
                 Assert.IsTrue(streamResponse.Ok);
                 
                 var bytes = await streamResponse.GetBytes();
-                Assert.IsTrue(bytes.Length > 0);
+                Assert.IsNotEmpty(bytes);
             })
             .Run();
     }

@@ -4,7 +4,7 @@ namespace Fuzn.FluentHttp.Tests;
 
 internal static class SuiteData
 {
-    internal static WebApplicationFactory<Program> Factory { get; set; }
+    internal static WebApplicationFactory<Program> Factory { get; set; } = null!;
 
     public static void Init()
     {

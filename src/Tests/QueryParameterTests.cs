@@ -1,5 +1,4 @@
 using Fuzn.FluentHttp.TestApi.Models;
-using Fuzn.FluentHttp.TestApi.Models;
 
 namespace Fuzn.FluentHttp.Tests;
 
@@ -43,10 +42,10 @@ public class QueryParameterTests : Test
                 Assert.IsTrue(response.Ok);
                 
                 var body = response.As<MultipleQueryParamsResponse>();
-                Assert.AreEqual(3, body!.Tags.Count);
-                Assert.IsTrue(body.Tags.Contains("csharp"));
-                Assert.IsTrue(body.Tags.Contains("dotnet"));
-                Assert.IsTrue(body.Tags.Contains("http"));
+                Assert.HasCount(3, body!.Tags);
+                Assert.Contains("csharp", body.Tags);
+                Assert.Contains("dotnet", body.Tags);
+                Assert.Contains("http", body.Tags);
             })
             .Run();
     }
@@ -115,7 +114,7 @@ public class QueryParameterTests : Test
                 
                 var response = await client.Url("/api/query/single")
                     .QueryParam("name", "TestName")
-                    .QueryParam("count", null)
+                    .QueryParam("count", null!)
                     .Get();
 
                 Assert.IsTrue(response.Ok);

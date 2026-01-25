@@ -1,3 +1,5 @@
+using Fuzn.FluentHttp.TestApi.Models;
+
 namespace Fuzn.FluentHttp.Tests;
 
 [TestClass]
@@ -39,7 +41,7 @@ public class DeserializationTests : Test
                 
                 var people = response.As<PersonDto[]>();
                 Assert.IsNotNull(people);
-                Assert.AreEqual(2, people!.Length);
+                Assert.HasCount(2, people);
                 Assert.AreEqual("John Doe", people[0].Name);
                 Assert.AreEqual("Jane Doe", people[1].Name);
             })
@@ -60,7 +62,7 @@ public class DeserializationTests : Test
                 
                 var bytes = response.AsBytes();
                 Assert.IsNotNull(bytes);
-                Assert.IsTrue(bytes.Length > 0);
+                Assert.IsNotEmpty(bytes);
             })
             .Run();
     }
@@ -80,12 +82,4 @@ public class DeserializationTests : Test
             })
             .Run();
     }
-}
-
-public record PersonDto
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = "";
-    public string Email { get; set; } = "";
-    public int Age { get; set; }
 }

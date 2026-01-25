@@ -8,21 +8,21 @@ namespace Fuzn.FluentHttp.Internals;
 
 internal class HttpRequestData
 {
-    internal HttpClient HttpClient { get; set; }
-    internal Uri AbsoluteUri { get; set; }
-    internal Uri BaseUri { get; set; }
-    internal string RequestUrl { get; set; }
-    internal string? ContentType { get; set; }
-    internal HttpMethod Method { get; set; }
-    internal object? Body { get; set; }
+    internal HttpClient HttpClient { get; set; } = null!;
+    internal Uri AbsoluteUri { get; set; } = null!;
+    internal Uri BaseUri { get; set; } = null!;
+    internal string RequestUrl { get; set; } = null!;
+    internal string? ContentType { get; set; } = null;
+    internal HttpMethod Method { get; set; } = null!;
+    internal object? Body { get; set; } = null;
     internal string AcceptType { get; set; } = "application/json";
     internal List<Cookie> Cookies { get; set; } = new();
     internal Dictionary<string, string> Headers { get; set; } = new();
     internal Dictionary<string, object> Options { get; set; } = new();
-    internal string UserAgent { get; set; }
+    internal string? UserAgent { get; set; } = null;
     internal TimeSpan Timeout { get; set; }
-    internal JsonSerializerOptions SerializerOptions { get; set; }
-    internal ISerializerProvider SerializerProvider { get; set; }
+    internal JsonSerializerOptions? SerializerOptions { get; set; }
+    internal ISerializerProvider? SerializerProvider { get; set; }
     internal List<FileContent> Files { get; set; } = new();
     internal Dictionary<string, string> FormFields { get; set; } = new();
     internal List<KeyValuePair<string, string>> QueryParams { get; set; } = new();
@@ -78,7 +78,7 @@ internal class HttpRequestData
 
         request.Content = MapContent();
         if (request.Content?.Headers?.ContentType == null)
-            request.Content.Headers.ContentType = new MediaTypeHeaderValue(ContentType);
+            request.Content?.Headers?.ContentType = new MediaTypeHeaderValue(ContentType);
 
         return request;
     }

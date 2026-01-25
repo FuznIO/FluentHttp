@@ -1,5 +1,4 @@
 using Fuzn.FluentHttp.TestApi.Models;
-using Fuzn.FluentHttp.TestApi.Models;
 using System.Net;
 
 namespace Fuzn.FluentHttp.Tests;
@@ -85,7 +84,7 @@ public class CookieTests : Test
                     .Get();
 
                 Assert.IsTrue(response.Ok);
-                Assert.IsTrue(response.Cookies.Count > 0);
+                Assert.IsNotEmpty(response.Cookies);
                 
                 var cookie = response.Cookies.FirstOrDefault(c => c.Name == "testCookie");
                 Assert.IsNotNull(cookie);

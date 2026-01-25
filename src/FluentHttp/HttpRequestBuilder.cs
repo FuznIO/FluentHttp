@@ -30,7 +30,10 @@ public class HttpRequestBuilder
 
         if (httpClient.BaseAddress == null)
         {
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri != null)
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                throw new ArgumentException("The provided URL is not a valid absolute URL and the HttpClient does not have a BaseAddress set.");
+
+            if (uri == null)
                 throw new ArgumentException("The provided URL is not a valid absolute URL and the HttpClient does not have a BaseAddress set.");
 
             _data.BaseUri = new UriBuilder(uri.Scheme, uri.Host, uri.IsDefaultPort ? -1 : uri.Port).Uri;
@@ -550,7 +553,7 @@ public class HttpRequestBuilder
         
         responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
 
-        ISerializerProvider serializerProvider = null;
+        ISerializerProvider serializerProvider = null!;
         if (_data.SerializerProvider == null)
         {
             if (_data.SerializerOptions == null)

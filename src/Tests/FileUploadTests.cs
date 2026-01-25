@@ -96,7 +96,7 @@ public class FileUploadTests : Test
                 Assert.IsTrue(response.Ok);
                 
                 var body = response.As<MultipleFileUploadResponse>();
-                Assert.AreEqual(2, body!.Files.Count);
+                Assert.HasCount(2, body!.Files);
             })
             .Run();
     }

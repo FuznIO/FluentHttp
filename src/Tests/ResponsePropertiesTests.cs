@@ -65,7 +65,7 @@ public class ResponsePropertiesTests : Test
 
                 Assert.IsTrue(response.Ok);
                 Assert.IsNotNull(response.RawResponse);
-                Assert.IsTrue(response.RawResponse.Length > 0);
+                Assert.IsGreaterThan(0, response.RawResponse.Length);
             })
             .Run();
     }

@@ -1,5 +1,4 @@
 using Fuzn.FluentHttp.TestApi.Models;
-using Fuzn.FluentHttp.TestApi.Models;
 
 namespace Fuzn.FluentHttp.Tests;
 
@@ -46,7 +45,7 @@ public class ContentTypeTests : Test
                 Assert.IsTrue(response.Ok);
                 
                 var body = response.As<ContentTypeResponse>();
-                Assert.IsTrue(body!.ContentType.Contains("application/json"));
+                Assert.Contains("application/json", body!.ContentType);
             })
             .Run();
     }
@@ -67,7 +66,7 @@ public class ContentTypeTests : Test
                 Assert.IsTrue(response.Ok);
                 
                 var body = response.As<ContentTypeResponse>();
-                Assert.IsTrue(body!.ContentType.Contains("application/xml"));
+                Assert.Contains("application/xml", body!.ContentType);
             })
             .Run();
     }

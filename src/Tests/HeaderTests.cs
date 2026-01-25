@@ -1,5 +1,4 @@
 using Fuzn.FluentHttp.TestApi.Models;
-using Fuzn.FluentHttp.TestApi.Models;
 
 namespace Fuzn.FluentHttp.Tests;
 
@@ -88,7 +87,7 @@ public class HeaderTests : Test
                 Assert.IsTrue(response.Ok);
                 
                 var body = response.As<AcceptHeaderResponse>();
-                Assert.IsTrue(body!.Accept.Contains("application/json"));
+                Assert.Contains("application/json", body!.Accept);
             })
             .Run();
     }
@@ -108,7 +107,7 @@ public class HeaderTests : Test
                 Assert.IsTrue(response.Ok);
                 
                 var body = response.As<AcceptHeaderResponse>();
-                Assert.IsTrue(body!.Accept.Contains("application/pdf"));
+                Assert.Contains("application/pdf", body!.Accept);
             })
             .Run();
     }
