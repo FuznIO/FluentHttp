@@ -93,6 +93,13 @@ public class HttpRequestBuilder
     public HttpRequestBuilder Body(object body)
     {
         _data.Body = body;
+        
+        // Auto-set Content-Type to JSON if not already set
+        if (string.IsNullOrEmpty(_data.ContentType))
+        {
+            _data.ContentType = "application/json";
+        }
+        
         return this;
     }
 

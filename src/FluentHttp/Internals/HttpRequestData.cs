@@ -12,7 +12,7 @@ internal class HttpRequestData
     internal Uri AbsoluteUri { get; set; }
     internal Uri BaseUri { get; set; }
     internal string RequestUrl { get; set; }
-    internal string ContentType { get; set; } = "application/json";
+    internal string? ContentType { get; set; }
     internal HttpMethod Method { get; set; }
     internal Authentication Auth { get; set; }
     internal object? Body { get; set; }
@@ -74,43 +74,46 @@ internal class HttpRequestData
         }
 
         // Handle Content-Type and body based on content type string
-        if (ContentType == "multipart/form-data")
+        if (Body != null && !string.IsNullOrEmpty(ContentType))
         {
-            request.Content = BuildMultipartContent();
-        }
-        else if (ContentType == "application/x-www-form-urlencoded" && Body is Dictionary<string, string> dictBody)
-        {
-            request.Content = new FormUrlEncodedContent(dictBody);
-        }
-        else if (ContentType == "application/octet-stream" && Body != null)
-        {
-            if (Body is byte[] byteArray)
+            if (ContentType == "multipart/form-data")
             {
-                request.Content = new ByteArrayContent(byteArray);
-                request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                request.Content = BuildMultipartContent();
             }
-            else if (Body is Stream stream)
+            else if (ContentType == "application/x-www-form-urlencoded" && Body is Dictionary<string, string> dictBody)
             {
-                request.Content = new StreamContent(stream);
-                request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                request.Content = new FormUrlEncodedContent(dictBody);
             }
-        }
-        else if (Body != null)
-        {
-            // Handle JSON, XML, plain text, and custom content types
-            if (Body is string rawContent)
+            else if (ContentType == "application/octet-stream")
             {
-                request.Content = new StringContent(rawContent, Encoding.UTF8, ContentType);
-            }
-            else if (ContentType == "text/plain")
-            {
-                request.Content = new StringContent(Body.ToString() ?? string.Empty, Encoding.UTF8, "text/plain");
+                if (Body is byte[] byteArray)
+                {
+                    request.Content = new ByteArrayContent(byteArray);
+                    request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                }
+                else if (Body is Stream stream)
+                {
+                    request.Content = new StreamContent(stream);
+                    request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                }
             }
             else
             {
-                // Default to JSON serialization for objects
-                var jsonContent = JsonSerializer.Serialize(Body, SerializerOptions);
-                request.Content = new StringContent(jsonContent, Encoding.UTF8, ContentType);
+                // Handle JSON, XML, plain text, and custom content types
+                if (Body is string rawContent)
+                {
+                    request.Content = new StringContent(rawContent, Encoding.UTF8, ContentType);
+                }
+                else if (ContentType == "text/plain")
+                {
+                    request.Content = new StringContent(Body.ToString() ?? string.Empty, Encoding.UTF8, "text/plain");
+                }
+                else
+                {
+                    // Default to JSON serialization for objects
+                    var jsonContent = JsonSerializer.Serialize(Body, SerializerOptions);
+                    request.Content = new StringContent(jsonContent, Encoding.UTF8, ContentType);
+                }
             }
         }
 
