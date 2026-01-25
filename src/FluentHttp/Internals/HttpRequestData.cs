@@ -77,7 +77,7 @@ internal class HttpRequestData
             return request;
 
         request.Content = MapContent();
-        if (request.Content == null)
+        if (request.Content?.Headers?.ContentType == null)
             request.Content.Headers.ContentType = new MediaTypeHeaderValue(ContentType);
 
         return request;
