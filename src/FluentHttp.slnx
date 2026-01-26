@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="Tests/Tests.csproj" Id="b4468df4-1918-441f-8ebe-659d9d6d2d39" />
+  <Folder Name="/Solution Items/">
+    <File Path="../.github/workflows/publish-package.yml" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="FluentHttp/FluentHttp.csproj" />
+  <Project Path="TestApi/TestApi.csproj" />
+</Solution>

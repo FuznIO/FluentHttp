@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Fuzn.FluentHttp</AssemblyName>
+    <RootNamespace>Fuzn.FluentHttp</RootNamespace>
+    <OutputType>Library</OutputType>
+    <PackageId>Fuzn.FluentHttp</PackageId>
+    <Title>Fuzn.FluentHttp</Title>
+    <Description>A lightweight fluent API for building and sending HTTP requests with HttpClient. Provides a clean, chainable interface for configuring URLs, headers, content types, authentication, and serialization.</Description>
+    <PackageTags>http;httpclient;fluent;rest;api;web;request;builder</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
