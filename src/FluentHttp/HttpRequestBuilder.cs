@@ -1,12 +1,6 @@
 ﻿using Fuzn.FluentHttp.Internals;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Net;
-using System.Net.Http;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Fuzn.FluentHttp;
 
@@ -422,6 +416,17 @@ public class HttpRequestBuilder
     }
 
     /// <summary>
+    /// Sets a cancellation token for the request. This token will be linked with any token passed to the HTTP method.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder CancellationToken(CancellationToken cancellationToken)
+    {
+        _data.CancellationToken = cancellationToken;
+        return this;
+    }
+
+    /// <summary>
     /// Adds a custom option to the HTTP request. Options can be used to store additional metadata or configuration for the request.
     /// </summary>
     /// <param name="key">The option key.</param>
@@ -541,22 +546,28 @@ public class HttpRequestBuilder
     {
         var request = _data.MapToHttpRequestMessage();
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        if (_data.Timeout != TimeSpan.Zero)
-            cts.CancelAfter(_data.Timeout);
+        var linkedToken = GetLinkedCancellationToken(cancellationToken, out var linkedCts);
+        linkedToken.ThrowIfCancellationRequested();
 
-        var response = await _data.HttpClient.SendAsync(request, cts.Token);
-        var responseBytes = await response.Content.ReadAsByteArrayAsync(cts.Token);
-
-        var responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
-
-        var serializerProvider = _data.SerializerProvider ?? _data.SerializerOptions switch
+        try
         {
-            null => new SystemTextJsonSerializerProvider(),
-            var options => new SystemTextJsonSerializerProvider(options)
-        };
+            var response = await _data.HttpClient.SendAsync(request, linkedToken);
+            var responseBytes = await response.Content.ReadAsByteArrayAsync(linkedToken);
 
-        return new HttpResponse(request, response, responseCookies, rawBytes: responseBytes, serializerProvider);
+            var responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
+
+            var serializerProvider = _data.SerializerProvider ?? _data.SerializerOptions switch
+            {
+                null => new SystemTextJsonSerializerProvider(),
+                var options => new SystemTextJsonSerializerProvider(options)
+            };
+
+            return new HttpResponse(request, response, responseCookies, rawBytes: responseBytes, serializerProvider);
+        }
+        finally
+        {
+            linkedCts?.Dispose();
+        }
     }
 
     private async Task<HttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
@@ -564,22 +575,54 @@ public class HttpRequestBuilder
         var request = _data.MapToHttpRequestMessage();
         HttpResponseMessage? response = null;
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        if (_data.Timeout != TimeSpan.Zero)
-            cts.CancelAfter(_data.Timeout);
+        var linkedToken = GetLinkedCancellationToken(cancellationToken, out var linkedCts);
+        linkedToken.ThrowIfCancellationRequested();
 
         try
         {
             // Use ResponseHeadersRead for streaming to avoid buffering the entire response
-            response = await _data.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            response = await _data.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedToken);
 
             return new HttpStreamResponse(response);
         }
         catch
         {
+            linkedCts?.Dispose();
             response?.Dispose();
             throw;
         }
+    }
+
+    private CancellationToken GetLinkedCancellationToken(CancellationToken cancellationToken, out CancellationTokenSource? linkedCts)
+    {
+        // If we have a builder-level token, link it with the method-level token
+        if (_data.CancellationToken != default)
+        {
+            if (_data.Timeout != TimeSpan.Zero)
+            {
+                linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _data.CancellationToken);
+                linkedCts.CancelAfter(_data.Timeout);
+            }
+            else
+            {
+                linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _data.CancellationToken);
+            }
+            return linkedCts.Token;
+        }
+
+        // If we only have timeout, create a new CTS for it
+        if (_data.Timeout != TimeSpan.Zero)
+        {
+            linkedCts = cancellationToken != default
+                ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+                : new CancellationTokenSource();
+            linkedCts.CancelAfter(_data.Timeout);
+            return linkedCts.Token;
+        }
+
+        // No builder-level token or timeout, just use the method-level token
+        linkedCts = null;
+        return cancellationToken;
     }
 
     private static CookieContainer? ExtractResponseCookies(HttpResponseMessage response, Uri uri)
