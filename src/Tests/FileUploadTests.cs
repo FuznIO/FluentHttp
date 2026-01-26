@@ -13,7 +13,7 @@ public class FileUploadTests : Test
         await Scenario()
             .Step("Upload file from byte array", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var fileContent = Encoding.UTF8.GetBytes("Test file content");
                 
@@ -21,7 +21,7 @@ public class FileUploadTests : Test
                     .File("file", "test.txt", fileContent, "text/plain")
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<SingleFileUploadResponse>();
                 Assert.AreEqual("test.txt", body!.FileName);
@@ -37,7 +37,7 @@ public class FileUploadTests : Test
         await Scenario()
             .Step("Upload file from stream", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var fileContent = Encoding.UTF8.GetBytes("Stream file content");
                 using var stream = new MemoryStream(fileContent);
@@ -46,7 +46,7 @@ public class FileUploadTests : Test
                     .File("file", "stream-test.txt", stream, "text/plain")
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<SingleFileUploadResponse>();
                 Assert.AreEqual("stream-test.txt", body!.FileName);
@@ -60,7 +60,7 @@ public class FileUploadTests : Test
         await Scenario()
             .Step("Upload file using FileContent record", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var fileContent = Encoding.UTF8.GetBytes("FileContent record test");
                 var file = new FileContent("document", "document.txt", fileContent, "text/plain");
@@ -69,7 +69,7 @@ public class FileUploadTests : Test
                     .File(file)
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<SingleFileUploadResponse>();
                 Assert.AreEqual("document", body!.Name);
@@ -84,7 +84,7 @@ public class FileUploadTests : Test
         await Scenario()
             .Step("Upload multiple files", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var file1Content = Encoding.UTF8.GetBytes("File 1 content");
                 var file2Content = Encoding.UTF8.GetBytes("File 2 content");
@@ -94,7 +94,7 @@ public class FileUploadTests : Test
                     .File("file2", "file2.txt", file2Content)
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<MultipleFileUploadResponse>();
                 Assert.HasCount(2, body!.Files);
@@ -108,7 +108,7 @@ public class FileUploadTests : Test
         await Scenario()
             .Step("Upload file with form fields", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var fileContent = Encoding.UTF8.GetBytes("File with form data");
                 
@@ -118,7 +118,7 @@ public class FileUploadTests : Test
                     .FormField("category", "documents")
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<MultipleFileUploadResponse>();
                 Assert.AreEqual("Test file description", body!.Fields["description"]);
@@ -133,7 +133,7 @@ public class FileUploadTests : Test
         await Scenario()
             .Step("Upload with form fields from dictionary", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var fileContent = Encoding.UTF8.GetBytes("File content");
                 var formFields = new Dictionary<string, string>
@@ -147,7 +147,7 @@ public class FileUploadTests : Test
                     .FormFields(formFields)
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<MultipleFileUploadResponse>();
                 Assert.AreEqual("value1", body!.Fields["field1"]);

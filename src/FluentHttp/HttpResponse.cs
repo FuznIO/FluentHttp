@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
+﻿using System.Net;
 using System.Net.Http.Headers;
 
 namespace Fuzn.FluentHttp;
@@ -86,7 +82,7 @@ public class HttpResponse
     /// <summary>
     /// Gets a value indicating whether the response was successful (status code 2xx).
     /// </summary>
-    public bool Ok => InnerResponse.IsSuccessStatusCode;
+    public bool IsSuccessful => InnerResponse.IsSuccessStatusCode;
 
     /// <summary>
     /// Gets the response body as a byte array.

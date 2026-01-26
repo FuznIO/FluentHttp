@@ -13,13 +13,13 @@ public class CookieAdvancedTests : Test
         await Scenario()
             .Step("Cookie with duration has expiration set", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/cookies/echo")
                     .Cookie("session", "abc123", duration: TimeSpan.FromHours(1))
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<CookiesEchoResponse>();
                 Assert.AreEqual("abc123", body!.Cookies["session"]);
@@ -33,13 +33,13 @@ public class CookieAdvancedTests : Test
         await Scenario()
             .Step("Cookie with path is sent correctly", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/cookies/echo")
                     .Cookie("session", "value123", path: "/")
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<CookiesEchoResponse>();
                 Assert.AreEqual("value123", body!.Cookies["session"]);
@@ -53,14 +53,14 @@ public class CookieAdvancedTests : Test
         await Scenario()
             .Step("Cookie without duration is session cookie", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 // No duration specified = session cookie
                 var response = await client.Url("/api/cookies/echo")
                     .Cookie("session", "sessionValue")
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<CookiesEchoResponse>();
                 Assert.AreEqual("sessionValue", body!.Cookies["session"]);

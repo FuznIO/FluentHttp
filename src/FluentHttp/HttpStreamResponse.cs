@@ -46,7 +46,7 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     /// <summary>
     /// Gets a value indicating whether the response was successful (status code 2xx).
     /// </summary>
-    public bool Ok => InnerResponse.IsSuccessStatusCode;
+    public bool IsSuccessful => InnerResponse.IsSuccessStatusCode;
 
     /// <summary>
     /// Gets the content length in bytes, if available.

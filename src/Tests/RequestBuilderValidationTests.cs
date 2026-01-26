@@ -27,11 +27,11 @@ public class RequestBuilderValidationTests : Test
         await Scenario()
             .Step("Create request with relative URL when base address is set", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/status/ok").Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
             })
             .Run();
     }
@@ -65,7 +65,7 @@ public class RequestBuilderValidationTests : Test
         await Scenario()
             .Step("Setting auth twice throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var exceptionThrown = false;
                 try
@@ -90,7 +90,7 @@ public class RequestBuilderValidationTests : Test
         await Scenario()
             .Step("Setting basic auth after bearer throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var exceptionThrown = false;
                 try
@@ -115,7 +115,7 @@ public class RequestBuilderValidationTests : Test
         await Scenario()
             .Step("Setting bearer auth after basic throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var exceptionThrown = false;
                 try

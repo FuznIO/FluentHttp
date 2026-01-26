@@ -12,13 +12,13 @@ public class AcceptTypesTests : Test
         await Scenario()
             .Step("Send request with Accept Xml enum", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
                     .Accept(AcceptTypes.Xml)
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<AcceptHeaderResponse>();
                 Assert.Contains("application/xml", body!.Accept);
@@ -32,13 +32,13 @@ public class AcceptTypesTests : Test
         await Scenario()
             .Step("Send request with Accept PlainText enum", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
                     .Accept(AcceptTypes.PlainText)
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<AcceptHeaderResponse>();
                 Assert.Contains("text/plain", body!.Accept);
@@ -52,13 +52,13 @@ public class AcceptTypesTests : Test
         await Scenario()
             .Step("Send request with Accept Html enum", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
                     .Accept(AcceptTypes.Html)
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<AcceptHeaderResponse>();
                 Assert.Contains("text/html", body!.Accept);
@@ -72,13 +72,13 @@ public class AcceptTypesTests : Test
         await Scenario()
             .Step("Send request with Accept Any enum", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
                     .Accept(AcceptTypes.Any)
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<AcceptHeaderResponse>();
                 Assert.Contains("*/*", body!.Accept);
@@ -92,13 +92,13 @@ public class AcceptTypesTests : Test
         await Scenario()
             .Step("Send request with Accept OctetStream enum", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
                     .Accept(AcceptTypes.OctetStream)
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<AcceptHeaderResponse>();
                 Assert.Contains("application/octet-stream", body!.Accept);

@@ -1,14 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc.Testing;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace Fuzn.FluentHttp.Tests;
 
 internal static class SuiteData
 {
-    internal static WebApplicationFactory<Program> Factory { get; set; } = null!;
+    internal static IHttpClientFactory HttpClientFactory { get; set; } = null!;
 
     public static void Init()
     {
-        Factory = new WebApplicationFactory<Program>();
-        Factory.ClientOptions.BaseAddress = new Uri("https://localhost:60201/");
+        var services = new ServiceCollection();
+        services.AddHttpClient("", client =>
+        {
+            client.BaseAddress = new Uri("https://localhost:5201/");
+        });
+        var serviceProvider = services.BuildServiceProvider();
+        HttpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
     }
 }

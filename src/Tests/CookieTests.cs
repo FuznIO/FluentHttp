@@ -13,13 +13,13 @@ public class CookieTests : Test
         await Scenario()
             .Step("Send request with single cookie", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/cookies/echo")
                     .Cookie("session", "abc123")
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<CookiesEchoResponse>();
                 Assert.AreEqual("abc123", body!.Cookies["session"]);
@@ -33,14 +33,14 @@ public class CookieTests : Test
         await Scenario()
             .Step("Send request with multiple cookies", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/cookies/echo")
                     .Cookie("session", "abc123")
                     .Cookie("user", "john")
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
 
                 var cookies = response.As<CookiesEchoResponse>();
                 Assert.AreEqual("abc123", cookies!.Cookies["session"]);
@@ -55,7 +55,7 @@ public class CookieTests : Test
         await Scenario()
             .Step("Send request with Cookie object", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var cookie = new Cookie("auth", "token123");
                 
@@ -63,7 +63,7 @@ public class CookieTests : Test
                     .Cookie(cookie)
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<CookiesEchoResponse>();
                 Assert.AreEqual("token123", body!.Cookies["auth"]);
@@ -77,14 +77,14 @@ public class CookieTests : Test
         await Scenario()
             .Step("Receive cookie from server response", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/cookies/set")
                     .QueryParam("name", "testCookie")
                     .QueryParam("value", "testValue")
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 Assert.IsNotEmpty(response.Cookies);
                 
                 var cookie = response.Cookies.FirstOrDefault(c => c.Name == "testCookie");

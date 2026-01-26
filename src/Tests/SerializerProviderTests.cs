@@ -40,14 +40,14 @@ public class SerializerProviderTests : Test
         await Scenario()
             .Step("Custom serializer provider is used for deserialization", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 var customSerializer = new CustomJsonSerializerProvider();
                 
                 var response = await client.Url("/api/deserialize/person")
                     .SerializerProvider(customSerializer)
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var person = response.As<PersonDto>();
                 Assert.IsNotNull(person);
@@ -62,7 +62,7 @@ public class SerializerProviderTests : Test
         await Scenario()
             .Step("Default serializer uses default naming policy", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var payload = new { TestProperty = "value" };
                 
@@ -70,7 +70,7 @@ public class SerializerProviderTests : Test
                     .Body(payload)
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 // The default serializer preserves property names as-is
                 Assert.Contains("TestProperty", response.Body);
             })

@@ -11,7 +11,7 @@ public class CancellationTokenTests : Test
         await Scenario()
             .Step("Cancelled GET request throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 using var cts = new CancellationTokenSource();
                 cts.Cancel();
@@ -37,7 +37,7 @@ public class CancellationTokenTests : Test
         await Scenario()
             .Step("Cancelled POST request throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 using var cts = new CancellationTokenSource();
                 cts.Cancel();
@@ -65,7 +65,7 @@ public class CancellationTokenTests : Test
         await Scenario()
             .Step("Cancelled PUT request throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 using var cts = new CancellationTokenSource();
                 cts.Cancel();
@@ -93,7 +93,7 @@ public class CancellationTokenTests : Test
         await Scenario()
             .Step("Cancelled DELETE request throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 using var cts = new CancellationTokenSource();
                 cts.Cancel();
@@ -119,7 +119,7 @@ public class CancellationTokenTests : Test
         await Scenario()
             .Step("Cancelled PATCH request throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 using var cts = new CancellationTokenSource();
                 cts.Cancel();
@@ -147,7 +147,7 @@ public class CancellationTokenTests : Test
         await Scenario()
             .Step("Builder-level cancelled GET request throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 using var cts = new CancellationTokenSource();
                 cts.Cancel();
@@ -175,7 +175,7 @@ public class CancellationTokenTests : Test
         await Scenario()
             .Step("Builder-level cancelled POST request throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 using var cts = new CancellationTokenSource();
                 cts.Cancel();
@@ -204,7 +204,7 @@ public class CancellationTokenTests : Test
         await Scenario()
             .Step("Request with both tokens cancels when builder token is cancelled", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 using var builderCts = new CancellationTokenSource();
                 using var methodCts = new CancellationTokenSource();
@@ -233,7 +233,7 @@ public class CancellationTokenTests : Test
         await Scenario()
             .Step("Request with both tokens cancels when method token is cancelled", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 using var builderCts = new CancellationTokenSource();
                 using var methodCts = new CancellationTokenSource();
@@ -262,7 +262,7 @@ public class CancellationTokenTests : Test
         await Scenario()
             .Step("Builder-level cancelled GetStream request throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 using var cts = new CancellationTokenSource();
                 cts.Cancel();
@@ -290,7 +290,7 @@ public class CancellationTokenTests : Test
         await Scenario()
             .Step("Builder-level cancelled PostStream request throws exception", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 using var cts = new CancellationTokenSource();
                 cts.Cancel();
