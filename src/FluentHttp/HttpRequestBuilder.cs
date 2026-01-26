@@ -121,7 +121,7 @@ public class HttpRequestBuilder
     /// <param name="content">The file content as a stream.</param>
     /// <param name="contentType">The MIME type of the file. Defaults to "application/octet-stream".</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder AttachFile(string name, string fileName, Stream content, string contentType = "application/octet-stream")
+    public HttpRequestBuilder File(string name, string fileName, Stream content, string contentType = "application/octet-stream")
     {
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(new FileContent(name, fileName, content, contentType));
@@ -136,7 +136,7 @@ public class HttpRequestBuilder
     /// <param name="content">The file content as a byte array.</param>
     /// <param name="contentType">The MIME type of the file. Defaults to "application/octet-stream".</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder AttachFile(string name, string fileName, byte[] content, string contentType = "application/octet-stream")
+    public HttpRequestBuilder File(string name, string fileName, byte[] content, string contentType = "application/octet-stream")
     {
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(new FileContent(name, fileName, content, contentType));
@@ -148,7 +148,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="file">The file content to attach.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder AttachFile(FileContent file)
+    public HttpRequestBuilder File(FileContent file)
     {
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(file);

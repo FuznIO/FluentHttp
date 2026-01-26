@@ -163,20 +163,20 @@ var response = await httpClient
 // Upload file from stream
 var response = await httpClient
     .Url("https://api.example.com/upload")
-    .AttachFile("file", "document.pdf", fileStream, "application/pdf")
+    .File("file", "document.pdf", fileStream, "application/pdf")
     .Post();
 
 // Upload file from byte array
 var response = await httpClient
     .Url("https://api.example.com/upload")
-    .AttachFile("file", "image.png", imageBytes, "image/png")
+    .File("file", "image.png", imageBytes, "image/png")
     .Post();
 
 // Multiple files with form fields
 var response = await httpClient
     .Url("https://api.example.com/upload")
-    .AttachFile("file1", "doc1.pdf", stream1)
-    .AttachFile("file2", "doc2.pdf", stream2)
+    .File("file1", "doc1.pdf", stream1)
+    .File("file2", "doc2.pdf", stream2)
     .FormField("description", "My documents")
     .Post();
 ```
