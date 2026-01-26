@@ -39,7 +39,7 @@ public static class UtilityEndpoints
 
         // Deserialization Testing
         app.MapPost("/api/deserialize/person", ([FromBody] PersonDto person) =>
-            Results.Ok(new { received = person, type = "PersonDto" }));
+            Results.Ok(new DeserializeResponse { Received = person, Type = "PersonDto" }));
 
         app.MapGet("/api/deserialize/person", () =>
             Results.Ok(new PersonDto { Id = 1, Name = "John Doe", Email = "john@example.com", Age = 30 }));

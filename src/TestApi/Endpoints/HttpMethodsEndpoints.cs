@@ -11,16 +11,16 @@ public static class HttpMethodsEndpoints
             Results.Ok(new MethodResponse { Method = "GET", Success = true }));
 
         app.MapPost("/api/methods/post", ([FromBody] object? body) => 
-            Results.Ok(new { method = "POST", success = true, receivedBody = body }));
+            Results.Ok(new MethodResponseWithBody { Method = "POST", Success = true, ReceivedBody = body }));
 
         app.MapPut("/api/methods/put", ([FromBody] object? body) => 
-            Results.Ok(new { method = "PUT", success = true, receivedBody = body }));
+            Results.Ok(new MethodResponseWithBody { Method = "PUT", Success = true, ReceivedBody = body }));
 
         app.MapDelete("/api/methods/delete", () => 
             Results.Ok(new MethodResponse { Method = "DELETE", Success = true }));
 
         app.MapPatch("/api/methods/patch", ([FromBody] object? body) => 
-            Results.Ok(new { method = "PATCH", success = true, receivedBody = body }));
+            Results.Ok(new MethodResponseWithBody { Method = "PATCH", Success = true, ReceivedBody = body }));
 
         app.MapMethods("/api/methods/head", ["HEAD"], () => 
             Results.Ok());

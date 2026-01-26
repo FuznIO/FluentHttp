@@ -44,6 +44,23 @@ public class HttpResponse
     }
 
     /// <summary>
+    /// Copy constructor for creating derived types.
+    /// </summary>
+    /// <param name="other">The HttpResponse to copy from.</param>
+    protected HttpResponse(HttpResponse other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+
+        _request = other._request;
+        _rawBytes = other._rawBytes;
+        _serializerProvider = other._serializerProvider;
+        _cookies = other._cookies;
+        InnerResponse = other.InnerResponse;
+        RawResponse = other.RawResponse;
+        Body = other.Body;
+    }
+
+    /// <summary>
     /// Gets the underlying <see cref="HttpResponseMessage"/>.
     /// </summary>
     public HttpResponseMessage InnerResponse { get; }
