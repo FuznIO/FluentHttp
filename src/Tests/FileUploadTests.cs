@@ -8,7 +8,7 @@ namespace Fuzn.FluentHttp.Tests;
 public class FileUploadTests : Test
 {
     [Test]
-    public async Task AttachFile_ByteArray_UploadsCorrectly()
+    public async Task File_ByteArray_UploadsCorrectly()
     {
         await Scenario()
             .Step("Upload file from byte array", async _ =>
@@ -18,7 +18,7 @@ public class FileUploadTests : Test
                 var fileContent = Encoding.UTF8.GetBytes("Test file content");
                 
                 var response = await client.Url("/api/files/upload-single")
-                    .AttachFile("file", "test.txt", fileContent, "text/plain")
+                    .File("file", "test.txt", fileContent, "text/plain")
                     .Post();
 
                 Assert.IsTrue(response.Ok);
@@ -32,7 +32,7 @@ public class FileUploadTests : Test
     }
 
     [Test]
-    public async Task AttachFile_Stream_UploadsCorrectly()
+    public async Task File_Stream_UploadsCorrectly()
     {
         await Scenario()
             .Step("Upload file from stream", async _ =>
@@ -43,7 +43,7 @@ public class FileUploadTests : Test
                 using var stream = new MemoryStream(fileContent);
                 
                 var response = await client.Url("/api/files/upload-single")
-                    .AttachFile("file", "stream-test.txt", stream, "text/plain")
+                    .File("file", "stream-test.txt", stream, "text/plain")
                     .Post();
 
                 Assert.IsTrue(response.Ok);
@@ -55,7 +55,7 @@ public class FileUploadTests : Test
     }
 
     [Test]
-    public async Task AttachFile_FileContentRecord_UploadsCorrectly()
+    public async Task File_FileContentRecord_UploadsCorrectly()
     {
         await Scenario()
             .Step("Upload file using FileContent record", async _ =>
@@ -66,7 +66,7 @@ public class FileUploadTests : Test
                 var file = new FileContent("document", "document.txt", fileContent, "text/plain");
                 
                 var response = await client.Url("/api/files/upload-single")
-                    .AttachFile(file)
+                    .File(file)
                     .Post();
 
                 Assert.IsTrue(response.Ok);
@@ -79,7 +79,7 @@ public class FileUploadTests : Test
     }
 
     [Test]
-    public async Task AttachFile_MultipleFiles_UploadCorrectly()
+    public async Task File_MultipleFiles_UploadCorrectly()
     {
         await Scenario()
             .Step("Upload multiple files", async _ =>
@@ -90,8 +90,8 @@ public class FileUploadTests : Test
                 var file2Content = Encoding.UTF8.GetBytes("File 2 content");
                 
                 var response = await client.Url("/api/files/upload")
-                    .AttachFile("file1", "file1.txt", file1Content)
-                    .AttachFile("file2", "file2.txt", file2Content)
+                    .File("file1", "file1.txt", file1Content)
+                    .File("file2", "file2.txt", file2Content)
                     .Post();
 
                 Assert.IsTrue(response.Ok);
@@ -113,7 +113,7 @@ public class FileUploadTests : Test
                 var fileContent = Encoding.UTF8.GetBytes("File with form data");
                 
                 var response = await client.Url("/api/files/upload")
-                    .AttachFile("file", "test.txt", fileContent)
+                    .File("file", "test.txt", fileContent)
                     .FormField("description", "Test file description")
                     .FormField("category", "documents")
                     .Post();
@@ -143,7 +143,7 @@ public class FileUploadTests : Test
                 };
                 
                 var response = await client.Url("/api/files/upload")
-                    .AttachFile("file", "test.txt", fileContent)
+                    .File("file", "test.txt", fileContent)
                     .FormFields(formFields)
                     .Post();
 
