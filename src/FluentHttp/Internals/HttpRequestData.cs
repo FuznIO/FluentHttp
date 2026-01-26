@@ -30,6 +30,7 @@ internal class HttpRequestData
     internal List<FileContent> Files { get; set; } = [];
     internal Dictionary<string, string> FormFields { get; set; } = new();
     internal List<KeyValuePair<string, string>> QueryParams { get; set; } = [];
+    internal CancellationToken CancellationToken { get; set; } = default;
 
     private string BuildQueryString()
     {
