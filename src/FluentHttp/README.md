@@ -274,6 +274,19 @@ var response = await httpClient
     .Get(cts.Token);
 ```
 
+You can also set a cancellation token on the builder, which will be linked with any token passed to the HTTP method:
+
+```csharp
+var builderCts = new CancellationTokenSource();
+var methodCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+// Both tokens are linked - cancelling either will cancel the request
+var response = await httpClient
+    .Url("https://api.example.com/data")
+    .CancellationToken(builderCts.Token)
+    .Get(methodCts.Token);
+```
+
 ## License
 
 MIT License - see [LICENSE](https://github.com/FuznIO/FluentHttp/blob/main/LICENSE) for details.
