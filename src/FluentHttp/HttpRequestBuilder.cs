@@ -104,16 +104,6 @@ public class HttpRequestBuilder
     }
 
     /// <summary>
-    /// Configures the request as multipart/form-data for file uploads.
-    /// </summary>
-    /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder AsMultipart()
-    {
-        _data.ContentType = "multipart/form-data";
-        return this;
-    }
-
-    /// <summary>
     /// Adds a file to the request. Automatically sets the content type to multipart/form-data.
     /// </summary>
     /// <param name="name">The form field name for the file.</param>
@@ -449,6 +439,17 @@ public class HttpRequestBuilder
     }
 
     /// <summary>
+    /// Sends the request using the HTTP GET method and deserializes the response to the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the response body into.</typeparam>
+    /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
+    public async Task<HttpResponse<T>> Get<T>(CancellationToken cancellationToken = default)
+    {
+        var response = await Get(cancellationToken);
+        return new HttpResponse<T>(response);
+    }
+
+    /// <summary>
     /// Sends the request using the HTTP POST method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
@@ -456,6 +457,17 @@ public class HttpRequestBuilder
     {
         _data.Method = HttpMethod.Post;
         return Send(cancellationToken);
+    }
+
+    /// <summary>
+    /// Sends the request using the HTTP POST method and deserializes the response to the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the response body into.</typeparam>
+    /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
+    public async Task<HttpResponse<T>> Post<T>(CancellationToken cancellationToken = default)
+    {
+        var response = await Post(cancellationToken);
+        return new HttpResponse<T>(response);
     }
 
     /// <summary>
@@ -469,6 +481,17 @@ public class HttpRequestBuilder
     }
 
     /// <summary>
+    /// Sends the request using the HTTP PUT method and deserializes the response to the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the response body into.</typeparam>
+    /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
+    public async Task<HttpResponse<T>> Put<T>(CancellationToken cancellationToken = default)
+    {
+        var response = await Put(cancellationToken);
+        return new HttpResponse<T>(response);
+    }
+
+    /// <summary>
     /// Sends the request using the HTTP DELETE method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
@@ -479,6 +502,17 @@ public class HttpRequestBuilder
     }
 
     /// <summary>
+    /// Sends the request using the HTTP DELETE method and deserializes the response to the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the response body into.</typeparam>
+    /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
+    public async Task<HttpResponse<T>> Delete<T>(CancellationToken cancellationToken = default)
+    {
+        var response = await Delete(cancellationToken);
+        return new HttpResponse<T>(response);
+    }
+
+    /// <summary>
     /// Sends the request using the HTTP PATCH method.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
@@ -486,6 +520,17 @@ public class HttpRequestBuilder
     {
         _data.Method = HttpMethod.Patch;
         return Send(cancellationToken);
+    }
+
+    /// <summary>
+    /// Sends the request using the HTTP PATCH method and deserializes the response to the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the response body into.</typeparam>
+    /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
+    public async Task<HttpResponse<T>> Patch<T>(CancellationToken cancellationToken = default)
+    {
+        var response = await Patch(cancellationToken);
+        return new HttpResponse<T>(response);
     }
 
     /// <summary>

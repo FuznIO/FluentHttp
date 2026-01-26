@@ -15,24 +15,42 @@ using Fuzn.FluentHttp;
 
 var httpClient = new HttpClient();
 
-// Simple GET request
+// Simple GET request with typed response
 var response = await httpClient
-    .Url("https://api.example.com/users")
-    .Get();
+    .Url("https://api.example.com/users/1")
+    .Get<User>();
 
 if (response.IsSuccessful)
 {
-    var users = response.As<List<User>>();
+    Console.WriteLine(response.Data!.Name);
 }
 ```
 
 ## Features
 
-### HTTP Methods
+### Typed Responses
 
-All standard HTTP methods are supported:
+Use generic HTTP methods to get strongly-typed responses:
 
 ```csharp
+var response = await httpClient.Url("/api/users/1").Get<User>();
+
+if (response.IsSuccessful)
+{
+    User user = response.Data!;
+}
+else
+{
+    Console.WriteLine($"Error {response.StatusCode}: {response.Body}");
+}
+```
+
+### HTTP Methods
+
+All standard HTTP methods are supported, with both generic and non-generic versions:
+
+```csharp
+// Non-generic (returns HttpResponse)
 await httpClient.Url("/api/resource").Get();
 await httpClient.Url("/api/resource").Post();
 await httpClient.Url("/api/resource").Put();
@@ -40,6 +58,13 @@ await httpClient.Url("/api/resource").Patch();
 await httpClient.Url("/api/resource").Delete();
 await httpClient.Url("/api/resource").Head();
 await httpClient.Url("/api/resource").Options();
+
+// Generic (returns HttpResponse<T>)
+await httpClient.Url("/api/resource").Get<MyType>();
+await httpClient.Url("/api/resource").Post<MyType>();
+await httpClient.Url("/api/resource").Put<MyType>();
+await httpClient.Url("/api/resource").Patch<MyType>();
+await httpClient.Url("/api/resource").Delete<MyType>();
 ```
 
 ### Request Body
@@ -48,7 +73,7 @@ await httpClient.Url("/api/resource").Options();
 var response = await httpClient
     .Url("https://api.example.com/users")
     .Body(new { Name = "John", Email = "john@example.com" })
-    .Post();
+    .Post<User>();
 ```
 
 ### Query Parameters
@@ -59,7 +84,7 @@ var response = await httpClient
     .Url("https://api.example.com/search")
     .QueryParam("q", "dotnet")
     .QueryParam("page", 1)
-    .Get();
+    .Get<SearchResult>();
 
 // Multiple parameters via dictionary
 var response = await httpClient
@@ -69,19 +94,19 @@ var response = await httpClient
         ["q"] = "dotnet", 
         ["page"] = 1 
     })
-    .Get();
+    .Get<SearchResult>();
 
 // Anonymous object
 var response = await httpClient
     .Url("https://api.example.com/search")
     .QueryParams(new { q = "dotnet", page = 1 })
-    .Get();
+    .Get<SearchResult>();
 
 // Multiple values for same parameter
 var response = await httpClient
     .Url("https://api.example.com/items")
     .QueryParam("tags", new[] { "c#", "dotnet", "http" })
-    .Get();
+    .Get<ItemList>();
 ```
 
 ### Headers
@@ -94,7 +119,7 @@ var response = await httpClient
     { 
         ["X-Another"] = "another-value" 
     })
-    .Get();
+    .Get<Data>();
 ```
 
 ### Authentication
@@ -104,25 +129,25 @@ var response = await httpClient
 var response = await httpClient
     .Url("https://api.example.com/protected")
     .AuthBearer("your-jwt-token")
-    .Get();
+    .Get<ProtectedData>();
 
 // Basic authentication
 var response = await httpClient
     .Url("https://api.example.com/protected")
     .AuthBasic("username", "password")
-    .Get();
+    .Get<ProtectedData>();
 
 // API Key
 var response = await httpClient
     .Url("https://api.example.com/protected")
     .AuthApiKey("your-api-key")
-    .Get();
+    .Get<ProtectedData>();
 
 // Custom header name for API key
 var response = await httpClient
     .Url("https://api.example.com/protected")
     .AuthApiKey("your-api-key", "Authorization")
-    .Get();
+    .Get<ProtectedData>();
 ```
 
 ### Content Types
@@ -132,14 +157,14 @@ var response = await httpClient
     .Url("https://api.example.com/data")
     .ContentType(ContentTypes.Json)
     .Body(data)
-    .Post();
+    .Post<Result>();
 
 // Custom content type
 var response = await httpClient
     .Url("https://api.example.com/graphql")
     .ContentType("application/graphql")
     .Body(query)
-    .Post();
+    .Post<GraphQLResponse>();
 ```
 
 ### Accept Headers
@@ -148,7 +173,7 @@ var response = await httpClient
 var response = await httpClient
     .Url("https://api.example.com/data")
     .Accept(AcceptTypes.Json)
-    .Get();
+    .Get<Data>();
 
 // Custom accept type
 var response = await httpClient
@@ -164,13 +189,13 @@ var response = await httpClient
 var response = await httpClient
     .Url("https://api.example.com/upload")
     .File("file", "document.pdf", fileStream, "application/pdf")
-    .Post();
+    .Post<UploadResult>();
 
 // Upload file from byte array
 var response = await httpClient
     .Url("https://api.example.com/upload")
     .File("file", "image.png", imageBytes, "image/png")
-    .Post();
+    .Post<UploadResult>();
 
 // Multiple files with form fields
 var response = await httpClient
@@ -178,7 +203,7 @@ var response = await httpClient
     .File("file1", "doc1.pdf", stream1)
     .File("file2", "doc2.pdf", stream2)
     .FormField("description", "My documents")
-    .Post();
+    .Post<UploadResult>();
 ```
 
 ### Cookies
@@ -188,7 +213,7 @@ var response = await httpClient
     .Url("https://api.example.com/data")
     .Cookie("session", "abc123")
     .Cookie("preference", "dark-mode", path: "/", duration: TimeSpan.FromDays(30))
-    .Get();
+    .Get<Data>();
 ```
 
 ### Timeouts
@@ -197,7 +222,7 @@ var response = await httpClient
 var response = await httpClient
     .Url("https://api.example.com/slow-endpoint")
     .Timeout(TimeSpan.FromSeconds(30))
-    .Get();
+    .Get<Data>();
 ```
 
 ### Custom User-Agent
@@ -206,10 +231,12 @@ var response = await httpClient
 var response = await httpClient
     .Url("https://api.example.com/data")
     .UserAgent("MyApp/1.0")
-    .Get();
+    .Get<Data>();
 ```
 
 ## Working with Responses
+
+### `HttpResponse`
 
 ```csharp
 var response = await httpClient
@@ -240,6 +267,33 @@ var contentHeaders = response.ContentHeaders;
 var cookies = response.Cookies;
 ```
 
+### `HttpResponse<T>`
+
+```csharp
+var response = await httpClient
+    .Url("https://api.example.com/users/1")
+    .Get<User>();
+
+// Typed data (auto-deserialized)
+User? user = response.Data;
+
+// Check success
+bool success = response.IsSuccessful;
+
+// Status code
+HttpStatusCode status = response.StatusCode;
+
+// Raw body
+string body = response.Body;
+
+// Headers and cookies
+var headers = response.Headers;
+var cookies = response.Cookies;
+
+// Deserialize to a different type
+var error = response.As<ProblemDetails>();
+```
+
 ## Custom Serialization
 
 Implement `ISerializerProvider` to use your preferred serializer:
@@ -259,7 +313,7 @@ var response = await httpClient
     .Url("https://api.example.com/data")
     .SerializerProvider(new NewtonsoftSerializerProvider())
     .Body(data)
-    .Post();
+    .Post<Result>();
 ```
 
 ## Cancellation Support
@@ -271,7 +325,7 @@ var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .Get(cts.Token);
+    .Get<Data>(cts.Token);
 ```
 
 You can also set a cancellation token on the builder, which will be linked with any token passed to the HTTP method:
@@ -284,7 +338,7 @@ var methodCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 var response = await httpClient
     .Url("https://api.example.com/data")
     .CancellationToken(builderCts.Token)
-    .Get(methodCts.Token);
+    .Get<Data>(methodCts.Token);
 ```
 
 ## License

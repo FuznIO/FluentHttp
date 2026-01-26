@@ -1,3 +1,5 @@
+using Fuzn.FluentHttp.TestApi.Models;
+
 namespace Fuzn.FluentHttp.TestApi.Endpoints;
 
 public static class StatusCodesEndpoints
@@ -19,15 +21,18 @@ public static class StatusCodesEndpoints
             Results.NoContent());
         
         app.MapGet("/api/status/badrequest", () => 
-            Results.BadRequest(new { error = "Bad request" }));
+            Results.BadRequest(new ErrorResponse { Error = "Bad request" }));
         
         app.MapGet("/api/status/unauthorized", () => 
             Results.Unauthorized());
         
         app.MapGet("/api/status/notfound", () => 
-            Results.NotFound(new { error = "Not found" }));
+            Results.NotFound(new ErrorResponse { Error = "Not found" }));
         
         app.MapGet("/api/status/error", () => 
             Results.StatusCode(500));
+
+        app.MapGet("/api/status/invalid-json", () => 
+            Results.Text("this is not valid json {{{", "application/json"));
     }
 }

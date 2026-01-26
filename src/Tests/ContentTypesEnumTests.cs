@@ -99,15 +99,15 @@ public class ContentTypesEnumTests : Test
     }
 
     [Test]
-    public async Task AsMultipart_SetsMultipartContentType()
+    public async Task ContentType_Multipart_SetsMultipartContentType()
     {
         await Scenario()
-            .Step("AsMultipart sets content type to multipart/form-data", async _ =>
+            .Step("ContentType Multipart sets content type to multipart/form-data", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/files/upload")
-                    .AsMultipart()
+                    .ContentType(ContentTypes.Multipart)
                     .FormField("field1", "value1")
                     .Post();
 
