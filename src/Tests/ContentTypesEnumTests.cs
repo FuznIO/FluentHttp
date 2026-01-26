@@ -12,14 +12,14 @@ public class ContentTypesEnumTests : Test
         await Scenario()
             .Step("Send request with ContentType Xml enum", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/echo")
                     .ContentType(ContentTypes.Xml)
                     .Body("<root><value>test</value></root>")
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<ContentTypeResponse>();
                 Assert.Contains("application/xml", body!.ContentType);
@@ -33,14 +33,14 @@ public class ContentTypesEnumTests : Test
         await Scenario()
             .Step("Send request with ContentType PlainText enum", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/echo")
                     .ContentType(ContentTypes.PlainText)
                     .Body("Plain text content")
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<ContentTypeResponse>();
                 Assert.Contains("text/plain", body!.ContentType);
@@ -54,7 +54,7 @@ public class ContentTypesEnumTests : Test
         await Scenario()
             .Step("Send request with ContentType OctetStream enum", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var binaryContent = System.Text.Encoding.UTF8.GetBytes("Binary-like content");
                 
@@ -63,7 +63,7 @@ public class ContentTypesEnumTests : Test
                     .Body(binaryContent)
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<ContentTypeResponse>();
                 Assert.Contains("application/octet-stream", body!.ContentType);
@@ -77,7 +77,7 @@ public class ContentTypesEnumTests : Test
         await Scenario()
             .Step("Send request with ContentType XFormUrlEncoded enum", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var formData = new Dictionary<string, string>
                 {
@@ -90,7 +90,7 @@ public class ContentTypesEnumTests : Test
                     .Body(formData)
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<ContentTypeResponse>();
                 Assert.Contains("application/x-www-form-urlencoded", body!.ContentType);
@@ -104,14 +104,14 @@ public class ContentTypesEnumTests : Test
         await Scenario()
             .Step("AsMultipart sets content type to multipart/form-data", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/files/upload")
                     .AsMultipart()
                     .FormField("field1", "value1")
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
             })
             .Run();
     }

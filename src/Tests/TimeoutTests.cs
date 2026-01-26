@@ -11,13 +11,13 @@ public class TimeoutTests : Test
         await Scenario()
             .Step("Request completes before timeout", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/delay/100")
                     .Timeout(TimeSpan.FromSeconds(5))
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
             })
             .Run();
     }
@@ -28,7 +28,7 @@ public class TimeoutTests : Test
         await Scenario()
             .Step("Request times out", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var exceptionThrown = false;
                 try
@@ -53,13 +53,13 @@ public class TimeoutTests : Test
         await Scenario()
             .Step("Stream request completes before timeout", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 await using var streamResponse = await client.Url("/api/stream/download")
                     .Timeout(TimeSpan.FromSeconds(5))
                     .GetStream();
 
-                Assert.IsTrue(streamResponse.Ok);
+                Assert.IsTrue(streamResponse.IsSuccessful);
             })
             .Run();
     }

@@ -10,11 +10,11 @@ public class ResponsePropertiesTests : Test
         await Scenario()
             .Step("Access response headers", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var response = await client.Url("/api/response/json").Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 Assert.IsNotNull(response.Headers);
             })
             .Run();
@@ -26,11 +26,11 @@ public class ResponsePropertiesTests : Test
         await Scenario()
             .Step("Access content headers", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var response = await client.Url("/api/response/json").Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 Assert.IsNotNull(response.ContentHeaders);
                 Assert.IsNotNull(response.ContentHeaders.ContentType);
             })
@@ -43,11 +43,11 @@ public class ResponsePropertiesTests : Test
         await Scenario()
             .Step("Access inner HttpResponseMessage", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var response = await client.Url("/api/response/json").Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 Assert.IsNotNull(response.InnerResponse);
                 Assert.IsTrue(response.InnerResponse.IsSuccessStatusCode);
             })
@@ -60,11 +60,11 @@ public class ResponsePropertiesTests : Test
         await Scenario()
             .Step("Access raw response string", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var response = await client.Url("/api/response/json").Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 Assert.IsNotNull(response.RawResponse);
                 Assert.IsGreaterThan(0, response.RawResponse.Length);
             })

@@ -10,11 +10,11 @@ public class StreamingTests : Test
         await Scenario()
             .Step("Download content as stream", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 await using var streamResponse = await client.Url("/api/stream/download").GetStream();
 
-                Assert.IsTrue(streamResponse.Ok);
+                Assert.IsTrue(streamResponse.IsSuccessful);
                 Assert.AreEqual("application/octet-stream", streamResponse.ContentType);
                 Assert.AreEqual("test-file.txt", streamResponse.FileName);
                 
@@ -31,11 +31,11 @@ public class StreamingTests : Test
         await Scenario()
             .Step("Download content as bytes from stream response", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 await using var streamResponse = await client.Url("/api/stream/download").GetStream();
 
-                Assert.IsTrue(streamResponse.Ok);
+                Assert.IsTrue(streamResponse.IsSuccessful);
                 
                 var bytes = await streamResponse.GetBytes();
                 Assert.IsNotNull(bytes);
@@ -50,11 +50,11 @@ public class StreamingTests : Test
         await Scenario()
             .Step("Stream large file content", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 await using var streamResponse = await client.Url("/api/stream/large").GetStream();
 
-                Assert.IsTrue(streamResponse.Ok);
+                Assert.IsTrue(streamResponse.IsSuccessful);
                 
                 var stream = await streamResponse.GetStream();
                 
@@ -79,13 +79,13 @@ public class StreamingTests : Test
         await Scenario()
             .Step("POST request with stream response", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 await using var streamResponse = await client.Url("/api/echo")
                     .Body(new { test = "data" })
                     .PostStream();
 
-                Assert.IsTrue(streamResponse.Ok);
+                Assert.IsTrue(streamResponse.IsSuccessful);
                 
                 var bytes = await streamResponse.GetBytes();
                 Assert.IsNotEmpty(bytes);

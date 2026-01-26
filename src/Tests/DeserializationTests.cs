@@ -12,11 +12,11 @@ public class DeserializationTests : Test
         await Scenario()
             .Step("Deserialize response to typed object", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/deserialize/person").Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var person = response.As<PersonDto>();
                 Assert.IsNotNull(person);
@@ -34,11 +34,11 @@ public class DeserializationTests : Test
         await Scenario()
             .Step("Deserialize response to list of typed objects", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/deserialize/list").Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var people = response.As<PersonDto[]>();
                 Assert.IsNotNull(people);
@@ -55,11 +55,11 @@ public class DeserializationTests : Test
         await Scenario()
             .Step("Get response as raw bytes", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/response/bytes").Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var bytes = response.AsBytes();
                 Assert.IsNotNull(bytes);
@@ -74,11 +74,11 @@ public class DeserializationTests : Test
         await Scenario()
             .Step("Get response body as string", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/response/text").Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 Assert.AreEqual("This is plain text response", response.Body);
             })
             .Run();

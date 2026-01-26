@@ -11,7 +11,7 @@ public class RequestOptionsTests : Test
         await Scenario()
             .Step("Set single option on request", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 // Options are metadata for the request, not sent to the server
                 // This test verifies the Options method can be called without error
@@ -19,7 +19,7 @@ public class RequestOptionsTests : Test
                     .Options("customKey", "customValue")
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
             })
             .Run();
     }
@@ -30,7 +30,7 @@ public class RequestOptionsTests : Test
         await Scenario()
             .Step("Set multiple options on request", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/echo")
                     .Options("option1", "value1")
@@ -38,7 +38,7 @@ public class RequestOptionsTests : Test
                     .Options("option3", true)
                     .Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
             })
             .Run();
     }

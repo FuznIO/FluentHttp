@@ -12,7 +12,7 @@ public class ContentTypeTests : Test
         await Scenario()
             .Step("Send JSON body", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var payload = new { name = "Test", value = 123 };
                 
@@ -21,7 +21,7 @@ public class ContentTypeTests : Test
                     .Body(payload)
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<ContentTypeResponse>();
                 Assert.AreEqual("application/json", body!.ContentType);
@@ -35,7 +35,7 @@ public class ContentTypeTests : Test
         await Scenario()
             .Step("Body auto-sets Content-Type to JSON", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var payload = new { name = "Auto" };
                 
@@ -43,7 +43,7 @@ public class ContentTypeTests : Test
                     .Body(payload)
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<ContentTypeResponse>();
                 Assert.Contains("application/json", body!.ContentType);
@@ -57,14 +57,14 @@ public class ContentTypeTests : Test
         await Scenario()
             .Step("Send request with custom content type string", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/echo")
                     .ContentType("application/xml")
                     .Body("<root><test>value</test></root>")
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<ContentTypeResponse>();
                 Assert.Contains("application/xml", body!.ContentType);

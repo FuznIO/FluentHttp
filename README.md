@@ -20,7 +20,7 @@ var response = await httpClient
     .Url("https://api.example.com/users")
     .Get();
 
-if (response.Ok)
+if (response.IsSuccessful)
 {
     var users = response.As<List<User>>();
 }
@@ -216,8 +216,8 @@ var response = await httpClient
     .Url("https://api.example.com/users/1")
     .Get();
 
-// Check if successful
-if (response.Ok)
+// Check if successful (2xx status code)
+if (response.IsSuccessful)
 {
     // Deserialize to type
     var user = response.As<User>();

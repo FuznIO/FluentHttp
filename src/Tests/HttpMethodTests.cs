@@ -12,11 +12,11 @@ public class HttpMethodTests : Test
         await Scenario()
             .Step("Send GET request", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/methods/get").Get();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 Assert.AreEqual(System.Net.HttpStatusCode.OK, response.StatusCode);
                 
                 var body = response.As<MethodResponse>();
@@ -32,14 +32,14 @@ public class HttpMethodTests : Test
         await Scenario()
             .Step("Send POST request with body", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var payload = new { name = "Test", value = 123 };
                 var response = await client.Url("/api/methods/post")
                     .Body(payload)
                     .Post();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<MethodResponse>();
                 Assert.AreEqual("POST", body!.Method);
@@ -54,14 +54,14 @@ public class HttpMethodTests : Test
         await Scenario()
             .Step("Send PUT request with body", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var payload = new { id = 1, name = "Updated" };
                 var response = await client.Url("/api/methods/put")
                     .Body(payload)
                     .Put();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<MethodResponse>();
                 Assert.AreEqual("PUT", body!.Method);
@@ -75,11 +75,11 @@ public class HttpMethodTests : Test
         await Scenario()
             .Step("Send DELETE request", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/methods/delete").Delete();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<MethodResponse>();
                 Assert.AreEqual("DELETE", body!.Method);
@@ -93,14 +93,14 @@ public class HttpMethodTests : Test
         await Scenario()
             .Step("Send PATCH request with body", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var payload = new { field = "updated" };
                 var response = await client.Url("/api/methods/patch")
                     .Body(payload)
                     .Patch();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.As<MethodResponse>();
                 Assert.AreEqual("PATCH", body!.Method);
@@ -114,11 +114,11 @@ public class HttpMethodTests : Test
         await Scenario()
             .Step("Send HEAD request", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/methods/head").Head();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
                 Assert.AreEqual(string.Empty, response.Body);
             })
             .Run();
@@ -130,11 +130,11 @@ public class HttpMethodTests : Test
         await Scenario()
             .Step("Send OPTIONS request", async _ =>
             {
-                var client = SuiteData.Factory.CreateClient();
+                var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/methods/options").Options();
 
-                Assert.IsTrue(response.Ok);
+                Assert.IsTrue(response.IsSuccessful);
             })
             .Run();
     }
