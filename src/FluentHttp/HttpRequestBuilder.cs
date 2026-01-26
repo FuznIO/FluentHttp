@@ -546,7 +546,7 @@ public class HttpRequestBuilder
     {
         var request = _data.MapToHttpRequestMessage();
 
-        var linkedToken = GetLinkedCancellationToken(cancellationToken, out var linkedCts);
+        var (linkedToken, linkedCts) = GetLinkedCancellationToken(cancellationToken);
         linkedToken.ThrowIfCancellationRequested();
 
         try
@@ -575,7 +575,7 @@ public class HttpRequestBuilder
         var request = _data.MapToHttpRequestMessage();
         HttpResponseMessage? response = null;
 
-        var linkedToken = GetLinkedCancellationToken(cancellationToken, out var linkedCts);
+        var (linkedToken, linkedCts) = GetLinkedCancellationToken(cancellationToken);
         linkedToken.ThrowIfCancellationRequested();
 
         try
@@ -593,36 +593,28 @@ public class HttpRequestBuilder
         }
     }
 
-    private CancellationToken GetLinkedCancellationToken(CancellationToken cancellationToken, out CancellationTokenSource? linkedCts)
+    private (CancellationToken Token, CancellationTokenSource? Cts) GetLinkedCancellationToken(CancellationToken cancellationToken)
     {
-        // If we have a builder-level token, link it with the method-level token
-        if (_data.CancellationToken != default)
+        var hasBuilderToken = _data.CancellationToken != default;
+        var hasTimeout = _data.Timeout != TimeSpan.Zero;
+
+        // No builder-level token or timeout - just use the method-level token directly
+        if (!hasBuilderToken && !hasTimeout)
         {
-            if (_data.Timeout != TimeSpan.Zero)
-            {
-                linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _data.CancellationToken);
-                linkedCts.CancelAfter(_data.Timeout);
-            }
-            else
-            {
-                linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _data.CancellationToken);
-            }
-            return linkedCts.Token;
+            return (cancellationToken, null);
         }
 
-        // If we only have timeout, create a new CTS for it
-        if (_data.Timeout != TimeSpan.Zero)
+        // Create linked token source combining all applicable tokens
+        var linkedCts = hasBuilderToken
+            ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _data.CancellationToken)
+            : CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        if (hasTimeout)
         {
-            linkedCts = cancellationToken != default
-                ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
-                : new CancellationTokenSource();
             linkedCts.CancelAfter(_data.Timeout);
-            return linkedCts.Token;
         }
 
-        // No builder-level token or timeout, just use the method-level token
-        linkedCts = null;
-        return cancellationToken;
+        return (linkedCts.Token, linkedCts);
     }
 
     private static CookieContainer? ExtractResponseCookies(HttpResponseMessage response, Uri uri)
