@@ -296,6 +296,26 @@ var error = response.As<ProblemDetails>();
 
 ## Custom Serialization
 
+### Using System.Text.Json Options
+
+Configure the default `System.Text.Json` serializer with custom options:
+
+```csharp
+var options = new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    PropertyNameCaseInsensitive = true
+};
+
+var response = await httpClient
+    .Url("https://api.example.com/data")
+    .SerializerOptions(options)
+    .Body(data)
+    .Post<Result>();
+```
+
+### Using a Custom Serializer Provider
+
 Implement `ISerializerProvider` to use your preferred serializer:
 
 ```csharp
@@ -315,6 +335,8 @@ var response = await httpClient
     .Body(data)
     .Post<Result>();
 ```
+
+> **Note:** When both `SerializerOptions` and `SerializerProvider` are set, `SerializerProvider` takes precedence and `SerializerOptions` is ignored.
 
 ## Cancellation Support
 
