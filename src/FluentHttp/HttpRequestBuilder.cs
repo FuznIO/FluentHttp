@@ -1,6 +1,7 @@
 ﻿using Fuzn.FluentHttp.Internals;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 
 namespace Fuzn.FluentHttp;
 
@@ -51,6 +52,19 @@ public class HttpRequestBuilder
     public HttpRequestBuilder SerializerProvider(ISerializerProvider serializerProvider)
     {
         _data.SerializerProvider = serializerProvider;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets custom JSON serializer options for the default System.Text.Json serializer.
+    /// These options are used for request body serialization and response deserialization.
+    /// Note: This is ignored if a custom <see cref="ISerializerProvider"/> is set via <see cref="SerializerProvider"/>.
+    /// </summary>
+    /// <param name="options">The JSON serializer options to use.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder SerializerOptions(JsonSerializerOptions options)
+    {
+        _data.SerializerOptions = options;
         return this;
     }
 
