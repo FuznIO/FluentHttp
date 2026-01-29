@@ -13,6 +13,11 @@ public class HttpRequestBuilder
     private readonly HttpRequestData _data = new();
 
     /// <summary>
+    /// Gets the underlying request data for inspection or direct modification.
+    /// </summary>
+    public HttpRequestData Data => _data;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="HttpRequestBuilder"/> class.
     /// </summary>
     /// <param name="httpClient">The HttpClient instance to use for sending requests.</param>
@@ -603,6 +608,9 @@ public class HttpRequestBuilder
 
     private async Task<HttpResponse> Send(CancellationToken cancellationToken = default)
     {
+        // Execute global interceptor before building request
+        FluentHttpDefaults.ExecuteInterceptor(this);
+
         var request = _data.MapToHttpRequestMessage();
 
         var (linkedToken, linkedCts) = GetLinkedCancellationToken(cancellationToken);
@@ -631,6 +639,9 @@ public class HttpRequestBuilder
 
     private async Task<HttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
     {
+        // Execute global interceptor before building request
+        FluentHttpDefaults.ExecuteInterceptor(this);
+
         var request = _data.MapToHttpRequestMessage();
         HttpResponseMessage? response = null;
 

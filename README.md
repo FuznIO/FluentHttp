@@ -338,6 +338,72 @@ var response = await httpClient
 
 > **Note:** When both `SerializerOptions` and `SerializerProvider` are set, `SerializerProvider` takes precedence and `SerializerOptions` is ignored.
 
+## Global Defaults
+
+Use `FluentHttpDefaults.BeforeSend` to configure global behavior for all requests. The interceptor receives the builder, allowing you to inspect current request state via `builder.Data` and modify using builder methods.
+
+### Setting Global Serializer Options
+
+```csharp
+var globalOptions = new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    PropertyNameCaseInsensitive = true
+};
+
+FluentHttpDefaults.BeforeSend = builder =>
+{
+    // Only set if not already configured per-request
+    if (builder.Data.SerializerOptions is null)
+    {
+        builder.SerializerOptions(globalOptions);
+    }
+};
+```
+
+### Adding Default Headers
+
+```csharp
+FluentHttpDefaults.BeforeSend = builder =>
+{
+    // Add correlation ID to all requests
+    if (!builder.Data.Headers.ContainsKey("X-Correlation-Id"))
+    {
+        builder.Header("X-Correlation-Id", Guid.NewGuid().ToString());
+    }
+    
+    // Add app version header
+    builder.Data.Headers.TryAdd("X-App-Version", "1.0.0");
+};
+```
+
+### URL-Based Conditional Logic
+
+```csharp
+FluentHttpDefaults.BeforeSend = builder =>
+{
+    // Different serializer for legacy API
+    if (builder.Data.AbsoluteUri.Host.Contains("legacy-api"))
+    {
+        builder.SerializerProvider(new LegacySerializerProvider());
+    }
+    
+    // Longer timeout for report endpoints
+    if (builder.Data.RequestUrl.Contains("/reports/"))
+    {
+        builder.Timeout(TimeSpan.FromMinutes(5));
+    }
+};
+```
+
+### Clearing the Interceptor
+
+```csharp
+FluentHttpDefaults.BeforeSend = null;
+```
+
+> **Note:** Per-request settings always take precedence. The pattern is to check `builder.Data` first, then only set defaults if not already configured. For async operations like token refresh, use a `DelegatingHandler` instead.
+
 ## Cancellation Support
 
 All HTTP methods support cancellation tokens:

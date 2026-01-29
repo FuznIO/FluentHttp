@@ -1,58 +1,97 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Web;
 
-namespace Fuzn.FluentHttp.Internals;
+namespace Fuzn.FluentHttp;
 
-internal class HttpRequestData
+/// <summary>
+/// Contains all data for building an HTTP request.
+/// Exposed to interceptors for inspection and modification.
+/// </summary>
+public class HttpRequestData
 {
     internal HttpClient HttpClient { get; set; } = null!;
-    internal Uri AbsoluteUri { get; set; } = null!;
-    internal Uri BaseUri { get; set; } = null!;
-    internal string RequestUrl { get; set; } = null!;
-    internal string? ContentType { get; set; } = null;
-    internal HttpMethod Method { get; set; } = null!;
-    internal object? Body { get; set; } = null;
-    internal string AcceptType { get; set; } = "application/json";
-    internal List<Cookie> Cookies { get; set; } = [];
-    internal Dictionary<string, string> Headers { get; set; } = new();
-    internal Dictionary<string, object> Options { get; set; } = new();
-    internal string? UserAgent { get; set; } = null;
-    internal TimeSpan Timeout { get; set; }
-    internal JsonSerializerOptions? SerializerOptions { get; set; }
-    internal ISerializerProvider? SerializerProvider { get; set; }
-    internal List<FileContent> Files { get; set; } = [];
-    internal Dictionary<string, string> FormFields { get; set; } = new();
-    internal List<KeyValuePair<string, string>> QueryParams { get; set; } = [];
+
+    /// <summary>The absolute URI being called.</summary>
+    public Uri AbsoluteUri { get; internal set; } = null!;
+
+    /// <summary>The base URI (scheme + host + port).</summary>
+    public Uri BaseUri { get; internal set; } = null!;
+
+    /// <summary>The original request URL/path.</summary>
+    public string RequestUrl { get; internal set; } = null!;
+
+    /// <summary>The Content-Type header value.</summary>
+    public string? ContentType { get; set; }
+
+    /// <summary>The HTTP method.</summary>
+    public HttpMethod Method { get; internal set; } = null!;
+
+    /// <summary>The request body.</summary>
+    public object? Body { get; set; }
+
+    /// <summary>The Accept header value.</summary>
+    public string AcceptType { get; set; } = "application/json";
+
+    /// <summary>Cookies to send with the request.</summary>
+    public List<Cookie> Cookies { get; set; } = [];
+
+    /// <summary>Request headers.</summary>
+    public Dictionary<string, string> Headers { get; set; } = new();
+
+    /// <summary>Custom options/metadata for the request.</summary>
+    public Dictionary<string, object> Options { get; set; } = new();
+
+    /// <summary>The User-Agent header value.</summary>
+    public string? UserAgent { get; set; }
+
+    /// <summary>Request timeout.</summary>
+    public TimeSpan Timeout { get; set; }
+
+    /// <summary>JSON serializer options.</summary>
+    public JsonSerializerOptions? SerializerOptions { get; set; }
+
+    /// <summary>Custom serializer provider.</summary>
+    public ISerializerProvider? SerializerProvider { get; set; }
+
+    /// <summary>Files to upload.</summary>
+    public List<FileContent> Files { get; set; } = [];
+
+    /// <summary>Form fields for multipart requests.</summary>
+    public Dictionary<string, string> FormFields { get; set; } = new();
+
+    /// <summary>Query parameters.</summary>
+    public List<KeyValuePair<string, string>> QueryParams { get; set; } = [];
+
     internal CancellationToken CancellationToken { get; set; } = default;
 
     private string BuildQueryString()
     {
         var queryPairs = new List<string>();
-        
+
         foreach (var param in QueryParams)
         {
             var encodedKey = HttpUtility.UrlEncode(param.Key);
             var encodedValue = HttpUtility.UrlEncode(param.Value);
             queryPairs.Add($"{encodedKey}={encodedValue}");
         }
-        
+
         return string.Join("&", queryPairs);
     }
 
-    public HttpRequestMessage MapToHttpRequestMessage()
+    internal HttpRequestMessage MapToHttpRequestMessage()
     {
         var request = new HttpRequestMessage(Method, GetRequestUrlWithPathAndQuery());
-        
+
         foreach (var option in Options)
         {
             request.Options.Set(new HttpRequestOptionsKey<object>(option.Key), option.Value);
         }
 
         request.Headers.Add("Accept", AcceptType);
-        
+
         foreach (var header in Headers)
             request.Headers.TryAddWithoutValidation(header.Key, header.Value);
 
@@ -98,7 +137,7 @@ internal class HttpRequestData
         {
             if (Body is Dictionary<string, string> dictBody)
                 return new FormUrlEncodedContent(dictBody);
-            
+
             if (Body is IEnumerable<KeyValuePair<string, string>> kvpBody)
                 return new FormUrlEncodedContent(kvpBody);
 
@@ -127,7 +166,10 @@ internal class HttpRequestData
             return new StringContent(Body.ToString() ?? string.Empty, Encoding.UTF8, ContentType);
 
         // For JSON and other content types, serialize as JSON
-        var jsonContent = JsonSerializer.Serialize(Body, SerializerOptions);
+        // Use SerializerProvider if set, otherwise fall back to SerializerOptions
+        var jsonContent = SerializerProvider is not null
+            ? SerializerProvider.Serialize(Body)
+            : JsonSerializer.Serialize(Body, SerializerOptions);
         return new StringContent(jsonContent, Encoding.UTF8, ContentType);
     }
 
@@ -140,7 +182,7 @@ internal class HttpRequestData
 
         // Build query string
         var queryString = BuildQueryString();
-            
+
         // Check if URL already has query parameters
         if (pathAndQuery.Contains('?'))
         {
