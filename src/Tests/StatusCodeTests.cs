@@ -48,7 +48,7 @@ public class StatusCodeTests : Test
 
                 Assert.IsTrue(response.IsSuccessful);
                 Assert.AreEqual(System.Net.HttpStatusCode.NoContent, response.StatusCode);
-                Assert.AreEqual(string.Empty, response.Body);
+                Assert.AreEqual(string.Empty, response.Content);
             })
             .Run();
     }

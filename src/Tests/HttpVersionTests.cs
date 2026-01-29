@@ -7,7 +7,7 @@ namespace Fuzn.FluentHttp.Tests;
 public class HttpVersionTests : Test
 {
     [Test]
-    public async Task Version_Http11_SetsVersionOnRequest()
+    public async Task WithVersion_Http11_SetsVersionOnRequest()
     {
         await Scenario()
             .Step("Set HTTP/1.1 version on request", async _ =>
@@ -15,7 +15,7 @@ public class HttpVersionTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var request = client.Url("/api/echo")
-                    .Version(HttpVersion.Version11)
+                    .WithVersion(HttpVersion.Version11)
                     .BuildRequest(HttpMethod.Get);
 
                 Assert.AreEqual(HttpVersion.Version11, request.Version);
@@ -24,7 +24,7 @@ public class HttpVersionTests : Test
     }
 
     [Test]
-    public async Task Version_Http20_SetsVersionOnRequest()
+    public async Task WithVersion_Http20_SetsVersionOnRequest()
     {
         await Scenario()
             .Step("Set HTTP/2 version on request", async _ =>
@@ -32,7 +32,7 @@ public class HttpVersionTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var request = client.Url("/api/echo")
-                    .Version(HttpVersion.Version20)
+                    .WithVersion(HttpVersion.Version20)
                     .BuildRequest(HttpMethod.Get);
 
                 Assert.AreEqual(HttpVersion.Version20, request.Version);
@@ -41,7 +41,7 @@ public class HttpVersionTests : Test
     }
 
     [Test]
-    public async Task Version_Http30_SetsVersionOnRequest()
+    public async Task WithVersion_Http30_SetsVersionOnRequest()
     {
         await Scenario()
             .Step("Set HTTP/3 version on request", async _ =>
@@ -49,7 +49,7 @@ public class HttpVersionTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var request = client.Url("/api/echo")
-                    .Version(HttpVersion.Version30)
+                    .WithVersion(HttpVersion.Version30)
                     .BuildRequest(HttpMethod.Get);
 
                 Assert.AreEqual(HttpVersion.Version30, request.Version);
@@ -58,7 +58,7 @@ public class HttpVersionTests : Test
     }
 
     [Test]
-    public async Task VersionPolicy_RequestVersionExact_SetsPolicyOnRequest()
+    public async Task WithVersionPolicy_RequestVersionExact_SetsPolicyOnRequest()
     {
         await Scenario()
             .Step("Set RequestVersionExact policy on request", async _ =>
@@ -66,8 +66,8 @@ public class HttpVersionTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var request = client.Url("/api/echo")
-                    .Version(HttpVersion.Version20)
-                    .VersionPolicy(HttpVersionPolicy.RequestVersionExact)
+                    .WithVersion(HttpVersion.Version20)
+                    .WithVersionPolicy(HttpVersionPolicy.RequestVersionExact)
                     .BuildRequest(HttpMethod.Get);
 
                 Assert.AreEqual(HttpVersionPolicy.RequestVersionExact, request.VersionPolicy);
@@ -76,7 +76,7 @@ public class HttpVersionTests : Test
     }
 
     [Test]
-    public async Task VersionPolicy_RequestVersionOrLower_SetsPolicyOnRequest()
+    public async Task WithVersionPolicy_RequestVersionOrLower_SetsPolicyOnRequest()
     {
         await Scenario()
             .Step("Set RequestVersionOrLower policy on request", async _ =>
@@ -84,8 +84,8 @@ public class HttpVersionTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var request = client.Url("/api/echo")
-                    .Version(HttpVersion.Version20)
-                    .VersionPolicy(HttpVersionPolicy.RequestVersionOrLower)
+                    .WithVersion(HttpVersion.Version20)
+                    .WithVersionPolicy(HttpVersionPolicy.RequestVersionOrLower)
                     .BuildRequest(HttpMethod.Get);
 
                 Assert.AreEqual(HttpVersionPolicy.RequestVersionOrLower, request.VersionPolicy);
@@ -94,7 +94,7 @@ public class HttpVersionTests : Test
     }
 
     [Test]
-    public async Task VersionPolicy_RequestVersionOrHigher_SetsPolicyOnRequest()
+    public async Task WithVersionPolicy_RequestVersionOrHigher_SetsPolicyOnRequest()
     {
         await Scenario()
             .Step("Set RequestVersionOrHigher policy on request", async _ =>
@@ -102,8 +102,8 @@ public class HttpVersionTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var request = client.Url("/api/echo")
-                    .Version(HttpVersion.Version11)
-                    .VersionPolicy(HttpVersionPolicy.RequestVersionOrHigher)
+                    .WithVersion(HttpVersion.Version11)
+                    .WithVersionPolicy(HttpVersionPolicy.RequestVersionOrHigher)
                     .BuildRequest(HttpMethod.Get);
 
                 Assert.AreEqual(HttpVersionPolicy.RequestVersionOrHigher, request.VersionPolicy);
@@ -112,7 +112,7 @@ public class HttpVersionTests : Test
     }
 
     [Test]
-    public async Task Version_WithoutVersionPolicy_UsesDefaultPolicy()
+    public async Task WithVersion_WithoutVersionPolicy_UsesDefaultPolicy()
     {
         await Scenario()
             .Step("Version without policy uses default", async _ =>
@@ -120,7 +120,7 @@ public class HttpVersionTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var request = client.Url("/api/echo")
-                    .Version(HttpVersion.Version20)
+                    .WithVersion(HttpVersion.Version20)
                     .BuildRequest(HttpMethod.Get);
 
                 Assert.AreEqual(HttpVersion.Version20, request.Version);
@@ -131,7 +131,7 @@ public class HttpVersionTests : Test
     }
 
     [Test]
-    public async Task Version_ChainingWithOtherMethods_WorksCorrectly()
+    public async Task WithVersion_ChainingWithOtherMethods_WorksCorrectly()
     {
         await Scenario()
             .Step("Chain version with other builder methods", async _ =>
@@ -139,10 +139,10 @@ public class HttpVersionTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var request = client.Url("/api/echo")
-                    .Header("X-Custom", "value")
-                    .Version(HttpVersion.Version20)
-                    .VersionPolicy(HttpVersionPolicy.RequestVersionExact)
-                    .Accept(AcceptTypes.Json)
+                    .WithHeader("X-Custom", "value")
+                    .WithVersion(HttpVersion.Version20)
+                    .WithVersionPolicy(HttpVersionPolicy.RequestVersionExact)
+                    .WithAccept(AcceptTypes.Json)
                     .BuildRequest(HttpMethod.Get);
 
                 Assert.AreEqual(HttpVersion.Version20, request.Version);
@@ -153,7 +153,7 @@ public class HttpVersionTests : Test
     }
 
     [Test]
-    public async Task Version_Http11_RequestSucceeds()
+    public async Task WithVersion_Http11_RequestSucceeds()
     {
         await Scenario()
             .Step("Send request with HTTP/1.1 version", async _ =>
@@ -162,7 +162,7 @@ public class HttpVersionTests : Test
 
                 // HTTP/1.1 should work with most servers
                 var response = await client.Url("/api/echo")
-                    .Version(HttpVersion.Version11)
+                    .WithVersion(HttpVersion.Version11)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);

@@ -19,7 +19,7 @@ public class HttpMethodTests : Test
                 Assert.IsTrue(response.IsSuccessful);
                 Assert.AreEqual(System.Net.HttpStatusCode.OK, response.StatusCode);
                 
-                var body = response.As<MethodResponse>();
+                var body = response.ContentAs<MethodResponse>();
                 Assert.AreEqual("GET", body!.Method);
                 Assert.IsTrue(body.Success);
             })
@@ -36,12 +36,12 @@ public class HttpMethodTests : Test
                 
                 var payload = new { name = "Test", value = 123 };
                 var response = await client.Url("/api/methods/post")
-                    .Body(payload)
+                    .WithContent(payload)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<MethodResponse>();
+                var body = response.ContentAs<MethodResponse>();
                 Assert.AreEqual("POST", body!.Method);
                 Assert.IsTrue(body.Success);
             })
@@ -58,12 +58,12 @@ public class HttpMethodTests : Test
                 
                 var payload = new { id = 1, name = "Updated" };
                 var response = await client.Url("/api/methods/put")
-                    .Body(payload)
+                    .WithContent(payload)
                     .Put();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<MethodResponse>();
+                var body = response.ContentAs<MethodResponse>();
                 Assert.AreEqual("PUT", body!.Method);
             })
             .Run();
@@ -81,7 +81,7 @@ public class HttpMethodTests : Test
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<MethodResponse>();
+                var body = response.ContentAs<MethodResponse>();
                 Assert.AreEqual("DELETE", body!.Method);
             })
             .Run();
@@ -97,12 +97,12 @@ public class HttpMethodTests : Test
                 
                 var payload = new { field = "updated" };
                 var response = await client.Url("/api/methods/patch")
-                    .Body(payload)
+                    .WithContent(payload)
                     .Patch();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<MethodResponse>();
+                var body = response.ContentAs<MethodResponse>();
                 Assert.AreEqual("PATCH", body!.Method);
             })
             .Run();
@@ -119,7 +119,7 @@ public class HttpMethodTests : Test
                 var response = await client.Url("/api/methods/head").Head();
 
                 Assert.IsTrue(response.IsSuccessful);
-                Assert.AreEqual(string.Empty, response.Body);
+                Assert.AreEqual(string.Empty, response.Content);
             })
             .Run();
     }

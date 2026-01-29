@@ -13,11 +13,11 @@ public class HttpResponse<T> : HttpResponse
     internal HttpResponse(HttpResponse response)
         : base(response)
     {
-        _data = new Lazy<T?>(As<T>);
+        _data = new Lazy<T?>(ContentAs<T>);
     }
 
     /// <summary>
-    /// Gets the deserialized response data. Returns default(T) if the body is empty or cannot be deserialized.
+    /// Gets the deserialized response data. Returns default(T) if the content is empty or cannot be deserialized.
     /// </summary>
     public T? Data => _data.Value;
 }

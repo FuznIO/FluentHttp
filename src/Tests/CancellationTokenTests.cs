@@ -46,7 +46,7 @@ public class CancellationTokenTests : Test
                 try
                 {
                     await client.Url("/api/echo")
-                        .Body(new { test = "data" })
+                        .WithContent(new { test = "data" })
                         .Post(cts.Token);
                 }
                 catch (OperationCanceledException)
@@ -74,7 +74,7 @@ public class CancellationTokenTests : Test
                 try
                 {
                     await client.Url("/api/echo")
-                        .Body(new { id = 1 })
+                        .WithContent(new { id = 1 })
                         .Put(cts.Token);
                 }
                 catch (OperationCanceledException)
@@ -128,7 +128,7 @@ public class CancellationTokenTests : Test
                 try
                 {
                     await client.Url("/api/echo")
-                        .Body(new { field = "value" })
+                        .WithContent(new { field = "value" })
                         .Patch(cts.Token);
                 }
                 catch (OperationCanceledException)
@@ -156,7 +156,7 @@ public class CancellationTokenTests : Test
                 try
                 {
                     await client.Url("/api/delay/1000")
-                        .CancellationToken(cts.Token)
+                        .WithCancellationToken(cts.Token)
                         .Get();
                 }
                 catch (OperationCanceledException)
@@ -184,8 +184,8 @@ public class CancellationTokenTests : Test
                 try
                 {
                     await client.Url("/api/echo")
-                        .Body(new { test = "data" })
-                        .CancellationToken(cts.Token)
+                        .WithContent(new { test = "data" })
+                        .WithCancellationToken(cts.Token)
                         .Post();
                 }
                 catch (OperationCanceledException)
@@ -214,7 +214,7 @@ public class CancellationTokenTests : Test
                 try
                 {
                     await client.Url("/api/delay/1000")
-                        .CancellationToken(builderCts.Token)
+                        .WithCancellationToken(builderCts.Token)
                         .Get(methodCts.Token);
                 }
                 catch (OperationCanceledException)
@@ -243,7 +243,7 @@ public class CancellationTokenTests : Test
                 try
                 {
                     await client.Url("/api/delay/1000")
-                        .CancellationToken(builderCts.Token)
+                        .WithCancellationToken(builderCts.Token)
                         .Get(methodCts.Token);
                 }
                 catch (OperationCanceledException)
@@ -271,7 +271,7 @@ public class CancellationTokenTests : Test
                 try
                 {
                     await client.Url("/api/delay/1000")
-                        .CancellationToken(cts.Token)
+                        .WithCancellationToken(cts.Token)
                         .GetStream();
                 }
                 catch (OperationCanceledException)
@@ -299,8 +299,8 @@ public class CancellationTokenTests : Test
                 try
                 {
                     await client.Url("/api/echo")
-                        .Body(new { test = "data" })
-                        .CancellationToken(cts.Token)
+                        .WithContent(new { test = "data" })
+                        .WithCancellationToken(cts.Token)
                         .PostStream();
                 }
                 catch (OperationCanceledException)

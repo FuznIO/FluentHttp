@@ -8,7 +8,7 @@ namespace Fuzn.FluentHttp.Tests;
 public class FileUploadTests : Test
 {
     [Test]
-    public async Task File_ByteArray_UploadsCorrectly()
+    public async Task WithFile_ByteArray_UploadsCorrectly()
     {
         await Scenario()
             .Step("Upload file from byte array", async _ =>
@@ -18,12 +18,12 @@ public class FileUploadTests : Test
                 var fileContent = Encoding.UTF8.GetBytes("Test file content");
                 
                 var response = await client.Url("/api/files/upload-single")
-                    .File("file", "test.txt", fileContent, "text/plain")
+                    .WithFile("file", "test.txt", fileContent, "text/plain")
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<SingleFileUploadResponse>();
+                var body = response.ContentAs<SingleFileUploadResponse>();
                 Assert.AreEqual("test.txt", body!.FileName);
                 Assert.AreEqual("text/plain", body.ContentType);
                 Assert.AreEqual(fileContent.Length, body.Length);
@@ -32,7 +32,7 @@ public class FileUploadTests : Test
     }
 
     [Test]
-    public async Task File_Stream_UploadsCorrectly()
+    public async Task WithFile_Stream_UploadsCorrectly()
     {
         await Scenario()
             .Step("Upload file from stream", async _ =>
@@ -43,19 +43,19 @@ public class FileUploadTests : Test
                 using var stream = new MemoryStream(fileContent);
                 
                 var response = await client.Url("/api/files/upload-single")
-                    .File("file", "stream-test.txt", stream, "text/plain")
+                    .WithFile("file", "stream-test.txt", stream, "text/plain")
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<SingleFileUploadResponse>();
+                var body = response.ContentAs<SingleFileUploadResponse>();
                 Assert.AreEqual("stream-test.txt", body!.FileName);
             })
             .Run();
     }
 
     [Test]
-    public async Task File_FileContentRecord_UploadsCorrectly()
+    public async Task WithFile_FileContentRecord_UploadsCorrectly()
     {
         await Scenario()
             .Step("Upload file using FileContent record", async _ =>
@@ -66,12 +66,12 @@ public class FileUploadTests : Test
                 var file = new FileContent("document", "document.txt", fileContent, "text/plain");
                 
                 var response = await client.Url("/api/files/upload-single")
-                    .File(file)
+                    .WithFile(file)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<SingleFileUploadResponse>();
+                var body = response.ContentAs<SingleFileUploadResponse>();
                 Assert.AreEqual("document", body!.Name);
                 Assert.AreEqual("document.txt", body.FileName);
             })
@@ -79,7 +79,7 @@ public class FileUploadTests : Test
     }
 
     [Test]
-    public async Task File_MultipleFiles_UploadCorrectly()
+    public async Task WithFile_MultipleFiles_UploadCorrectly()
     {
         await Scenario()
             .Step("Upload multiple files", async _ =>
@@ -90,20 +90,20 @@ public class FileUploadTests : Test
                 var file2Content = Encoding.UTF8.GetBytes("File 2 content");
                 
                 var response = await client.Url("/api/files/upload")
-                    .File("file1", "file1.txt", file1Content)
-                    .File("file2", "file2.txt", file2Content)
+                    .WithFile("file1", "file1.txt", file1Content)
+                    .WithFile("file2", "file2.txt", file2Content)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<MultipleFileUploadResponse>();
+                var body = response.ContentAs<MultipleFileUploadResponse>();
                 Assert.HasCount(2, body!.Files);
             })
             .Run();
     }
 
     [Test]
-    public async Task FormField_WithFile_UploadsCorrectly()
+    public async Task WithFormField_WithFile_UploadsCorrectly()
     {
         await Scenario()
             .Step("Upload file with form fields", async _ =>
@@ -113,14 +113,14 @@ public class FileUploadTests : Test
                 var fileContent = Encoding.UTF8.GetBytes("File with form data");
                 
                 var response = await client.Url("/api/files/upload")
-                    .File("file", "test.txt", fileContent)
-                    .FormField("description", "Test file description")
-                    .FormField("category", "documents")
+                    .WithFile("file", "test.txt", fileContent)
+                    .WithFormField("description", "Test file description")
+                    .WithFormField("category", "documents")
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<MultipleFileUploadResponse>();
+                var body = response.ContentAs<MultipleFileUploadResponse>();
                 Assert.AreEqual("Test file description", body!.Fields["description"]);
                 Assert.AreEqual("documents", body.Fields["category"]);
             })
@@ -128,7 +128,7 @@ public class FileUploadTests : Test
     }
 
     [Test]
-    public async Task FormFields_Dictionary_UploadsCorrectly()
+    public async Task WithFormFields_Dictionary_UploadsCorrectly()
     {
         await Scenario()
             .Step("Upload with form fields from dictionary", async _ =>
@@ -143,13 +143,13 @@ public class FileUploadTests : Test
                 };
                 
                 var response = await client.Url("/api/files/upload")
-                    .File("file", "test.txt", fileContent)
-                    .FormFields(formFields)
+                    .WithFile("file", "test.txt", fileContent)
+                    .WithFormFields(formFields)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<MultipleFileUploadResponse>();
+                var body = response.ContentAs<MultipleFileUploadResponse>();
                 Assert.AreEqual("value1", body!.Fields["field1"]);
                 Assert.AreEqual("value2", body.Fields["field2"]);
             })

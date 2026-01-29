@@ -29,8 +29,8 @@ public class HttpRequestData
     /// <summary>The HTTP method.</summary>
     public HttpMethod Method { get; internal set; } = null!;
 
-    /// <summary>The request body.</summary>
-    public object? Body { get; internal set; }
+    /// <summary>The request content.</summary>
+    public object? Content { get; internal set; }
 
     /// <summary>The Accept header value.</summary>
     public string AcceptType { get; internal set; } = "application/json";
@@ -139,52 +139,52 @@ public class HttpRequestData
 
     private HttpContent? MapContent()
     {
-        // Multipart is handled separately and doesn't require Body
+        // Multipart is handled separately and doesn't require Content
         if (ContentType == "multipart/form-data")
             return BuildMultipartContent();
 
-        // For all other content types, Body is required
-        if (Body is null)
+        // For all other content types, Content is required
+        if (Content is null)
             return null;
 
         // Handle form URL encoded
         if (ContentType == "application/x-www-form-urlencoded")
         {
-            if (Body is Dictionary<string, string> dictBody)
+            if (Content is Dictionary<string, string> dictBody)
                 return new FormUrlEncodedContent(dictBody);
 
-            if (Body is IEnumerable<KeyValuePair<string, string>> kvpBody)
+            if (Content is IEnumerable<KeyValuePair<string, string>> kvpBody)
                 return new FormUrlEncodedContent(kvpBody);
 
             throw new InvalidOperationException(
-                $"Body must be Dictionary<string, string> or IEnumerable<KeyValuePair<string, string>> for content type '{ContentType}'.");
+                $"Content must be Dictionary<string, string> or IEnumerable<KeyValuePair<string, string>> for content type '{ContentType}'.");
         }
 
         // Handle binary content
         if (ContentType == "application/octet-stream")
         {
-            return Body switch
+            return Content switch
             {
                 byte[] byteArray => new ByteArrayContent(byteArray),
                 Stream stream => new StreamContent(stream),
                 _ => throw new InvalidOperationException(
-                    $"Body must be byte[] or Stream for content type '{ContentType}'.")
+                    $"Content must be byte[] or Stream for content type '{ContentType}'.")
             };
         }
 
-        // Handle string body - use as-is for any content type
-        if (Body is string stringContent)
+        // Handle string content - use as-is for any content type
+        if (Content is string stringContent)
             return new StringContent(stringContent, Encoding.UTF8, ContentType);
 
         // Handle plain text - convert object to string
         if (ContentType == "text/plain")
-            return new StringContent(Body.ToString() ?? string.Empty, Encoding.UTF8, ContentType);
+            return new StringContent(Content.ToString() ?? string.Empty, Encoding.UTF8, ContentType);
 
         // For JSON and other content types, serialize as JSON
         // Use SerializerProvider if set, otherwise fall back to SerializerOptions
         var jsonContent = SerializerProvider is not null
-            ? SerializerProvider.Serialize(Body)
-            : JsonSerializer.Serialize(Body, SerializerOptions);
+            ? SerializerProvider.Serialize(Content)
+            : JsonSerializer.Serialize(Content, SerializerOptions);
         return new StringContent(jsonContent, Encoding.UTF8, ContentType);
     }
 

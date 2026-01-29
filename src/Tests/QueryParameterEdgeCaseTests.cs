@@ -7,7 +7,7 @@ namespace Fuzn.FluentHttp.Tests;
 public class QueryParameterEdgeCaseTests : Test
 {
     [Test]
-    public async Task QueryParam_DateTimeValue_FormatsAsIso8601()
+    public async Task WithQueryParam_DateTimeValue_FormatsAsIso8601()
     {
         await Scenario()
             .Step("DateTime query parameter is formatted as ISO 8601", async _ =>
@@ -16,18 +16,18 @@ public class QueryParameterEdgeCaseTests : Test
                 var testDate = new DateTime(2024, 6, 15, 10, 30, 0, DateTimeKind.Utc);
                 
                 var response = await client.Url("/api/echo")
-                    .QueryParam("date", testDate)
+                    .WithQueryParam("date", testDate)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 // The response will contain the query string which should have the ISO 8601 format
-                Assert.Contains("2024-06-15", response.Body);
+                Assert.Contains("2024-06-15", response.Content);
             })
             .Run();
     }
 
     [Test]
-    public async Task QueryParam_DateTimeOffsetValue_FormatsAsIso8601()
+    public async Task WithQueryParam_DateTimeOffsetValue_FormatsAsIso8601()
     {
         await Scenario()
             .Step("DateTimeOffset query parameter is formatted as ISO 8601", async _ =>
@@ -36,17 +36,17 @@ public class QueryParameterEdgeCaseTests : Test
                 var testDate = new DateTimeOffset(2024, 6, 15, 10, 30, 0, TimeSpan.Zero);
                 
                 var response = await client.Url("/api/echo")
-                    .QueryParam("date", testDate)
+                    .WithQueryParam("date", testDate)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
-                Assert.Contains("2024-06-15", response.Body);
+                Assert.Contains("2024-06-15", response.Content);
             })
             .Run();
     }
 
     [Test]
-    public async Task QueryParam_BooleanValue_FormatsAsLowercase()
+    public async Task WithQueryParam_BooleanValue_FormatsAsLowercase()
     {
         await Scenario()
             .Step("Boolean query parameter is formatted as lowercase", async _ =>
@@ -54,19 +54,19 @@ public class QueryParameterEdgeCaseTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/echo")
-                    .QueryParam("enabled", true)
-                    .QueryParam("disabled", false)
+                    .WithQueryParam("enabled", true)
+                    .WithQueryParam("disabled", false)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
-                Assert.Contains("true", response.Body);
-                Assert.Contains("false", response.Body);
+                Assert.Contains("true", response.Content);
+                Assert.Contains("false", response.Content);
             })
             .Run();
     }
 
     [Test]
-    public async Task QueryParam_SpecialCharacters_AreUrlEncoded()
+    public async Task WithQueryParam_SpecialCharacters_AreUrlEncoded()
     {
         await Scenario()
             .Step("Special characters in query parameters are URL encoded", async _ =>
@@ -74,20 +74,20 @@ public class QueryParameterEdgeCaseTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/query/single")
-                    .QueryParam("name", "Test & Value")
-                    .QueryParam("count", 1)
+                    .WithQueryParam("name", "Test & Value")
+                    .WithQueryParam("count", 1)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<SingleQueryParamsResponse>();
+                var body = response.ContentAs<SingleQueryParamsResponse>();
                 Assert.AreEqual("Test & Value", body!.Name);
             })
             .Run();
     }
 
     [Test]
-    public async Task QueryParams_NullValuesInCollection_AreIgnored()
+    public async Task WithQueryParams_NullValuesInCollection_AreIgnored()
     {
         await Scenario()
             .Step("Null values in collection are ignored", async _ =>
@@ -97,19 +97,19 @@ public class QueryParameterEdgeCaseTests : Test
                 var values = new object?[] { "value1", null, "value2" };
                 
                 var response = await client.Url("/api/query/multiple")
-                    .QueryParam("tags", values)
+                    .WithQueryParam("tags", values)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<MultipleQueryParamsResponse>();
+                var body = response.ContentAs<MultipleQueryParamsResponse>();
                 Assert.HasCount(2, body!.Tags);
             })
             .Run();
     }
 
     [Test]
-    public async Task QueryParam_NullCollection_IsIgnored()
+    public async Task WithQueryParam_NullCollection_IsIgnored()
     {
         await Scenario()
             .Step("Null collection is ignored", async _ =>
@@ -119,7 +119,7 @@ public class QueryParameterEdgeCaseTests : Test
                 IEnumerable<object?>? nullCollection = null;
                 
                 var response = await client.Url("/api/status/ok")
-                    .QueryParam("tags", nullCollection)
+                    .WithQueryParam("tags", nullCollection)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
@@ -128,17 +128,17 @@ public class QueryParameterEdgeCaseTests : Test
     }
 
     [Test]
-    public async Task QueryParams_NullObject_IsIgnored()
+    public async Task WithQueryParams_NullObject_IsIgnored()
     {
         await Scenario()
-            .Step("Null object for QueryParams is ignored", async _ =>
+            .Step("Null object for WithQueryParams is ignored", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 object? nullObj = null;
                 
                 var response = await client.Url("/api/status/ok")
-                    .QueryParams(nullObj)
+                    .WithQueryParams(nullObj)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);

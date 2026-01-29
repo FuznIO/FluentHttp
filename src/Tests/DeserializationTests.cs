@@ -7,7 +7,7 @@ namespace Fuzn.FluentHttp.Tests;
 public class DeserializationTests : Test
 {
     [Test]
-    public async Task As_DeserializesToStronglyTypedObject()
+    public async Task ContentAs_DeserializesToStronglyTypedObject()
     {
         await Scenario()
             .Step("Deserialize response to typed object", async _ =>
@@ -18,7 +18,7 @@ public class DeserializationTests : Test
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var person = response.As<PersonDto>();
+                var person = response.ContentAs<PersonDto>();
                 Assert.IsNotNull(person);
                 Assert.AreEqual(1, person!.Id);
                 Assert.AreEqual("John Doe", person.Name);
@@ -29,7 +29,7 @@ public class DeserializationTests : Test
     }
 
     [Test]
-    public async Task As_DeserializesToList()
+    public async Task ContentAs_DeserializesToList()
     {
         await Scenario()
             .Step("Deserialize response to list of typed objects", async _ =>
@@ -40,7 +40,7 @@ public class DeserializationTests : Test
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var people = response.As<PersonDto[]>();
+                var people = response.ContentAs<PersonDto[]>();
                 Assert.IsNotNull(people);
                 Assert.HasCount(2, people);
                 Assert.AreEqual("John Doe", people[0].Name);
@@ -50,36 +50,17 @@ public class DeserializationTests : Test
     }
 
     [Test]
-    public async Task AsBytes_ReturnsRawBytes()
+    public async Task Content_ReturnsStringContent()
     {
         await Scenario()
-            .Step("Get response as raw bytes", async _ =>
-            {
-                var client = SuiteData.HttpClientFactory.CreateClient();
-                
-                var response = await client.Url("/api/response/bytes").Get();
-
-                Assert.IsTrue(response.IsSuccessful);
-                
-                var bytes = response.AsBytes();
-                Assert.IsNotNull(bytes);
-                Assert.IsNotEmpty(bytes);
-            })
-            .Run();
-    }
-
-    [Test]
-    public async Task Body_ReturnsStringContent()
-    {
-        await Scenario()
-            .Step("Get response body as string", async _ =>
+            .Step("Get response content as string", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/response/text").Get();
 
                 Assert.IsTrue(response.IsSuccessful);
-                Assert.AreEqual("This is plain text response", response.Body);
+                Assert.AreEqual("This is plain text response", response.Content);
             })
             .Run();
     }

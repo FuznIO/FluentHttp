@@ -41,7 +41,7 @@ if (response.IsSuccessful)
 }
 else
 {
-    Console.WriteLine($"Error {response.StatusCode}: {response.Body}");
+    Console.WriteLine($"Error {response.StatusCode}: {response.Content}");
 }
 ```
 
@@ -67,12 +67,34 @@ await httpClient.Url("/api/resource").Patch<MyType>();
 await httpClient.Url("/api/resource").Delete<MyType>();
 ```
 
-### Request Body
+### Custom HTTP Methods
+
+For non-standard HTTP methods (e.g., WebDAV's PROPFIND, MKCOL), use the `Send` method:
+
+```csharp
+// Custom HTTP method
+var response = await httpClient
+    .Url("https://webdav.example.com/folder")
+    .Send(new HttpMethod("PROPFIND"));
+
+// With typed response
+var response = await httpClient
+    .Url("https://webdav.example.com/folder")
+    .WithContent(propfindRequest)
+    .Send<PropfindResponse>(new HttpMethod("MKCOL"));
+
+// With streaming response
+await using var streamResponse = await httpClient
+    .Url("https://webdav.example.com/largefile")
+    .SendStream(new HttpMethod("PROPFIND"));
+```
+
+### Request Content
 
 ```csharp
 var response = await httpClient
     .Url("https://api.example.com/users")
-    .Body(new { Name = "John", Email = "john@example.com" })
+    .WithContent(new { Name = "John", Email = "john@example.com" })
     .Post<User>();
 ```
 
@@ -82,14 +104,14 @@ var response = await httpClient
 // Single parameter
 var response = await httpClient
     .Url("https://api.example.com/search")
-    .QueryParam("q", "dotnet")
-    .QueryParam("page", 1)
+    .WithQueryParam("q", "dotnet")
+    .WithQueryParam("page", 1)
     .Get<SearchResult>();
 
 // Multiple parameters via dictionary
 var response = await httpClient
     .Url("https://api.example.com/search")
-    .QueryParams(new Dictionary<string, object?> 
+    .WithQueryParams(new Dictionary<string, object?> 
     { 
         ["q"] = "dotnet", 
         ["page"] = 1 
@@ -99,13 +121,13 @@ var response = await httpClient
 // Anonymous object
 var response = await httpClient
     .Url("https://api.example.com/search")
-    .QueryParams(new { q = "dotnet", page = 1 })
+    .WithQueryParams(new { q = "dotnet", page = 1 })
     .Get<SearchResult>();
 
 // Multiple values for same parameter
 var response = await httpClient
     .Url("https://api.example.com/items")
-    .QueryParam("tags", new[] { "c#", "dotnet", "http" })
+    .WithQueryParam("tags", new[] { "c#", "dotnet", "http" })
     .Get<ItemList>();
 ```
 
@@ -114,8 +136,8 @@ var response = await httpClient
 ```csharp
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .Header("X-Custom-Header", "value")
-    .Headers(new Dictionary<string, string> 
+    .WithHeader("X-Custom-Header", "value")
+    .WithHeaders(new Dictionary<string, string> 
     { 
         ["X-Another"] = "another-value" 
     })
@@ -128,25 +150,25 @@ var response = await httpClient
 // Bearer token
 var response = await httpClient
     .Url("https://api.example.com/protected")
-    .AuthBearer("your-jwt-token")
+    .WithAuthBearer("your-jwt-token")
     .Get<ProtectedData>();
 
 // Basic authentication
 var response = await httpClient
     .Url("https://api.example.com/protected")
-    .AuthBasic("username", "password")
+    .WithAuthBasic("username", "password")
     .Get<ProtectedData>();
 
 // API Key
 var response = await httpClient
     .Url("https://api.example.com/protected")
-    .AuthApiKey("your-api-key")
+    .WithAuthApiKey("your-api-key")
     .Get<ProtectedData>();
 
 // Custom header name for API key
 var response = await httpClient
     .Url("https://api.example.com/protected")
-    .AuthApiKey("your-api-key", "Authorization")
+    .WithAuthApiKey("your-api-key", "Authorization")
     .Get<ProtectedData>();
 ```
 
@@ -155,15 +177,15 @@ var response = await httpClient
 ```csharp
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .ContentType(ContentTypes.Json)
-    .Body(data)
+    .WithContentType(ContentTypes.Json)
+    .WithContent(data)
     .Post<Result>();
 
 // Custom content type
 var response = await httpClient
     .Url("https://api.example.com/graphql")
-    .ContentType("application/graphql")
-    .Body(query)
+    .WithContentType("application/graphql")
+    .WithContent(query)
     .Post<GraphQLResponse>();
 ```
 
@@ -172,13 +194,13 @@ var response = await httpClient
 ```csharp
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .Accept(AcceptTypes.Json)
+    .WithAccept(AcceptTypes.Json)
     .Get<Data>();
 
 // Custom accept type
 var response = await httpClient
     .Url("https://api.example.com/report")
-    .Accept("application/pdf")
+    .WithAccept("application/pdf")
     .Get();
 ```
 
@@ -188,21 +210,21 @@ var response = await httpClient
 // Upload file from stream
 var response = await httpClient
     .Url("https://api.example.com/upload")
-    .File("file", "document.pdf", fileStream, "application/pdf")
+    .WithFile("file", "document.pdf", fileStream, "application/pdf")
     .Post<UploadResult>();
 
 // Upload file from byte array
 var response = await httpClient
     .Url("https://api.example.com/upload")
-    .File("file", "image.png", imageBytes, "image/png")
+    .WithFile("file", "image.png", imageBytes, "image/png")
     .Post<UploadResult>();
 
 // Multiple files with form fields
 var response = await httpClient
     .Url("https://api.example.com/upload")
-    .File("file1", "doc1.pdf", stream1)
-    .File("file2", "doc2.pdf", stream2)
-    .FormField("description", "My documents")
+    .WithFile("file1", "doc1.pdf", stream1)
+    .WithFile("file2", "doc2.pdf", stream2)
+    .WithFormField("description", "My documents")
     .Post<UploadResult>();
 ```
 
@@ -211,8 +233,8 @@ var response = await httpClient
 ```csharp
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .Cookie("session", "abc123")
-    .Cookie("preference", "dark-mode", path: "/", duration: TimeSpan.FromDays(30))
+    .WithCookie("session", "abc123")
+    .WithCookie("preference", "dark-mode", path: "/", duration: TimeSpan.FromDays(30))
     .Get<Data>();
 ```
 
@@ -221,7 +243,7 @@ var response = await httpClient
 ```csharp
 var response = await httpClient
     .Url("https://api.example.com/slow-endpoint")
-    .Timeout(TimeSpan.FromSeconds(30))
+    .WithTimeout(TimeSpan.FromSeconds(30))
     .Get<Data>();
 ```
 
@@ -230,7 +252,7 @@ var response = await httpClient
 ```csharp
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .UserAgent("MyApp/1.0")
+    .WithUserAgent("MyApp/1.0")
     .Get<Data>();
 ```
 
@@ -244,19 +266,19 @@ using System.Net;
 // Force HTTP/2
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .Version(HttpVersion.Version20)
+    .WithVersion(HttpVersion.Version20)
     .Get<Data>();
 
 // Force HTTP/3 (QUIC)
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .Version(HttpVersion.Version30)
+    .WithVersion(HttpVersion.Version30)
     .Get<Data>();
 
 // HTTP/1.1 for legacy systems
 var response = await httpClient
     .Url("https://legacy-api.example.com/data")
-    .Version(HttpVersion.Version11)
+    .WithVersion(HttpVersion.Version11)
     .Get<Data>();
 ```
 
@@ -268,22 +290,22 @@ Control how the HTTP version is negotiated with the server:
 // Require exact version match (fail if server doesn't support it)
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .Version(HttpVersion.Version20)
-    .VersionPolicy(HttpVersionPolicy.RequestVersionExact)
+    .WithVersion(HttpVersion.Version20)
+    .WithVersionPolicy(HttpVersionPolicy.RequestVersionExact)
     .Get<Data>();
 
 // Allow downgrade to lower versions
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .Version(HttpVersion.Version20)
-    .VersionPolicy(HttpVersionPolicy.RequestVersionOrLower)
+    .WithVersion(HttpVersion.Version20)
+    .WithVersionPolicy(HttpVersionPolicy.RequestVersionOrLower)
     .Get<Data>();
 
 // Allow upgrade to higher versions
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .Version(HttpVersion.Version11)
-    .VersionPolicy(HttpVersionPolicy.RequestVersionOrHigher)
+    .WithVersion(HttpVersion.Version11)
+    .WithVersionPolicy(HttpVersionPolicy.RequestVersionOrHigher)
     .Get<Data>();
 ```
 
@@ -300,17 +322,22 @@ var response = await httpClient
 if (response.IsSuccessful)
 {
     // Deserialize to type
-    var user = response.As<User>();
+    var user = response.ContentAs<User>();
     
-    // Get raw body
-    string body = response.Body;
-    
-    // Get as bytes
-    byte[] bytes = response.AsBytes();
+    // Get content as string
+    string content = response.Content;
 }
 
-// Access status code
+// Access status code and reason
 HttpStatusCode status = response.StatusCode;
+string? reason = response.ReasonPhrase;
+
+// Access content metadata
+string? contentType = response.ContentType;
+long? contentLength = response.ContentLength;
+
+// Access HTTP version
+Version version = response.Version;
 
 // Access headers
 var headers = response.Headers;
@@ -318,6 +345,9 @@ var contentHeaders = response.ContentHeaders;
 
 // Access cookies
 var cookies = response.Cookies;
+
+// Access the request URI (useful after redirects)
+Uri? requestUri = response.RequestUri;
 ```
 
 ### `HttpResponse<T>`
@@ -336,15 +366,15 @@ bool success = response.IsSuccessful;
 // Status code
 HttpStatusCode status = response.StatusCode;
 
-// Raw body
-string body = response.Body;
+// Content as string
+string content = response.Content;
 
 // Headers and cookies
 var headers = response.Headers;
 var cookies = response.Cookies;
 
 // Deserialize to a different type
-var error = response.As<ProblemDetails>();
+var error = response.ContentAs<ProblemDetails>();
 ```
 
 ## Debugging
@@ -356,8 +386,8 @@ The builder overrides `ToString()` to provide a formatted view of the current re
 ```csharp
 var builder = httpClient
     .Url("https://api.example.com/users")
-    .Body(new { Name = "John" })
-    .AuthBearer("token123");
+    .WithContent(new { Name = "John" })
+    .WithAuthBearer("token123");
 
 // Log the request
 Console.WriteLine(builder);
@@ -370,7 +400,7 @@ Console.WriteLine(builder);
 //   Authorization: [REDACTED]
 // Content-Type: application/json
 // Accept: application/json
-// Body: {"Name":"John"}
+// Content: {"Name":"John"}
 ```
 
 In Visual Studio, you can also hover over the builder variable in the debugger to see this information.
@@ -382,7 +412,7 @@ To get the actual `HttpRequestMessage` that would be sent (after the `BeforeSend
 ```csharp
 var builder = httpClient
     .Url("https://api.example.com/users")
-    .Body(new { Name = "John" });
+    .WithContent(new { Name = "John" });
 
 // Get the HttpRequestMessage without sending
 var request = builder.BuildRequest(HttpMethod.Post);
@@ -410,8 +440,8 @@ var options = new JsonSerializerOptions
 
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .SerializerOptions(options)
-    .Body(data)
+    .WithJsonOptions(options)
+    .WithContent(data)
     .Post<Result>();
 ```
 
@@ -432,12 +462,12 @@ public class NewtonsoftSerializerProvider : ISerializerProvider
 // Use custom serializer
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .SerializerProvider(new NewtonsoftSerializerProvider())
-    .Body(data)
+    .WithSerializer(new NewtonsoftSerializerProvider())
+    .WithContent(data)
     .Post<Result>();
 ```
 
-> **Note:** When both `SerializerOptions` and `SerializerProvider` are set, `SerializerProvider` takes precedence and `SerializerOptions` is ignored.
+> **Note:** When both `WithJsonOptions` and `WithSerializer` are set, `WithSerializer` takes precedence and `WithJsonOptions` is ignored.
 
 ## Global Defaults
 
@@ -457,7 +487,7 @@ FluentHttpDefaults.BeforeSend = builder =>
     // Only set if not already configured per-request
     if (builder.Data.SerializerOptions is null)
     {
-        builder.SerializerOptions(globalOptions);
+        builder.WithJsonOptions(globalOptions);
     }
 };
 ```
@@ -470,7 +500,7 @@ FluentHttpDefaults.BeforeSend = builder =>
     // Add correlation ID to all requests
     if (!builder.Data.Headers.ContainsKey("X-Correlation-Id"))
     {
-        builder.Header("X-Correlation-Id", Guid.NewGuid().ToString());
+        builder.WithHeader("X-Correlation-Id", Guid.NewGuid().ToString());
     }
     
     // Add app version header
@@ -486,13 +516,13 @@ FluentHttpDefaults.BeforeSend = builder =>
     // Different serializer for legacy API
     if (builder.Data.AbsoluteUri.Host.Contains("legacy-api"))
     {
-        builder.SerializerProvider(new LegacySerializerProvider());
+        builder.WithSerializer(new LegacySerializerProvider());
     }
     
     // Longer timeout for report endpoints
     if (builder.Data.RequestUrl.Contains("/reports/"))
     {
-        builder.Timeout(TimeSpan.FromMinutes(5));
+        builder.WithTimeout(TimeSpan.FromMinutes(5));
     }
 };
 ```
@@ -504,6 +534,72 @@ FluentHttpDefaults.BeforeSend = null;
 ```
 
 > **Note:** Per-request settings always take precedence. The pattern is to check `builder.Data` first, then only set defaults if not already configured. For async operations like token refresh, use a `DelegatingHandler` instead.
+
+## Resilience and Retry Policies
+
+FluentHttp works seamlessly with resilience libraries like [Polly](https://github.com/App-vNext/Polly) through `HttpClient`'s `DelegatingHandler` pipeline. This is the recommended approach for implementing retry policies, circuit breakers, and other resilience patterns.
+
+### Using Microsoft.Extensions.Http.Resilience (Recommended)
+
+```csharp
+// Install: dotnet add package Microsoft.Extensions.Http.Resilience
+
+services.AddHttpClient("MyApi", client =>
+{
+    client.BaseAddress = new Uri("https://api.example.com");
+})
+.AddStandardResilienceHandler(); // Adds retry, circuit breaker, and timeout policies
+```
+
+### Using Polly Directly
+
+```csharp
+// Install: dotnet add package Microsoft.Extensions.Http.Polly
+
+services.AddHttpClient("MyApi", client =>
+{
+    client.BaseAddress = new Uri("https://api.example.com");
+})
+.AddTransientHttpErrorPolicy(builder => 
+    builder.WaitAndRetryAsync(3, retryAttempt => 
+        TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));
+```
+
+### Custom DelegatingHandler
+
+```csharp
+public class RetryHandler : DelegatingHandler
+{
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, 
+        CancellationToken cancellationToken)
+    {
+        HttpResponseMessage response = null!;
+        for (int i = 0; i < 3; i++)
+        {
+            response = await base.SendAsync(request, cancellationToken);
+            if (response.IsSuccessStatusCode)
+                return response;
+            
+            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)), cancellationToken);
+        }
+        return response;
+    }
+}
+
+// Register
+services.AddHttpClient("MyApi")
+    .AddHttpMessageHandler<RetryHandler>();
+```
+
+Then use FluentHttp with the configured client:
+
+```csharp
+var client = httpClientFactory.CreateClient("MyApi");
+var response = await client
+    .Url("/api/users")
+    .Get<User[]>();
+```
 
 ## Cancellation Support
 
@@ -526,7 +622,7 @@ var methodCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 // Both tokens are linked - cancelling either will cancel the request
 var response = await httpClient
     .Url("https://api.example.com/data")
-    .CancellationToken(builderCts.Token)
+    .WithCancellationToken(builderCts.Token)
     .Get<Data>(methodCts.Token);
 ```
 

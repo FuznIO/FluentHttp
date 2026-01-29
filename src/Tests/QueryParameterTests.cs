@@ -7,7 +7,7 @@ namespace Fuzn.FluentHttp.Tests;
 public class QueryParameterTests : Test
 {
     [Test]
-    public async Task QueryParam_SingleValues_AreSentCorrectly()
+    public async Task WithQueryParam_SingleValues_AreSentCorrectly()
     {
         await Scenario()
             .Step("Send request with single query parameters", async _ =>
@@ -15,13 +15,13 @@ public class QueryParameterTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/query/single")
-                    .QueryParam("name", "TestName")
-                    .QueryParam("count", 42)
+                    .WithQueryParam("name", "TestName")
+                    .WithQueryParam("count", 42)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<SingleQueryParamsResponse>();
+                var body = response.ContentAs<SingleQueryParamsResponse>();
                 Assert.AreEqual("TestName", body!.Name);
                 Assert.AreEqual(42, body.Count);
             })
@@ -29,7 +29,7 @@ public class QueryParameterTests : Test
     }
 
     [Test]
-    public async Task QueryParam_MultipleValues_AreSentCorrectly()
+    public async Task WithQueryParam_MultipleValues_AreSentCorrectly()
     {
         await Scenario()
             .Step("Send request with multiple values for same parameter", async _ =>
@@ -37,12 +37,12 @@ public class QueryParameterTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/query/multiple")
-                    .QueryParam("tags", new[] { "csharp", "dotnet", "http" })
+                    .WithQueryParam("tags", new[] { "csharp", "dotnet", "http" })
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<MultipleQueryParamsResponse>();
+                var body = response.ContentAs<MultipleQueryParamsResponse>();
                 Assert.HasCount(3, body!.Tags);
                 Assert.Contains("csharp", body.Tags);
                 Assert.Contains("dotnet", body.Tags);
@@ -52,7 +52,7 @@ public class QueryParameterTests : Test
     }
 
     [Test]
-    public async Task QueryParams_FromDictionary_AreSentCorrectly()
+    public async Task WithQueryParams_FromDictionary_AreSentCorrectly()
     {
         await Scenario()
             .Step("Send request with query parameters from dictionary", async _ =>
@@ -68,12 +68,12 @@ public class QueryParameterTests : Test
                 };
 
                 var response = await client.Url("/api/query/complex")
-                    .QueryParams(parameters)
+                    .WithQueryParams(parameters)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<ComplexQueryParamsResponse>();
+                var body = response.ContentAs<ComplexQueryParamsResponse>();
                 Assert.AreEqual("test query", body!.Search);
                 Assert.AreEqual(2, body.Page);
                 Assert.AreEqual(25, body.PageSize);
@@ -83,7 +83,7 @@ public class QueryParameterTests : Test
     }
 
     [Test]
-    public async Task QueryParams_FromAnonymousObject_AreSentCorrectly()
+    public async Task WithQueryParams_FromAnonymousObject_AreSentCorrectly()
     {
         await Scenario()
             .Step("Send request with query parameters from anonymous object", async _ =>
@@ -91,12 +91,12 @@ public class QueryParameterTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/query/complex")
-                    .QueryParams(new { search = "anonymous", page = 3, pageSize = 50, includeDeleted = false })
+                    .WithQueryParams(new { search = "anonymous", page = 3, pageSize = 50, includeDeleted = false })
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<ComplexQueryParamsResponse>();
+                var body = response.ContentAs<ComplexQueryParamsResponse>();
                 Assert.AreEqual("anonymous", body!.Search);
                 Assert.AreEqual(3, body.Page);
                 Assert.AreEqual(50, body.PageSize);
@@ -106,7 +106,7 @@ public class QueryParameterTests : Test
     }
 
     [Test]
-    public async Task QueryParam_WithNullValue_IsIgnored()
+    public async Task WithQueryParam_WithNullValue_IsIgnored()
     {
         await Scenario()
             .Step("Send request with null query parameter", async _ =>
@@ -114,13 +114,13 @@ public class QueryParameterTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/query/single")
-                    .QueryParam("name", "TestName")
-                    .QueryParam("count", null!)
+                    .WithQueryParam("name", "TestName")
+                    .WithQueryParam("count", null!)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<SingleQueryParamsResponse>();
+                var body = response.ContentAs<SingleQueryParamsResponse>();
                 Assert.AreEqual("TestName", body!.Name);
             })
             .Run();

@@ -7,7 +7,7 @@ namespace Fuzn.FluentHttp.Tests;
 public class HeaderTests : Test
 {
     [Test]
-    public async Task Header_SingleHeader_IsSentCorrectly()
+    public async Task WithHeader_SingleHeader_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with single custom header", async _ =>
@@ -15,19 +15,19 @@ public class HeaderTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/custom")
-                    .Header("X-Custom-Header", "CustomValue123")
+                    .WithHeader("X-Custom-Header", "CustomValue123")
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<CustomHeaderResponse>();
+                var body = response.ContentAs<CustomHeaderResponse>();
                 Assert.AreEqual("CustomValue123", body!.CustomHeader);
             })
             .Run();
     }
 
     [Test]
-    public async Task Headers_MultiplHeaders_AreSentCorrectly()
+    public async Task WithHeaders_MultipleHeaders_AreSentCorrectly()
     {
         await Scenario()
             .Step("Send request with multiple headers", async _ =>
@@ -41,12 +41,12 @@ public class HeaderTests : Test
                 };
 
                 var response = await client.Url("/api/headers/echo")
-                    .Headers(headers)
+                    .WithHeaders(headers)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<HeadersEchoResponse>();
+                var body = response.ContentAs<HeadersEchoResponse>();
                 Assert.AreEqual("Value1", body!.Headers["X-Custom-Header"]);
                 Assert.AreEqual("Value2", body!.Headers["X-Another-Header"]);
             })
@@ -54,7 +54,7 @@ public class HeaderTests : Test
     }
 
     [Test]
-    public async Task UserAgent_IsSentCorrectly()
+    public async Task WithUserAgent_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with custom User-Agent", async _ =>
@@ -62,19 +62,19 @@ public class HeaderTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/custom")
-                    .UserAgent("FluentHttp-Test/1.0")
+                    .WithUserAgent("FluentHttp-Test/1.0")
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<CustomHeaderResponse>();
+                var body = response.ContentAs<CustomHeaderResponse>();
                 Assert.AreEqual("FluentHttp-Test/1.0", body!.UserAgent);
             })
             .Run();
     }
 
     [Test]
-    public async Task Accept_JsonEnum_IsSentCorrectly()
+    public async Task WithAccept_JsonEnum_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with Accept header from enum", async _ =>
@@ -82,19 +82,19 @@ public class HeaderTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
-                    .Accept(AcceptTypes.Json)
+                    .WithAccept(AcceptTypes.Json)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<AcceptHeaderResponse>();
+                var body = response.ContentAs<AcceptHeaderResponse>();
                 Assert.Contains("application/json", body!.Accept);
             })
             .Run();
     }
 
     [Test]
-    public async Task Accept_CustomString_IsSentCorrectly()
+    public async Task WithAccept_CustomString_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with custom Accept header string", async _ =>
@@ -102,12 +102,12 @@ public class HeaderTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
-                    .Accept("application/pdf")
+                    .WithAccept("application/pdf")
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<AcceptHeaderResponse>();
+                var body = response.ContentAs<AcceptHeaderResponse>();
                 Assert.Contains("application/pdf", body!.Accept);
             })
             .Run();

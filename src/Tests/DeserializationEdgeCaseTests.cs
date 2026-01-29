@@ -7,27 +7,27 @@ namespace Fuzn.FluentHttp.Tests;
 public class DeserializationEdgeCaseTests : Test
 {
     [Test]
-    public async Task As_EmptyBody_ReturnsDefault()
+    public async Task ContentAs_EmptyContent_ReturnsDefault()
     {
         await Scenario()
-            .Step("Empty body returns default value", async _ =>
+            .Step("Empty content returns default value", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/status/nocontent").Get();
 
                 Assert.IsTrue(response.IsSuccessful);
-                Assert.AreEqual(string.Empty, response.Body);
+                Assert.AreEqual(string.Empty, response.Content);
                 
-                // Deserializing empty body should return null/default
-                var result = response.As<PersonDto>();
+                // Deserializing empty content should return null/default
+                var result = response.ContentAs<PersonDto>();
                 Assert.IsNull(result);
             })
             .Run();
     }
 
     [Test]
-    public async Task As_InvalidJson_ThrowsException()
+    public async Task ContentAs_InvalidJson_ThrowsException()
     {
         await Scenario()
             .Step("Invalid JSON throws exception during deserialization", async _ =>
@@ -38,11 +38,11 @@ public class DeserializationEdgeCaseTests : Test
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                // Plain text body cannot be deserialized to a complex object
+                // Plain text content cannot be deserialized to a complex object
                 var exceptionThrown = false;
                 try
                 {
-                    response.As<PersonDto>();
+                    response.ContentAs<PersonDto>();
                 }
                 catch (Exception)
                 {
@@ -55,7 +55,7 @@ public class DeserializationEdgeCaseTests : Test
     }
 
     [Test]
-    public async Task As_NestedObject_DeserializesCorrectly()
+    public async Task ContentAs_NestedObject_DeserializesCorrectly()
     {
         await Scenario()
             .Step("Nested objects deserialize correctly", async _ =>
@@ -63,7 +63,7 @@ public class DeserializationEdgeCaseTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/echo")
-                    .Body(new { 
+                    .WithContent(new { 
                         outer = new { 
                             inner = new { 
                                 value = "nested" 
@@ -73,7 +73,7 @@ public class DeserializationEdgeCaseTests : Test
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
-                Assert.Contains("nested", response.Body);
+                Assert.Contains("nested", response.Content);
             })
             .Run();
     }

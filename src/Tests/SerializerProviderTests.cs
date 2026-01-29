@@ -5,7 +5,7 @@ using Fuzn.TestFuzn;
 namespace Fuzn.FluentHttp.Tests;
 
 /// <summary>
-/// Custom serializer for testing the SerializerProvider functionality.
+/// Custom serializer for testing the WithSerializer functionality.
 /// </summary>
 public class CustomJsonSerializerProvider : ISerializerProvider
 {
@@ -35,7 +35,7 @@ public class CustomJsonSerializerProvider : ISerializerProvider
 public class SerializerProviderTests : Test
 {
     [Test]
-    public async Task SerializerProvider_CustomProvider_IsUsedForDeserialization()
+    public async Task WithSerializer_CustomProvider_IsUsedForDeserialization()
     {
         await Scenario()
             .Step("Custom serializer provider is used for deserialization", async _ =>
@@ -44,12 +44,12 @@ public class SerializerProviderTests : Test
                 var customSerializer = new CustomJsonSerializerProvider();
                 
                 var response = await client.Url("/api/deserialize/person")
-                    .SerializerProvider(customSerializer)
+                    .WithSerializer(customSerializer)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var person = response.As<PersonDto>();
+                var person = response.ContentAs<PersonDto>();
                 Assert.IsNotNull(person);
                 Assert.AreEqual("John Doe", person!.Name);
             })
@@ -57,7 +57,7 @@ public class SerializerProviderTests : Test
     }
 
     [Test]
-    public async Task SerializerProvider_DefaultSerializer_SerializesWithPascalCase()
+    public async Task WithSerializer_DefaultSerializer_SerializesWithPascalCase()
     {
         await Scenario()
             .Step("Default serializer uses default naming policy", async _ =>
@@ -67,21 +67,21 @@ public class SerializerProviderTests : Test
                 var payload = new { TestProperty = "value" };
                 
                 var response = await client.Url("/api/echo")
-                    .Body(payload)
+                    .WithContent(payload)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 // The default serializer preserves property names as-is
-                Assert.Contains("TestProperty", response.Body);
+                Assert.Contains("TestProperty", response.Content);
             })
             .Run();
     }
 
     [Test]
-    public async Task SerializerOptions_CamelCase_SerializesWithCamelCase()
+    public async Task WithJsonOptions_CamelCase_SerializesWithCamelCase()
     {
         await Scenario()
-            .Step("SerializerOptions with CamelCase naming policy serializes properties as camelCase", async _ =>
+            .Step("WithJsonOptions with CamelCase naming policy serializes properties as camelCase", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
@@ -93,23 +93,23 @@ public class SerializerProviderTests : Test
                 var payload = new { TestProperty = "value", AnotherProperty = 123 };
 
                 var response = await client.Url("/api/echo")
-                    .SerializerOptions(options)
-                    .Body(payload)
+                    .WithJsonOptions(options)
+                    .WithContent(payload)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 // With CamelCase policy, TestProperty becomes testProperty
-                Assert.Contains("testProperty", response.Body);
-                Assert.Contains("anotherProperty", response.Body);
+                Assert.Contains("testProperty", response.Content);
+                Assert.Contains("anotherProperty", response.Content);
             })
             .Run();
     }
 
     [Test]
-    public async Task SerializerOptions_CaseInsensitive_DeserializesCorrectly()
+    public async Task WithJsonOptions_CaseInsensitive_DeserializesCorrectly()
     {
         await Scenario()
-            .Step("SerializerOptions with case insensitive option deserializes regardless of casing", async _ =>
+            .Step("WithJsonOptions with case insensitive option deserializes regardless of casing", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
@@ -119,12 +119,12 @@ public class SerializerProviderTests : Test
                 };
 
                 var response = await client.Url("/api/deserialize/person")
-                    .SerializerOptions(options)
+                    .WithJsonOptions(options)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
 
-                var person = response.As<PersonDto>();
+                var person = response.ContentAs<PersonDto>();
                 Assert.IsNotNull(person);
                 Assert.AreEqual("John Doe", person!.Name);
             })
@@ -132,15 +132,15 @@ public class SerializerProviderTests : Test
     }
 
     [Test]
-    public async Task SerializerOptions_IgnoredWhenSerializerProviderSet()
+    public async Task WithJsonOptions_IgnoredWhenWithSerializerSet()
     {
         await Scenario()
-            .Step("SerializerOptions is ignored when custom SerializerProvider is set", async _ =>
+            .Step("WithJsonOptions is ignored when custom WithSerializer is set", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 var customSerializer = new CustomJsonSerializerProvider();
 
-                // SerializerOptions would use PascalCase, but SerializerProvider uses CamelCase
+                // WithJsonOptions would use PascalCase, but WithSerializer uses CamelCase
                 var options = new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = null // PascalCase (default)
@@ -149,14 +149,14 @@ public class SerializerProviderTests : Test
                 var payload = new { TestProperty = "value" };
 
                 var response = await client.Url("/api/echo")
-                    .SerializerOptions(options)
-                    .SerializerProvider(customSerializer)
-                    .Body(payload)
+                    .WithJsonOptions(options)
+                    .WithSerializer(customSerializer)
+                    .WithContent(payload)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
-                // SerializerProvider takes precedence, so camelCase is used
-                Assert.Contains("testProperty", response.Body);
+                // WithSerializer takes precedence, so camelCase is used
+                Assert.Contains("testProperty", response.Content);
             })
             .Run();
     }

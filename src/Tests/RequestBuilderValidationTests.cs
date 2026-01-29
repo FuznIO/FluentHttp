@@ -60,7 +60,7 @@ public class RequestBuilderValidationTests : Test
     }
 
     [Test]
-    public async Task AuthBearer_DuplicateAuth_ThrowsInvalidOperationException()
+    public async Task WithAuthBearer_DuplicateAuth_ThrowsInvalidOperationException()
     {
         await Scenario()
             .Step("Setting auth twice throws exception", async _ =>
@@ -71,8 +71,8 @@ public class RequestBuilderValidationTests : Test
                 try
                 {
                     client.Url("/api/auth/bearer")
-                        .AuthBearer("token1")
-                        .AuthBearer("token2");
+                        .WithAuthBearer("token1")
+                        .WithAuthBearer("token2");
                 }
                 catch (InvalidOperationException)
                 {
@@ -85,7 +85,7 @@ public class RequestBuilderValidationTests : Test
     }
 
     [Test]
-    public async Task AuthBasic_AfterBearer_ThrowsInvalidOperationException()
+    public async Task WithAuthBasic_AfterBearer_ThrowsInvalidOperationException()
     {
         await Scenario()
             .Step("Setting basic auth after bearer throws exception", async _ =>
@@ -96,8 +96,8 @@ public class RequestBuilderValidationTests : Test
                 try
                 {
                     client.Url("/api/auth/bearer")
-                        .AuthBearer("token")
-                        .AuthBasic("user", "pass");
+                        .WithAuthBearer("token")
+                        .WithAuthBasic("user", "pass");
                 }
                 catch (InvalidOperationException)
                 {
@@ -110,7 +110,7 @@ public class RequestBuilderValidationTests : Test
     }
 
     [Test]
-    public async Task AuthBearer_AfterBasic_ThrowsInvalidOperationException()
+    public async Task WithAuthBearer_AfterBasic_ThrowsInvalidOperationException()
     {
         await Scenario()
             .Step("Setting bearer auth after basic throws exception", async _ =>
@@ -121,8 +121,8 @@ public class RequestBuilderValidationTests : Test
                 try
                 {
                     client.Url("/api/auth/basic")
-                        .AuthBasic("user", "pass")
-                        .AuthBearer("token");
+                        .WithAuthBasic("user", "pass")
+                        .WithAuthBearer("token");
                 }
                 catch (InvalidOperationException)
                 {

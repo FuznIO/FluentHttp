@@ -30,13 +30,12 @@ public class HttpResponse
         InnerResponse = response;
         RawResponse = InnerResponse.ToString();
 
-        // Decode the body using the encoding specified in Content-Type header
-        Body = DecodeBody(rawBytes, response.Content.Headers.ContentType);
+        // Decode the content using the encoding specified in Content-Type header
+        Content = DecodeContent(rawBytes, response.Content.Headers.ContentType);
 
         if (cookieContainer != null)
         {
-            var cookies = cookieContainer.GetAllCookies();
-            foreach (var cookie in cookies.Cast<Cookie>())
+            foreach (Cookie cookie in cookieContainer.GetAllCookies())
             {
                 _cookies.Add(cookie);
             }
@@ -57,7 +56,7 @@ public class HttpResponse
         _cookies = other._cookies;
         InnerResponse = other.InnerResponse;
         RawResponse = other.RawResponse;
-        Body = other.Body;
+        Content = other.Content;
     }
 
     /// <summary>
@@ -81,9 +80,19 @@ public class HttpResponse
     public HttpContentHeaders ContentHeaders => InnerResponse.Content.Headers;
 
     /// <summary>
-    /// Gets the response body as a string.
+    /// Gets the response content as a string.
     /// </summary>
-    public string Body { get; }
+    public string Content { get; }
+
+    /// <summary>
+    /// Gets the Content-Type media type (e.g., "application/json").
+    /// </summary>
+    public string? ContentType => ContentHeaders.ContentType?.MediaType;
+
+    /// <summary>
+    /// Gets the Content-Length, or null if not specified.
+    /// </summary>
+    public long? ContentLength => ContentHeaders.ContentLength;
 
     /// <summary>
     /// Gets the cookies received in the response.
@@ -96,51 +105,65 @@ public class HttpResponse
     public HttpStatusCode StatusCode => InnerResponse.StatusCode;
 
     /// <summary>
+    /// Gets the HTTP status reason phrase (e.g., "OK", "Not Found").
+    /// </summary>
+    public string? ReasonPhrase => InnerResponse.ReasonPhrase;
+
+    /// <summary>
     /// Gets a value indicating whether the response was successful (status code 2xx).
     /// </summary>
     public bool IsSuccessful => InnerResponse.IsSuccessStatusCode;
 
     /// <summary>
-    /// Gets the response body as a byte array.
+    /// Gets the HTTP version of the response.
     /// </summary>
-    /// <returns>A byte array containing the response body.</returns>
-    public byte[] AsBytes()
-    {
-        return _rawBytes;
-    }
+    public Version Version => InnerResponse.Version;
 
     /// <summary>
-    /// Deserializes the response body into the specified type.
+    /// Gets the final request URI (reflects any redirects that occurred).
     /// </summary>
-    /// <typeparam name="T">The type to deserialize the body into.</typeparam>
-    /// <returns>The deserialized object.</returns>
-    /// <exception cref="Exception">Thrown when the body is empty, null, or cannot be deserialized.</exception>
-    public T? As<T>()
+    public Uri? RequestUri => _request.RequestUri;
+
+    /// <summary>
+    /// Deserializes the response content into the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the content into.</typeparam>
+    /// <returns>The deserialized object, or default if content is empty.</returns>
+    /// <exception cref="Exception">Thrown when deserialization fails.</exception>
+    public T? ContentAs<T>()
     {
-        if (string.IsNullOrEmpty(Body))
+        if (string.IsNullOrEmpty(Content))
             return default;
 
         try
         {
-            var obj = _serializerProvider.Deserialize<T>(Body);
-
-            return obj;
+            return _serializerProvider.Deserialize<T>(Content);
         }
         catch (Exception ex)
         {
-            throw new Exception($"Unable to deserialize into {typeof(T)}. \nURL: {_request.RequestUri} \nResponse body: \n{Body}\nException message: \n{ex.Message}");
+            throw new Exception($"Unable to deserialize into {typeof(T)}.", ex);
         }
     }
 
-    private static string DecodeBody(byte[] bytes, MediaTypeHeaderValue? contentType)
+    private static string DecodeContent(byte[] bytes, MediaTypeHeaderValue? contentType)
     {
         if (bytes.Length == 0)
             return string.Empty;
 
         // Get encoding from Content-Type header, default to UTF-8
-        var encoding = contentType?.CharSet != null
-            ? System.Text.Encoding.GetEncoding(contentType.CharSet)
-            : System.Text.Encoding.UTF8;
+        var encoding = System.Text.Encoding.UTF8;
+
+        if (!string.IsNullOrEmpty(contentType?.CharSet))
+        {
+            try
+            {
+                encoding = System.Text.Encoding.GetEncoding(contentType.CharSet.Trim('"'));
+            }
+            catch (ArgumentException)
+            {
+                // Fall back to UTF-8 for invalid/unknown charsets
+            }
+        }
 
         return encoding.GetString(bytes);
     }

@@ -30,19 +30,19 @@ public class FluentHttpDefaultsTests : Test
                 {
                     if (builder.Data.SerializerOptions is null)
                     {
-                        builder.SerializerOptions(globalOptions);
+                        builder.WithJsonOptions(globalOptions);
                     }
                 };
 
                 var payload = new { TestProperty = "value" };
 
                 var response = await client.Url("/api/echo")
-                    .Body(payload)
+                    .WithContent(payload)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 // With CamelCase policy, TestProperty becomes testProperty
-                Assert.Contains("testProperty", response.Body);
+                Assert.Contains("testProperty", response.Content);
             })
             .Run();
     }
@@ -69,20 +69,20 @@ public class FluentHttpDefaultsTests : Test
                 {
                     if (builder.Data.SerializerOptions is null)
                     {
-                        builder.SerializerOptions(globalOptions);
+                        builder.WithJsonOptions(globalOptions);
                     }
                 };
 
                 var payload = new { TestProperty = "value" };
 
                 var response = await client.Url("/api/echo")
-                    .SerializerOptions(perRequestOptions)
-                    .Body(payload)
+                    .WithJsonOptions(perRequestOptions)
+                    .WithContent(payload)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 // Per-request uses PascalCase, so TestProperty stays as-is
-                Assert.Contains("TestProperty", response.Body);
+                Assert.Contains("TestProperty", response.Content);
             })
             .Run();
     }
@@ -99,7 +99,7 @@ public class FluentHttpDefaultsTests : Test
                 {
                     if (!builder.Data.Headers.ContainsKey("X-Custom-Header"))
                     {
-                        builder.Header("X-Custom-Header", "GlobalDefault");
+                        builder.WithHeader("X-Custom-Header", "GlobalDefault");
                     }
                 };
 
@@ -107,7 +107,7 @@ public class FluentHttpDefaultsTests : Test
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
-                Assert.Contains("GlobalDefault", response.Body);
+                Assert.Contains("GlobalDefault", response.Content);
             })
             .Run();
     }
@@ -124,17 +124,17 @@ public class FluentHttpDefaultsTests : Test
                 {
                     if (!builder.Data.Headers.ContainsKey("X-Custom-Header"))
                     {
-                        builder.Header("X-Custom-Header", "GlobalDefault");
+                        builder.WithHeader("X-Custom-Header", "GlobalDefault");
                     }
                 };
 
                 var response = await client.Url("/api/headers/echo")
-                    .Header("X-Custom-Header", "PerRequestValue")
+                    .WithHeader("X-Custom-Header", "PerRequestValue")
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
-                Assert.Contains("PerRequestValue", response.Body);
-                Assert.DoesNotContain("GlobalDefault", response.Body);
+                Assert.Contains("PerRequestValue", response.Content);
+                Assert.DoesNotContain("GlobalDefault", response.Content);
             })
             .Run();
     }
@@ -152,12 +152,12 @@ public class FluentHttpDefaultsTests : Test
                     // Add header only for specific endpoints
                     if (builder.Data.RequestUrl.Contains("/api/echo"))
                     {
-                        builder.Header("X-Echo-Request", "true");
+                        builder.WithHeader("X-Echo-Request", "true");
                     }
                 };
 
                 var response = await client.Url("/api/echo")
-                    .Body(new { test = "value" })
+                    .WithContent(new { test = "value" })
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);

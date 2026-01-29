@@ -20,7 +20,13 @@ public static class FluentHttpDefaults
     ///     // Set default serializer if not already configured per-request
     ///     if (builder.Data.SerializerOptions is null)
     ///     {
-    ///         builder.SerializerOptions(myGlobalOptions);
+    ///         builder.WithJsonOptions(myGlobalOptions);
+    ///     }
+    ///     
+    ///     // Add correlation ID to all requests
+    ///     if (!builder.Data.Headers.ContainsKey("X-Correlation-Id"))
+    ///     {
+    ///         builder.WithHeader("X-Correlation-Id", Guid.NewGuid().ToString());
     ///     }
     /// };
     /// </code>

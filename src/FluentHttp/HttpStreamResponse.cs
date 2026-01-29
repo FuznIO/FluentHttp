@@ -44,9 +44,19 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     public HttpStatusCode StatusCode => InnerResponse.StatusCode;
 
     /// <summary>
+    /// Gets the HTTP status reason phrase (e.g., "OK", "Not Found").
+    /// </summary>
+    public string? ReasonPhrase => InnerResponse.ReasonPhrase;
+
+    /// <summary>
     /// Gets a value indicating whether the response was successful (status code 2xx).
     /// </summary>
     public bool IsSuccessful => InnerResponse.IsSuccessStatusCode;
+
+    /// <summary>
+    /// Gets the HTTP version of the response.
+    /// </summary>
+    public Version Version => InnerResponse.Version;
 
     /// <summary>
     /// Gets the content length in bytes, if available.

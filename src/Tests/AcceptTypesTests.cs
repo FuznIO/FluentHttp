@@ -7,7 +7,7 @@ namespace Fuzn.FluentHttp.Tests;
 public class AcceptTypesTests : Test
 {
     [Test]
-    public async Task Accept_XmlEnum_IsSentCorrectly()
+    public async Task WithAccept_XmlEnum_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with Accept Xml enum", async _ =>
@@ -15,19 +15,19 @@ public class AcceptTypesTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
-                    .Accept(AcceptTypes.Xml)
+                    .WithAccept(AcceptTypes.Xml)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<AcceptHeaderResponse>();
+                var body = response.ContentAs<AcceptHeaderResponse>();
                 Assert.Contains("application/xml", body!.Accept);
             })
             .Run();
     }
 
     [Test]
-    public async Task Accept_PlainTextEnum_IsSentCorrectly()
+    public async Task WithAccept_PlainTextEnum_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with Accept PlainText enum", async _ =>
@@ -35,19 +35,19 @@ public class AcceptTypesTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
-                    .Accept(AcceptTypes.PlainText)
+                    .WithAccept(AcceptTypes.PlainText)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<AcceptHeaderResponse>();
+                var body = response.ContentAs<AcceptHeaderResponse>();
                 Assert.Contains("text/plain", body!.Accept);
             })
             .Run();
     }
 
     [Test]
-    public async Task Accept_HtmlEnum_IsSentCorrectly()
+    public async Task WithAccept_HtmlEnum_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with Accept Html enum", async _ =>
@@ -55,19 +55,19 @@ public class AcceptTypesTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
-                    .Accept(AcceptTypes.Html)
+                    .WithAccept(AcceptTypes.Html)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<AcceptHeaderResponse>();
+                var body = response.ContentAs<AcceptHeaderResponse>();
                 Assert.Contains("text/html", body!.Accept);
             })
             .Run();
     }
 
     [Test]
-    public async Task Accept_AnyEnum_IsSentCorrectly()
+    public async Task WithAccept_AnyEnum_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with Accept Any enum", async _ =>
@@ -75,19 +75,19 @@ public class AcceptTypesTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
-                    .Accept(AcceptTypes.Any)
+                    .WithAccept(AcceptTypes.Any)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<AcceptHeaderResponse>();
+                var body = response.ContentAs<AcceptHeaderResponse>();
                 Assert.Contains("*/*", body!.Accept);
             })
             .Run();
     }
 
     [Test]
-    public async Task Accept_OctetStreamEnum_IsSentCorrectly()
+    public async Task WithAccept_OctetStreamEnum_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with Accept OctetStream enum", async _ =>
@@ -95,12 +95,12 @@ public class AcceptTypesTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/headers/accept")
-                    .Accept(AcceptTypes.OctetStream)
+                    .WithAccept(AcceptTypes.OctetStream)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<AcceptHeaderResponse>();
+                var body = response.ContentAs<AcceptHeaderResponse>();
                 Assert.Contains("application/octet-stream", body!.Accept);
             })
             .Run();

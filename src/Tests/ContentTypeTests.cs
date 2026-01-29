@@ -7,7 +7,7 @@ namespace Fuzn.FluentHttp.Tests;
 public class ContentTypeTests : Test
 {
     [Test]
-    public async Task ContentType_Json_SerializesBodyCorrectly()
+    public async Task WithContentType_Json_SerializesBodyCorrectly()
     {
         await Scenario()
             .Step("Send JSON body", async _ =>
@@ -17,20 +17,20 @@ public class ContentTypeTests : Test
                 var payload = new { name = "Test", value = 123 };
                 
                 var response = await client.Url("/api/content/json")
-                    .ContentType(ContentTypes.Json)
-                    .Body(payload)
+                    .WithContentType(ContentTypes.Json)
+                    .WithContent(payload)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<ContentTypeResponse>();
+                var body = response.ContentAs<ContentTypeResponse>();
                 Assert.AreEqual("application/json", body!.ContentType);
             })
             .Run();
     }
 
     [Test]
-    public async Task ContentType_JsonAutoSet_WhenBodyProvided()
+    public async Task WithContentType_JsonAutoSet_WhenBodyProvided()
     {
         await Scenario()
             .Step("Body auto-sets Content-Type to JSON", async _ =>
@@ -40,19 +40,19 @@ public class ContentTypeTests : Test
                 var payload = new { name = "Auto" };
                 
                 var response = await client.Url("/api/echo")
-                    .Body(payload)
+                    .WithContent(payload)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<ContentTypeResponse>();
+                var body = response.ContentAs<ContentTypeResponse>();
                 Assert.Contains("application/json", body!.ContentType);
             })
             .Run();
     }
 
     [Test]
-    public async Task ContentType_CustomString_IsSentCorrectly()
+    public async Task WithContentType_CustomString_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with custom content type string", async _ =>
@@ -60,13 +60,13 @@ public class ContentTypeTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/echo")
-                    .ContentType("application/xml")
-                    .Body("<root><test>value</test></root>")
+                    .WithContentType("application/xml")
+                    .WithContent("<root><test>value</test></root>")
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<ContentTypeResponse>();
+                var body = response.ContentAs<ContentTypeResponse>();
                 Assert.Contains("application/xml", body!.ContentType);
             })
             .Run();

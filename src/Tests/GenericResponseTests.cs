@@ -34,7 +34,7 @@ public class GenericResponseTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var response = await client.Url("/api/deserialize/person")
-                    .Body(new PersonDto { Id = 1, Name = "Test", Email = "test@test.com", Age = 25 })
+                    .WithContent(new PersonDto { Id = 1, Name = "Test", Email = "test@test.com", Age = 25 })
                     .Post<DeserializeResponse>();
 
                 Assert.IsTrue(response.IsSuccessful);
@@ -53,7 +53,7 @@ public class GenericResponseTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var response = await client.Url("/api/methods/put")
-                    .Body(new { id = 1, name = "Updated" })
+                    .WithContent(new { id = 1, name = "Updated" })
                     .Put<MethodResponseWithBody>();
 
                 Assert.IsTrue(response.IsSuccessful);
@@ -89,7 +89,7 @@ public class GenericResponseTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var response = await client.Url("/api/methods/patch")
-                    .Body(new { field = "value" })
+                    .WithContent(new { field = "value" })
                     .Patch<MethodResponseWithBody>();
 
                 Assert.IsTrue(response.IsSuccessful);
@@ -112,18 +112,17 @@ public class GenericResponseTests : Test
                 // Inherited properties
                 Assert.IsNotNull(response.Headers);
                 Assert.IsNotNull(response.InnerResponse);
-                Assert.IsNotNull(response.Body);
-                Assert.IsNotNull(response.AsBytes());
+                Assert.IsNotNull(response.Content);
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             })
             .Run();
     }
 
     [Test]
-    public async Task GenericResponse_As_CanDeserializeToDifferentType()
+    public async Task GenericResponse_ContentAs_CanDeserializeToDifferentType()
     {
         await Scenario()
-            .Step("Can use inherited As<T> to deserialize to different type", async _ =>
+            .Step("Can use inherited ContentAs<T> to deserialize to different type", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
@@ -132,8 +131,8 @@ public class GenericResponseTests : Test
 
                 Assert.IsTrue(response.IsSuccessful);
 
-                // But can also deserialize to a different type using inherited As<T>
-                var asDict = response.As<Dictionary<string, object>>();
+                // But can also deserialize to a different type using inherited ContentAs<T>
+                var asDict = response.ContentAs<Dictionary<string, object>>();
                 Assert.IsNotNull(asDict);
             })
             .Run();
@@ -143,7 +142,7 @@ public class GenericResponseTests : Test
     public async Task GenericResponse_FailedRequest_StillDeserializesData()
     {
         await Scenario()
-            .Step("Data deserializes body even when request fails", async _ =>
+            .Step("Data deserializes content even when request fails", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
@@ -160,10 +159,10 @@ public class GenericResponseTests : Test
     }
 
     [Test]
-    public async Task GenericResponse_EmptyBody_DataIsDefault()
+    public async Task GenericResponse_EmptyContent_DataIsDefault()
     {
         await Scenario()
-            .Step("Data returns default when body is empty", async _ =>
+            .Step("Data returns default when content is empty", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
@@ -172,7 +171,7 @@ public class GenericResponseTests : Test
                 Assert.IsTrue(response.IsSuccessful);
                 Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
 
-                // Empty body returns default
+                // Empty content returns default
                 Assert.IsNull(response.Data);
             })
             .Run();
@@ -182,7 +181,7 @@ public class GenericResponseTests : Test
     public async Task GenericResponse_CanDeserializeToAlternateType()
     {
         await Scenario()
-            .Step("Can use As<T> to deserialize to different type", async _ =>
+            .Step("Can use ContentAs<T> to deserialize to different type", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
@@ -190,8 +189,8 @@ public class GenericResponseTests : Test
 
                 Assert.IsFalse(response.IsSuccessful);
 
-                // Use As<T> to deserialize to error type
-                var error = response.As<ErrorResponse>();
+                // Use ContentAs<T> to deserialize to error type
+                var error = response.ContentAs<ErrorResponse>();
                 Assert.IsNotNull(error);
                 Assert.AreEqual("Bad request", error!.Error);
             })
@@ -202,14 +201,14 @@ public class GenericResponseTests : Test
     public async Task GenericResponse_InvalidJson_ThrowsOnDataAccess()
     {
         await Scenario()
-            .Step("Accessing Data throws when body cannot be deserialized", async _ =>
+            .Step("Accessing Data throws when content cannot be deserialized", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var response = await client.Url("/api/status/invalid-json").Get<PersonDto>();
 
                 Assert.IsTrue(response.IsSuccessful);
-                Assert.AreEqual("this is not valid json {{{", response.Body);
+                Assert.AreEqual("this is not valid json {{{", response.Content);
 
                 // Accessing Data should throw because JSON is invalid
                 var exceptionThrown = false;

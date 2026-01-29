@@ -82,8 +82,49 @@ public class StreamingTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 await using var streamResponse = await client.Url("/api/echo")
-                    .Body(new { test = "data" })
+                    .WithContent(new { test = "data" })
                     .PostStream();
+
+                Assert.IsTrue(streamResponse.IsSuccessful);
+                
+                var bytes = await streamResponse.GetBytes();
+                Assert.IsNotEmpty(bytes);
+            })
+            .Run();
+    }
+
+    [Test]
+    public async Task SendStream_CustomMethod_ReturnsStreamResponse()
+    {
+        await Scenario()
+            .Step("Custom HTTP method with stream response", async _ =>
+            {
+                var client = SuiteData.HttpClientFactory.CreateClient();
+                
+                // Using GET as a custom method to test SendStream functionality
+                await using var streamResponse = await client.Url("/api/stream/download")
+                    .SendStream(HttpMethod.Get);
+
+                Assert.IsTrue(streamResponse.IsSuccessful);
+                Assert.AreEqual("application/octet-stream", streamResponse.ContentType);
+                
+                var bytes = await streamResponse.GetBytes();
+                Assert.IsNotEmpty(bytes);
+            })
+            .Run();
+    }
+
+    [Test]
+    public async Task SendStream_WithBody_ReturnsStreamResponse()
+    {
+        await Scenario()
+            .Step("Custom HTTP method with body and stream response", async _ =>
+            {
+                var client = SuiteData.HttpClientFactory.CreateClient();
+                
+                await using var streamResponse = await client.Url("/api/echo")
+                    .WithContent(new { test = "custom method" })
+                    .SendStream(HttpMethod.Post);
 
                 Assert.IsTrue(streamResponse.IsSuccessful);
                 

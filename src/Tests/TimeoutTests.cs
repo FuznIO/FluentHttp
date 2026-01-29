@@ -6,7 +6,7 @@ namespace Fuzn.FluentHttp.Tests;
 public class TimeoutTests : Test
 {
     [Test]
-    public async Task Timeout_CompletesWithinTimeout_ReturnsSuccess()
+    public async Task WithTimeout_CompletesWithinTimeout_ReturnsSuccess()
     {
         await Scenario()
             .Step("Request completes before timeout", async _ =>
@@ -14,7 +14,7 @@ public class TimeoutTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/delay/100")
-                    .Timeout(TimeSpan.FromSeconds(5))
+                    .WithTimeout(TimeSpan.FromSeconds(5))
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
@@ -23,7 +23,7 @@ public class TimeoutTests : Test
     }
 
     [Test]
-    public async Task Timeout_ExceedsTimeout_ThrowsTaskCanceledException()
+    public async Task WithTimeout_ExceedsTimeout_ThrowsTaskCanceledException()
     {
         await Scenario()
             .Step("Request times out", async _ =>
@@ -34,7 +34,7 @@ public class TimeoutTests : Test
                 try
                 {
                     await client.Url("/api/delay/5000")
-                        .Timeout(TimeSpan.FromMilliseconds(100))
+                        .WithTimeout(TimeSpan.FromMilliseconds(100))
                         .Get();
                 }
                 catch (TaskCanceledException)
@@ -48,7 +48,7 @@ public class TimeoutTests : Test
     }
 
     [Test]
-    public async Task Timeout_StreamRequest_CompletesWithinTimeout()
+    public async Task WithTimeout_StreamRequest_CompletesWithinTimeout()
     {
         await Scenario()
             .Step("Stream request completes before timeout", async _ =>
@@ -56,7 +56,7 @@ public class TimeoutTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 await using var streamResponse = await client.Url("/api/stream/download")
-                    .Timeout(TimeSpan.FromSeconds(5))
+                    .WithTimeout(TimeSpan.FromSeconds(5))
                     .GetStream();
 
                 Assert.IsTrue(streamResponse.IsSuccessful);

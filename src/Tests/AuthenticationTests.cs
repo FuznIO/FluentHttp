@@ -7,7 +7,7 @@ namespace Fuzn.FluentHttp.Tests;
 public class AuthenticationTests : Test
 {
     [Test]
-    public async Task AuthBearer_Token_IsSentCorrectly()
+    public async Task WithAuthBearer_Token_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with Bearer token", async _ =>
@@ -15,12 +15,12 @@ public class AuthenticationTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/auth/bearer")
-                    .AuthBearer("my-test-token-12345")
+                    .WithAuthBearer("my-test-token-12345")
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<BearerAuthResponse>();
+                var body = response.ContentAs<BearerAuthResponse>();
                 Assert.IsTrue(body!.Authenticated);
                 Assert.AreEqual("my-test-token-12345", body.TokenReceived);
             })
@@ -28,7 +28,7 @@ public class AuthenticationTests : Test
     }
 
     [Test]
-    public async Task AuthBearer_MissingToken_ReturnsUnauthorized()
+    public async Task WithAuthBearer_MissingToken_ReturnsUnauthorized()
     {
         await Scenario()
             .Step("Send request without Bearer token", async _ =>
@@ -43,7 +43,7 @@ public class AuthenticationTests : Test
     }
 
     [Test]
-    public async Task AuthBasic_Credentials_AreSentCorrectly()
+    public async Task WithAuthBasic_Credentials_AreSentCorrectly()
     {
         await Scenario()
             .Step("Send request with Basic auth credentials", async _ =>
@@ -51,12 +51,12 @@ public class AuthenticationTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/auth/basic")
-                    .AuthBasic("testuser", "testpassword")
+                    .WithAuthBasic("testuser", "testpassword")
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<BasicAuthResponse>();
+                var body = response.ContentAs<BasicAuthResponse>();
                 Assert.IsTrue(body!.Authenticated);
                 Assert.AreEqual("testuser", body.Username);
                 Assert.AreEqual("testpassword", body.Password);
@@ -65,7 +65,7 @@ public class AuthenticationTests : Test
     }
 
     [Test]
-    public async Task AuthBasic_MissingCredentials_ReturnsUnauthorized()
+    public async Task WithAuthBasic_MissingCredentials_ReturnsUnauthorized()
     {
         await Scenario()
             .Step("Send request without Basic auth", async _ =>
@@ -80,7 +80,7 @@ public class AuthenticationTests : Test
     }
 
     [Test]
-    public async Task AuthApiKey_DefaultHeader_IsSentCorrectly()
+    public async Task WithAuthApiKey_DefaultHeader_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with API key using default header", async _ =>
@@ -88,12 +88,12 @@ public class AuthenticationTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/auth/apikey")
-                    .AuthApiKey("my-api-key-secret")
+                    .WithAuthApiKey("my-api-key-secret")
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<ApiKeyAuthResponse>();
+                var body = response.ContentAs<ApiKeyAuthResponse>();
                 Assert.IsTrue(body!.Authenticated);
                 Assert.AreEqual("my-api-key-secret", body.ApiKey);
             })
@@ -101,7 +101,7 @@ public class AuthenticationTests : Test
     }
 
     [Test]
-    public async Task AuthApiKey_CustomHeader_IsSentCorrectly()
+    public async Task WithAuthApiKey_CustomHeader_IsSentCorrectly()
     {
         await Scenario()
             .Step("Send request with API key using custom header name", async _ =>
@@ -109,12 +109,12 @@ public class AuthenticationTests : Test
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/auth/apikey-custom")
-                    .AuthApiKey("custom-api-key", "X-My-Api-Key")
+                    .WithAuthApiKey("custom-api-key", "X-My-Api-Key")
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
-                var body = response.As<ApiKeyAuthResponse>();
+                var body = response.ContentAs<ApiKeyAuthResponse>();
                 Assert.IsTrue(body!.Authenticated);
                 Assert.AreEqual("custom-api-key", body.ApiKey);
             })
