@@ -67,6 +67,9 @@ public class HttpRequestData
 
     internal CancellationToken CancellationToken { get; set; } = default;
 
+    /// <summary>Indicates whether the BeforeSend interceptor has been executed.</summary>
+    internal bool InterceptorExecuted { get; set; }
+
     private string BuildQueryString()
     {
         var queryPairs = new List<string>();

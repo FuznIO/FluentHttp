@@ -1,4 +1,5 @@
 ﻿using Fuzn.FluentHttp.Internals;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -8,6 +9,7 @@ namespace Fuzn.FluentHttp;
 /// <summary>
 /// Fluent builder for constructing and sending HTTP requests.
 /// </summary>
+[DebuggerDisplay("{ToString(),nq}")]
 public class HttpRequestBuilder
 {
     private readonly HttpRequestData _data = new();
@@ -336,7 +338,7 @@ public class HttpRequestBuilder
 
     /// <summary>
     /// Adds a single header to the request.
-    /// </summary>
+    /// </param>
     /// <param name="key">The header name.</param>
     /// <param name="value">The header value.</param>
     /// <returns>The current builder instance for method chaining.</returns>
@@ -445,6 +447,89 @@ public class HttpRequestBuilder
     {
         _data.Options.Add(key, value);
         return this;
+    }
+
+    /// <summary>
+    /// Returns a formatted debug string showing the current request configuration.
+    /// Useful for logging and debugging.
+    /// Note: This shows the state BEFORE the BeforeSend interceptor runs.
+    /// </summary>
+    /// <returns>A formatted string containing the request configuration details.</returns>
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("=== FluentHttp Request ===");
+        sb.AppendLine($"Method: {_data.Method?.Method ?? "(not set)"}");
+        sb.AppendLine($"URL: {_data.AbsoluteUri}");
+
+        if (_data.QueryParams.Count > 0)
+        {
+            sb.AppendLine("Query Params:");
+            foreach (var qp in _data.QueryParams)
+                sb.AppendLine($"  {qp.Key} = {qp.Value}");
+        }
+
+        if (_data.Headers.Count > 0)
+        {
+            sb.AppendLine("Headers:");
+            foreach (var h in _data.Headers)
+                sb.AppendLine($"  {h.Key}: {(h.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase) ? "[REDACTED]" : h.Value)}");
+        }
+
+        sb.AppendLine($"Content-Type: {_data.ContentType ?? "(not set)"}");
+        sb.AppendLine($"Accept: {_data.AcceptType}");
+
+        if (_data.Body != null)
+        {
+            var bodyJson = _data.SerializerProvider?.Serialize(_data.Body)
+                ?? JsonSerializer.Serialize(_data.Body, _data.SerializerOptions);
+            sb.AppendLine($"Body: {(bodyJson.Length > 500 ? bodyJson[..500] + "..." : bodyJson)}");
+        }
+
+        if (_data.Files.Count > 0)
+        {
+            sb.AppendLine($"Files: {_data.Files.Count}");
+            foreach (var file in _data.Files)
+                sb.AppendLine($"  {file.Name}: {file.FileName} ({file.ContentType})");
+        }
+
+        if (_data.FormFields.Count > 0)
+        {
+            sb.AppendLine("Form Fields:");
+            foreach (var formField in _data.FormFields)
+                sb.AppendLine($"  {formField.Key} = {formField.Value}");
+        }
+
+        if (_data.Cookies.Count > 0)
+        {
+            sb.AppendLine($"Cookies: {_data.Cookies.Count}");
+            foreach (var cookie in _data.Cookies)
+                sb.AppendLine($"  {cookie.Name} = {cookie.Value}");
+        }
+
+        if (_data.Timeout != TimeSpan.Zero)
+            sb.AppendLine($"Timeout: {_data.Timeout}");
+
+        if (!string.IsNullOrEmpty(_data.UserAgent))
+            sb.AppendLine($"User-Agent: {_data.UserAgent}");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Builds the HttpRequestMessage without sending it.
+    /// Useful for debugging, logging, or testing request construction.
+    /// Runs the BeforeSend interceptor to show the exact request that would be sent.
+    /// Note: Use this OR the Send methods (Get, Post, etc.), not both.
+    /// For quick inspection without side effects, use <see cref="ToString"/> instead.
+    /// </summary>
+    /// <param name="method">The HTTP method to use.</param>
+    /// <returns>The constructed HttpRequestMessage.</returns>
+    public HttpRequestMessage BuildRequest(HttpMethod method)
+    {
+        _data.Method = method;
+        FluentHttpDefaults.ExecuteInterceptor(this);
+        return _data.MapToHttpRequestMessage();
     }
 
     /// <summary>

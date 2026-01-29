@@ -294,6 +294,54 @@ var cookies = response.Cookies;
 var error = response.As<ProblemDetails>();
 ```
 
+## Debugging
+
+### ToString() for Request Inspection
+
+The builder overrides `ToString()` to provide a formatted view of the current request configuration. This is useful for logging and debugging:
+
+```csharp
+var builder = httpClient
+    .Url("https://api.example.com/users")
+    .Body(new { Name = "John" })
+    .AuthBearer("token123");
+
+// Log the request
+Console.WriteLine(builder);
+
+// Output:
+// === FluentHttp Request ===
+// Method: (not set)
+// URL: https://api.example.com/users
+// Headers:
+//   Authorization: [REDACTED]
+// Content-Type: application/json
+// Accept: application/json
+// Body: {"Name":"John"}
+```
+
+In Visual Studio, you can also hover over the builder variable in the debugger to see this information.
+
+### BuildRequest() for Advanced Inspection
+
+To get the actual `HttpRequestMessage` that would be sent (after the `BeforeSend` interceptor runs):
+
+```csharp
+var builder = httpClient
+    .Url("https://api.example.com/users")
+    .Body(new { Name = "John" });
+
+// Get the HttpRequestMessage without sending
+var request = builder.BuildRequest(HttpMethod.Post);
+
+// Inspect the actual request
+Console.WriteLine($"URL: {request.RequestUri}");
+Console.WriteLine($"Content: {await request.Content!.ReadAsStringAsync()}");
+
+// You can still send the request afterwards
+var response = await builder.Post();
+```
+
 ## Custom Serialization
 
 ### Using System.Text.Json Options
