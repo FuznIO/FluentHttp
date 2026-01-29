@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Fuzn.FluentHttp;
 
 /// <summary>
@@ -35,6 +33,9 @@ public static class FluentHttpDefaults
 
     internal static void ExecuteInterceptor(HttpRequestBuilder builder)
     {
+        if (builder.Data.InterceptorExecuted)
+            return;
+
         Action<HttpRequestBuilder>? action;
         lock (_lock)
         {
@@ -42,5 +43,6 @@ public static class FluentHttpDefaults
         }
 
         action?.Invoke(builder);
+        builder.Data.InterceptorExecuted = true;
     }
 }

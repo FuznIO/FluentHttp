@@ -70,7 +70,6 @@ public class HttpResponse
     /// </summary>
     public string RawResponse { get; internal set; }
 
-
     /// <summary>
     /// Gets the response headers.
     /// </summary>
