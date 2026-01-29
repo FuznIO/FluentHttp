@@ -24,46 +24,52 @@ public class HttpRequestData
     public string RequestUrl { get; internal set; } = null!;
 
     /// <summary>The Content-Type header value.</summary>
-    public string? ContentType { get; set; }
+    public string? ContentType { get; internal set; }
 
     /// <summary>The HTTP method.</summary>
     public HttpMethod Method { get; internal set; } = null!;
 
     /// <summary>The request body.</summary>
-    public object? Body { get; set; }
+    public object? Body { get; internal set; }
 
     /// <summary>The Accept header value.</summary>
-    public string AcceptType { get; set; } = "application/json";
+    public string AcceptType { get; internal set; } = "application/json";
 
     /// <summary>Cookies to send with the request.</summary>
-    public List<Cookie> Cookies { get; set; } = [];
+    public List<Cookie> Cookies { get; internal set; } = [];
 
     /// <summary>Request headers.</summary>
-    public Dictionary<string, string> Headers { get; set; } = new();
+    public Dictionary<string, string> Headers { get; internal set; } = new();
 
     /// <summary>Custom options/metadata for the request.</summary>
-    public Dictionary<string, object> Options { get; set; } = new();
+    public Dictionary<string, object> Options { get; internal set; } = new();
 
     /// <summary>The User-Agent header value.</summary>
-    public string? UserAgent { get; set; }
+    public string? UserAgent { get; internal set; }
 
     /// <summary>Request timeout.</summary>
-    public TimeSpan Timeout { get; set; }
+    public TimeSpan Timeout { get; internal set; }
+
+    /// <summary>The HTTP protocol version (e.g., HTTP/1.1, HTTP/2, HTTP/3).</summary>
+    public Version? Version { get; internal set; }
+
+    /// <summary>The HTTP version policy that controls upgrade/downgrade behavior.</summary>
+    public HttpVersionPolicy? VersionPolicy { get; internal set; }
 
     /// <summary>JSON serializer options.</summary>
-    public JsonSerializerOptions? SerializerOptions { get; set; }
+    public JsonSerializerOptions? SerializerOptions { get; internal set; }
 
     /// <summary>Custom serializer provider.</summary>
-    public ISerializerProvider? SerializerProvider { get; set; }
+    public ISerializerProvider? SerializerProvider { get; internal set; }
 
     /// <summary>Files to upload.</summary>
-    public List<FileContent> Files { get; set; } = [];
+    public List<FileContent> Files { get; internal set; } = [];
 
     /// <summary>Form fields for multipart requests.</summary>
-    public Dictionary<string, string> FormFields { get; set; } = new();
+    public Dictionary<string, string> FormFields { get; internal set; } = new();
 
     /// <summary>Query parameters.</summary>
-    public List<KeyValuePair<string, string>> QueryParams { get; set; } = [];
+    public List<KeyValuePair<string, string>> QueryParams { get; internal set; } = [];
 
     internal CancellationToken CancellationToken { get; set; } = default;
 
@@ -87,6 +93,12 @@ public class HttpRequestData
     internal HttpRequestMessage MapToHttpRequestMessage()
     {
         var request = new HttpRequestMessage(Method, GetRequestUrlWithPathAndQuery());
+
+        if (Version is not null)
+            request.Version = Version;
+
+        if (VersionPolicy is not null)
+            request.VersionPolicy = VersionPolicy.Value;
 
         foreach (var option in Options)
         {
