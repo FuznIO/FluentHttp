@@ -427,6 +427,29 @@ public class HttpRequestBuilder
     }
 
     /// <summary>
+    /// Sets the HTTP protocol version for the request.
+    /// </summary>
+    /// <param name="version">The HTTP version to use (e.g., HttpVersion.Version20 for HTTP/2).</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder Version(Version version)
+    {
+        _data.Version = version;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the HTTP protocol version policy for the request.
+    /// Controls how the version is negotiated with the server.
+    /// </summary>
+    /// <param name="versionPolicy">The version policy that controls upgrade/downgrade behavior.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public HttpRequestBuilder VersionPolicy(HttpVersionPolicy versionPolicy)
+    {
+        _data.VersionPolicy = versionPolicy;
+        return this;
+    }
+
+    /// <summary>
     /// Sets a cancellation token for the request. This token will be linked with any token passed to the HTTP method.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -512,6 +535,12 @@ public class HttpRequestBuilder
 
         if (!string.IsNullOrEmpty(_data.UserAgent))
             sb.AppendLine($"User-Agent: {_data.UserAgent}");
+
+        if (_data.Version is not null)
+            sb.AppendLine($"Version: HTTP/{_data.Version}");
+
+        if (_data.VersionPolicy is not null)
+            sb.AppendLine($"VersionPolicy: {_data.VersionPolicy}");
 
         return sb.ToString();
     }

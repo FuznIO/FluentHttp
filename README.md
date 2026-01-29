@@ -234,6 +234,59 @@ var response = await httpClient
     .Get<Data>();
 ```
 
+### HTTP Version
+
+Control the HTTP protocol version for the request. Useful for HTTP/2, HTTP/3, or legacy system compatibility:
+
+```csharp
+using System.Net;
+
+// Force HTTP/2
+var response = await httpClient
+    .Url("https://api.example.com/data")
+    .Version(HttpVersion.Version20)
+    .Get<Data>();
+
+// Force HTTP/3 (QUIC)
+var response = await httpClient
+    .Url("https://api.example.com/data")
+    .Version(HttpVersion.Version30)
+    .Get<Data>();
+
+// HTTP/1.1 for legacy systems
+var response = await httpClient
+    .Url("https://legacy-api.example.com/data")
+    .Version(HttpVersion.Version11)
+    .Get<Data>();
+```
+
+### HTTP Version Policy
+
+Control how the HTTP version is negotiated with the server:
+
+```csharp
+// Require exact version match (fail if server doesn't support it)
+var response = await httpClient
+    .Url("https://api.example.com/data")
+    .Version(HttpVersion.Version20)
+    .VersionPolicy(HttpVersionPolicy.RequestVersionExact)
+    .Get<Data>();
+
+// Allow downgrade to lower versions
+var response = await httpClient
+    .Url("https://api.example.com/data")
+    .Version(HttpVersion.Version20)
+    .VersionPolicy(HttpVersionPolicy.RequestVersionOrLower)
+    .Get<Data>();
+
+// Allow upgrade to higher versions
+var response = await httpClient
+    .Url("https://api.example.com/data")
+    .Version(HttpVersion.Version11)
+    .VersionPolicy(HttpVersionPolicy.RequestVersionOrHigher)
+    .Get<Data>();
+```
+
 ## Working with Responses
 
 ### `HttpResponse`
