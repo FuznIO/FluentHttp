@@ -1,7 +1,8 @@
-﻿using System.Net.Http;
+﻿namespace Fuzn.FluentHttp;
 
-namespace Fuzn.FluentHttp;
-
+/// <summary>
+/// Provides extension methods for <see cref="HttpClient"/>.
+/// </summary>
 public static class HttpClientExtensions
 {
     /// <summary>

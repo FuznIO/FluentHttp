@@ -12,6 +12,19 @@ namespace Fuzn.FluentHttp;
 /// </summary>
 public class HttpRequestData
 {
+    private List<Cookie>? _cookies;
+    private Dictionary<string, string>? _headers;
+    private Dictionary<string, object>? _options;
+    private List<FileContent>? _files;
+    private Dictionary<string, string>? _formFields;
+    private List<KeyValuePair<string, string>>? _queryParams;
+
+    internal bool HasCookies => _cookies is { Count: > 0 };
+    internal bool HasHeaders => _headers is { Count: > 0 };
+    internal bool HasOptions => _options is { Count: > 0 };
+    internal bool HasFiles => _files is { Count: > 0 };
+    internal bool HasFormFields => _formFields is { Count: > 0 };
+    internal bool HasQueryParams => _queryParams is { Count: > 0 };
     internal HttpClient HttpClient { get; set; } = null!;
 
     /// <summary>The absolute URI being called.</summary>
@@ -36,13 +49,13 @@ public class HttpRequestData
     public string AcceptType { get; internal set; } = "application/json";
 
     /// <summary>Cookies to send with the request.</summary>
-    public List<Cookie> Cookies { get; internal set; } = [];
+    public List<Cookie> Cookies => _cookies ??= [];
 
     /// <summary>Request headers.</summary>
-    public Dictionary<string, string> Headers { get; internal set; } = new();
+    public Dictionary<string, string> Headers => _headers ??= new();
 
     /// <summary>Custom options/metadata for the request.</summary>
-    public Dictionary<string, object> Options { get; internal set; } = new();
+    public Dictionary<string, object> Options => _options ??= new();
 
     /// <summary>The User-Agent header value.</summary>
     public string? UserAgent { get; internal set; }
@@ -63,32 +76,31 @@ public class HttpRequestData
     public ISerializerProvider? Serializer { get; internal set; }
 
     /// <summary>Files to upload.</summary>
-    public List<FileContent> Files { get; internal set; } = [];
+    public List<FileContent> Files => _files ??= [];
 
     /// <summary>Form fields for multipart requests.</summary>
-    public Dictionary<string, string> FormFields { get; internal set; } = new();
+    public Dictionary<string, string> FormFields => _formFields ??= new();
 
     /// <summary>Query parameters.</summary>
-    public List<KeyValuePair<string, string>> QueryParams { get; internal set; } = [];
+    public List<KeyValuePair<string, string>> QueryParams => _queryParams ??= [];
 
     internal CancellationToken CancellationToken { get; set; } = default;
 
-    /// <summary>Indicates whether the BeforeSend interceptor has been executed.</summary>
     internal bool InterceptorExecuted { get; set; }
 
     private string BuildQueryString()
     {
-        if (QueryParams.Count == 0)
+        if (!HasQueryParams)
             return string.Empty;
 
         var sb = new StringBuilder();
-        for (int i = 0; i < QueryParams.Count; i++)
+        for (int i = 0; i < _queryParams!.Count; i++)
         {
             if (i > 0)
                 sb.Append('&');
-            sb.Append(HttpUtility.UrlEncode(QueryParams[i].Key));
+            sb.Append(HttpUtility.UrlEncode(_queryParams[i].Key));
             sb.Append('=');
-            sb.Append(HttpUtility.UrlEncode(QueryParams[i].Value));
+            sb.Append(HttpUtility.UrlEncode(_queryParams[i].Value));
         }
         return sb.ToString();
     }
@@ -103,20 +115,26 @@ public class HttpRequestData
         if (VersionPolicy is not null)
             request.VersionPolicy = VersionPolicy.Value;
 
-        foreach (var option in Options)
+        if (HasOptions)
         {
-            request.Options.Set(new HttpRequestOptionsKey<object>(option.Key), option.Value);
+            foreach (var option in _options!)
+            {
+                request.Options.Set(new HttpRequestOptionsKey<object>(option.Key), option.Value);
+            }
         }
 
         request.Headers.Add("Accept", AcceptType);
 
-        foreach (var header in Headers)
-            request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        if (HasHeaders)
+        {
+            foreach (var header in _headers!)
+                request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
 
-        if (Cookies is { Count: > 0 })
+        if (HasCookies)
         {
             var cookieContainer = new CookieContainer();
-            foreach (var cookie in Cookies)
+            foreach (var cookie in _cookies!)
             {
                 if (string.IsNullOrEmpty(cookie.Domain))
                     cookie.Domain = BaseUri.Host;
@@ -191,7 +209,7 @@ public class HttpRequestData
 
     private string GetRequestUrlWithPathAndQuery()
     {
-        if (QueryParams.Count == 0)
+        if (!HasQueryParams)
             return AbsoluteUri.PathAndQuery;
 
         var pathAndQuery = AbsoluteUri.PathAndQuery;
@@ -218,17 +236,23 @@ public class HttpRequestData
         var multipartContent = new MultipartFormDataContent();
 
         // Add form fields
-        foreach (var field in FormFields)
+        if (HasFormFields)
         {
-            multipartContent.Add(new StringContent(field.Value, Encoding.UTF8), field.Key);
+            foreach (var field in _formFields!)
+            {
+                multipartContent.Add(new StringContent(field.Value, Encoding.UTF8), field.Key);
+            }
         }
 
         // Add files
-        foreach (var file in Files)
+        if (HasFiles)
         {
-            var streamContent = new StreamContent(file.Content);
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-            multipartContent.Add(streamContent, file.Name, file.FileName);
+            foreach (var file in _files!)
+            {
+                var streamContent = new StreamContent(file.Content);
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                multipartContent.Add(streamContent, file.Name, file.FileName);
+            }
         }
 
         return multipartContent;

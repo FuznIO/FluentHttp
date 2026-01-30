@@ -10,6 +10,14 @@
     <RootNamespace>Fuzn.FluentHttp.Tests</RootNamespace>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>1591;</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <NoWarn>1591;</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Fuzn.TestFuzn.Adapters.MSTest" Version="0.6.5-beta" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.2" />

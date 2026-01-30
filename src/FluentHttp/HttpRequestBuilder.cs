@@ -379,7 +379,7 @@ public class HttpRequestBuilder
     /// <exception cref="InvalidOperationException">Thrown when Basic authentication is already configured.</exception>
     public HttpRequestBuilder WithAuthBearer(string token)
     {
-        if (_data.Headers.ContainsKey("Authorization"))
+        if (_data.HasHeaders && _data.Headers.ContainsKey("Authorization"))
             throw new InvalidOperationException("Authentication is already configured.");
 
         _data.Headers["Authorization"] = $"Bearer {token}";
@@ -395,7 +395,7 @@ public class HttpRequestBuilder
     /// <exception cref="InvalidOperationException">Thrown when Bearer authentication is already configured.</exception>
     public HttpRequestBuilder WithAuthBasic(string username, string password)
     {
-        if (_data.Headers.ContainsKey("Authorization"))
+        if (_data.HasHeaders && _data.Headers.ContainsKey("Authorization"))
             throw new InvalidOperationException("Authentication is already configured.");
 
         var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
@@ -453,7 +453,7 @@ public class HttpRequestBuilder
     /// Controls how the version is negotiated with the server.
     /// </summary>
     /// <param name="versionPolicy">The version policy that controls upgrade/downgrade behavior.</param>
-    /// <returnsThe current builder instance for method chaining.</returns>
+    /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder WithVersionPolicy(HttpVersionPolicy versionPolicy)
     {
         _data.VersionPolicy = versionPolicy;
@@ -496,14 +496,14 @@ public class HttpRequestBuilder
         sb.AppendLine($"Method: {_data.Method?.Method ?? "(not set)"}");
         sb.AppendLine($"URL: {_data.AbsoluteUri}");
 
-        if (_data.QueryParams.Count > 0)
+        if (_data.HasQueryParams)
         {
             sb.AppendLine("Query Params:");
             foreach (var qp in _data.QueryParams)
                 sb.AppendLine($"  {qp.Key} = {qp.Value}");
         }
 
-        if (_data.Headers.Count > 0)
+        if (_data.HasHeaders)
         {
             sb.AppendLine("Headers:");
             foreach (var h in _data.Headers)
@@ -520,21 +520,21 @@ public class HttpRequestBuilder
             sb.AppendLine($"Content: {(contentJson.Length > 500 ? contentJson[..500] + "..." : contentJson)}");
         }
 
-        if (_data.Files.Count > 0)
+        if (_data.HasFiles)
         {
             sb.AppendLine($"Files: {_data.Files.Count}");
             foreach (var file in _data.Files)
                 sb.AppendLine($"  {file.Name}: {file.FileName} ({file.ContentType})");
         }
 
-        if (_data.FormFields.Count > 0)
+        if (_data.HasFormFields)
         {
             sb.AppendLine("Form Fields:");
             foreach (var formField in _data.FormFields)
                 sb.AppendLine($"  {formField.Key} = {formField.Value}");
         }
 
-        if (_data.Cookies.Count > 0)
+        if (_data.HasCookies)
         {
             sb.AppendLine($"Cookies: {_data.Cookies.Count}");
             foreach (var cookie in _data.Cookies)
@@ -570,7 +570,7 @@ public class HttpRequestBuilder
     {
         _data.Method = method;
         FluentHttpDefaults.ExecuteInterceptor(this);
-        return _data.MapToHttpRequestMessage(GetSerializerProvider());
+        return _data.MapToHttpRequestMessage(GetSerializer());
     }
 
     /// <summary>
@@ -809,7 +809,7 @@ public class HttpRequestBuilder
         // Execute global interceptor before building request
         FluentHttpDefaults.ExecuteInterceptor(this);
 
-        var serializerProvider = GetSerializerProvider();
+        var serializerProvider = GetSerializer();
 
         var request = _data.MapToHttpRequestMessage(serializerProvider);
 
@@ -831,7 +831,7 @@ public class HttpRequestBuilder
         }
     }
 
-    private ISerializerProvider GetSerializerProvider()
+    private ISerializerProvider GetSerializer()
     {
         ISerializerProvider serializerProvider;
         if (_data.Serializer != null)
@@ -848,7 +848,7 @@ public class HttpRequestBuilder
         // Execute global interceptor before building request
         FluentHttpDefaults.ExecuteInterceptor(this);
 
-        var request = _data.MapToHttpRequestMessage(GetSerializerProvider());
+        var request = _data.MapToHttpRequestMessage(GetSerializer());
         HttpResponseMessage? response = null;
 
         var (linkedToken, linkedCts) = GetLinkedCancellationToken(cancellationToken);
