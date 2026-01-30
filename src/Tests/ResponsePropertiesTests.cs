@@ -55,18 +55,19 @@ public class ResponsePropertiesTests : Test
     }
 
     [Test]
-    public async Task Response_RawResponse_ContainsResponseInfo()
+    public async Task Response_ToString_ContainsResponseInfo()
     {
         await Scenario()
-            .Step("Access raw response string", async _ =>
+            .Step("Access response string representation", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var response = await client.Url("/api/response/json").Get();
 
                 Assert.IsTrue(response.IsSuccessful);
-                Assert.IsNotNull(response.RawResponse);
-                Assert.IsGreaterThan(0, response.RawResponse.Length);
+                var responseString = response.ToString();
+                Assert.IsNotNull(responseString);
+                Assert.IsGreaterThan(0, responseString.Length);
             })
             .Run();
     }

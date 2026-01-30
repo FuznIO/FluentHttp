@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 
 namespace Fuzn.FluentHttp;
 
@@ -8,36 +9,39 @@ namespace Fuzn.FluentHttp;
 /// </summary>
 public class HttpResponse
 {
-    private readonly List<Cookie> _cookies = [];
-    private readonly HttpRequestMessage _request;
-    private readonly ISerializerProvider _serializerProvider;
+    private readonly List<Cookie>? _cookies;
+    private readonly ISerializerProvider _serializer;
     private readonly byte[] _rawBytes;
 
     internal HttpResponse(HttpRequestMessage request,
         HttpResponseMessage response,
         CookieContainer? cookieContainer,
         byte[] rawBytes,
-        ISerializerProvider serializerProvider)
+        ISerializerProvider serializer)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(response);
         ArgumentNullException.ThrowIfNull(rawBytes);
-        ArgumentNullException.ThrowIfNull(serializerProvider);
+        ArgumentNullException.ThrowIfNull(serializer);
 
-        _request = request;
+        RequestMessage = request;
         _rawBytes = rawBytes;
-        _serializerProvider = serializerProvider;
+        _serializer = serializer;
         InnerResponse = response;
-        RawResponse = InnerResponse.ToString();
 
         // Decode the content using the encoding specified in Content-Type header
         Content = DecodeContent(rawBytes, response.Content.Headers.ContentType);
 
         if (cookieContainer != null)
         {
-            foreach (Cookie cookie in cookieContainer.GetAllCookies())
+            var allCookies = cookieContainer.GetAllCookies();
+            if (allCookies.Count > 0)
             {
-                _cookies.Add(cookie);
+                _cookies = new List<Cookie>(allCookies.Count);
+                foreach (Cookie cookie in allCookies)
+                {
+                    _cookies.Add(cookie);
+                }
             }
         }
     }
@@ -50,12 +54,11 @@ public class HttpResponse
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        _request = other._request;
+        RequestMessage = other.RequestMessage;
         _rawBytes = other._rawBytes;
-        _serializerProvider = other._serializerProvider;
+        _serializer = other._serializer;
         _cookies = other._cookies;
         InnerResponse = other.InnerResponse;
-        RawResponse = other.RawResponse;
         Content = other.Content;
     }
 
@@ -63,11 +66,6 @@ public class HttpResponse
     /// Gets the underlying <see cref="HttpResponseMessage"/>.
     /// </summary>
     public HttpResponseMessage InnerResponse { get; }
-
-    /// <summary>
-    /// Gets or sets the raw response string representation.
-    /// </summary>
-    public string RawResponse { get; internal set; }
 
     /// <summary>
     /// Gets the response headers.
@@ -97,7 +95,7 @@ public class HttpResponse
     /// <summary>
     /// Gets the cookies received in the response.
     /// </summary>
-    public IReadOnlyList<Cookie> Cookies => _cookies;
+    public IReadOnlyList<Cookie> Cookies => (IReadOnlyList<Cookie>?)_cookies ?? Array.Empty<Cookie>();
 
     /// <summary>
     /// Gets the HTTP status code of the response.
@@ -120,9 +118,9 @@ public class HttpResponse
     public Version Version => InnerResponse.Version;
 
     /// <summary>
-    /// Gets the final request URI (reflects any redirects that occurred).
+    /// Gets the HTTP request message that was sent to receive this response.
     /// </summary>
-    public Uri? RequestUri => _request.RequestUri;
+    public HttpRequestMessage RequestMessage { get; }
 
     /// <summary>
     /// Deserializes the response content into the specified type.
@@ -137,7 +135,7 @@ public class HttpResponse
 
         try
         {
-            return _serializerProvider.Deserialize<T>(Content);
+            return _serializer.Deserialize<T>(Content);
         }
         catch (Exception ex)
         {
@@ -160,13 +158,60 @@ public class HttpResponse
 
         try
         {
-            result = _serializerProvider.Deserialize<T>(Content);
+            result = _serializer.Deserialize<T>(Content);
             return true;
         }
         catch
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Returns a formatted debug string showing the HTTP response details.
+    /// Useful for logging and debugging.
+    /// </summary>
+    /// <returns>A formatted string containing the response details.</returns>
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("=== FluentHttp Response ===");
+        sb.AppendLine($"Status: {(int)StatusCode} {ReasonPhrase}");
+        sb.AppendLine($"Success: {IsSuccessful}");
+        sb.AppendLine($"Version: HTTP/{Version}");
+
+        if (Headers.Any())
+        {
+            sb.AppendLine("Headers:");
+            foreach (var header in Headers)
+                sb.AppendLine($"  {header.Key}: {string.Join(", ", header.Value)}");
+        }
+
+        if (ContentHeaders.Any())
+        {
+            sb.AppendLine("Content Headers:");
+            foreach (var header in ContentHeaders)
+                sb.AppendLine($"  {header.Key}: {string.Join(", ", header.Value)}");
+        }
+
+        if (_cookies?.Count > 0)
+        {
+            sb.AppendLine($"Cookies: {_cookies.Count}");
+            foreach (var cookie in _cookies)
+                sb.AppendLine($"  {cookie.Name} = {cookie.Value}");
+        }
+
+        if (!string.IsNullOrEmpty(Content))
+        {
+            var contentPreview = Content.Length > 500 ? Content[..500] + "..." : Content;
+            sb.AppendLine($"Content: {contentPreview}");
+        }
+        else
+        {
+            sb.AppendLine("Content: (empty)");
+        }
+
+        return sb.ToString();
     }
 
     private static string DecodeContent(byte[] bytes, MediaTypeHeaderValue? contentType)

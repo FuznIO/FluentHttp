@@ -10,7 +10,7 @@ namespace Fuzn.FluentHttp;
 public class HttpStreamResponse : IDisposable, IAsyncDisposable
 {
     private Stream? _contentStream;
-    private bool _disposed;
+    private int _disposed;
 
     internal HttpStreamResponse(HttpResponseMessage response)
     {
@@ -83,7 +83,7 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     /// <returns>A stream containing the response content.</returns>
     public async Task<Stream> GetStream(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(_disposed == 1, this);
         _contentStream = await InnerResponse.Content.ReadAsStreamAsync(cancellationToken);
         return _contentStream;
     }
@@ -95,7 +95,7 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     /// <returns>A byte array containing the response content.</returns>
     public async Task<byte[]> GetBytes(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(_disposed == 1, this);
         return await InnerResponse.Content.ReadAsByteArrayAsync(cancellationToken);
     }
 
@@ -104,7 +104,7 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     /// </summary>
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, true))
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
             return;
         _contentStream?.Dispose();
         InnerResponse.Dispose();
@@ -116,7 +116,7 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposed, true))
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
             return;
         if (_contentStream != null)
             await _contentStream.DisposeAsync();

@@ -108,7 +108,6 @@ public class HttpRequestData
     internal HttpRequestMessage MapToHttpRequestMessage(ISerializerProvider serializerProvider)
     {
         var request = new HttpRequestMessage(Method, GetRequestUrlWithPathAndQuery());
-
         if (Version is not null)
             request.Version = Version;
 

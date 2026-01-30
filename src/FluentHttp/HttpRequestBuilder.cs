@@ -1,6 +1,5 @@
 ﻿using Fuzn.FluentHttp.Internals;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -11,7 +10,6 @@ namespace Fuzn.FluentHttp;
 /// <summary>
 /// Fluent builder for constructing and sending HTTP requests.
 /// </summary>
-[DebuggerDisplay("{ToString(),nq}")]
 public class HttpRequestBuilder
 {
     private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _propertyCache = new();

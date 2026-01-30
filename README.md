@@ -393,8 +393,8 @@ var contentHeaders = response.ContentHeaders;
 // Access cookies
 var cookies = response.Cookies;
 
-// Access the request URI (useful after redirects)
-Uri? requestUri = response.RequestUri;
+// Access the underlying request message
+HttpRequestMessage request = response.RequestMessage;
 ```
 
 ### `HttpResponse<T>`
@@ -451,6 +451,35 @@ Console.WriteLine(builder);
 ```
 
 In Visual Studio, you can also hover over the builder variable in the debugger to see this information.
+
+### ToString() for Response Inspection
+
+Similarly, `HttpResponse` overrides `ToString()` to provide a formatted view of the response for debugging and logging:
+
+```csharp
+var response = await httpClient
+    .Url("https://api.example.com/users/1")
+    .Get();
+
+// Log the response
+Console.WriteLine(response);
+
+// Output:
+// === FluentHttp Response ===
+// Status: 200 OK
+// Success: True
+// Version: HTTP/1.1
+// Headers:
+//   Date: Mon, 01 Jan 2024 12:00:00 GMT
+// Content Headers:
+//   Content-Type: application/json; charset=utf-8
+//   Content-Length: 42
+// Cookies: 1
+//   sessionId = abc123
+// Content: {"id":1,"name":"John Doe"}
+```
+
+This is especially useful when debugging in Visual Studio - just hover over the `response` variable to see the complete formatted output, including headers, cookies, and the actual response body content (truncated to 500 characters).
 
 ### BuildRequest() for Advanced Inspection
 
