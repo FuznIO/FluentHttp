@@ -61,6 +61,7 @@ jobs:
     - name: Push to NuGet
       run: |
         dotnet nuget push src/FluentHttp/bin/Release/*.nupkg --skip-duplicate --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+        dotnet nuget push src/FluentHttp/bin/Release/*.snupkg --skip-duplicate --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
