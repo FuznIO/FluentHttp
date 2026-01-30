@@ -216,13 +216,16 @@ public class GenericResponseTests : Test
                 {
                     var data = response.Data;
                 }
-                catch (Exception ex)
+                catch (FluentHttpSerializationException ex)
                 {
                     exceptionThrown = true;
-                    Assert.Contains("Unable to deserialize", ex.Message);
+                    Assert.Contains("Failed to deserialize", ex.Message);
+                    Assert.AreEqual(typeof(PersonDto), ex.TargetType);
+                    Assert.IsNotNull(ex.Content);
+                    Assert.IsNotNull(ex.Response);
                 }
 
-                Assert.IsTrue(exceptionThrown, "Expected exception when deserializing invalid JSON");
+                Assert.IsTrue(exceptionThrown, "Expected FluentHttpSerializationException when deserializing invalid JSON");
             })
             .Run();
     }

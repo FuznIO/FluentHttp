@@ -129,7 +129,7 @@ public class HttpResponse
     /// </summary>
     /// <typeparam name="T">The type to deserialize the content into.</typeparam>
     /// <returns>The deserialized object, or default if content is empty.</returns>
-    /// <exception cref="Exception">Thrown when deserialization fails.</exception>
+    /// <exception cref="FluentHttpSerializationException">Thrown when deserialization fails.</exception>
     public T? ContentAs<T>()
     {
         if (string.IsNullOrEmpty(Content))
@@ -141,7 +141,31 @@ public class HttpResponse
         }
         catch (Exception ex)
         {
-            throw new Exception($"Unable to deserialize into {typeof(T)}.", ex);
+            throw FluentHttpSerializationException.ForDeserialization<T>(Content, this, ex);
+        }
+    }
+
+    /// <summary>
+    /// Attempts to deserialize the response content into the specified type without throwing an exception.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the content into.</typeparam>
+    /// <param name="result">When this method returns, contains the deserialized object if successful; otherwise, the default value.</param>
+    /// <returns><c>true</c> if deserialization succeeded; otherwise, <c>false</c>.</returns>
+    public bool TryContentAs<T>(out T? result)
+    {
+        result = default;
+
+        if (string.IsNullOrEmpty(Content))
+            return false;
+
+        try
+        {
+            result = _serializerProvider.Deserialize<T>(Content);
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 

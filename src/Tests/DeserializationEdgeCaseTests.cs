@@ -44,12 +44,16 @@ public class DeserializationEdgeCaseTests : Test
                 {
                     response.ContentAs<PersonDto>();
                 }
-                catch (Exception)
+                catch (FluentHttpSerializationException ex)
                 {
                     exceptionThrown = true;
+                    Assert.Contains("Failed to deserialize", ex.Message);
+                    Assert.AreEqual(typeof(PersonDto), ex.TargetType);
+                    Assert.IsNotNull(ex.Content);
+                    Assert.IsNotNull(ex.Response);
                 }
                 
-                Assert.IsTrue(exceptionThrown, "Expected exception to be thrown when deserializing invalid JSON");
+                Assert.IsTrue(exceptionThrown, "Expected FluentHttpSerializationException when deserializing invalid JSON");
             })
             .Run();
     }

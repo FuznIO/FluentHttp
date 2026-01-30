@@ -108,9 +108,14 @@ public class HttpRequestBuilder
 
     /// <summary>
     /// Sets the request content. The content will be serialized based on the configured content type.
+    /// For JSON content types, the object will be serialized using the configured serializer.
     /// </summary>
     /// <param name="content">The content to send.</param>
     /// <returns>The current builder instance for method chaining.</returns>
+    /// <remarks>
+    /// Serialization occurs when the request is sent. If serialization fails, 
+    /// a <see cref="FluentHttpSerializationException"/> will be thrown.
+    /// </remarks>
     public HttpRequestBuilder WithContent(object content)
     {
         _data.Content = content;
@@ -442,7 +447,7 @@ public class HttpRequestBuilder
     /// Controls how the version is negotiated with the server.
     /// </summary>
     /// <param name="versionPolicy">The version policy that controls upgrade/downgrade behavior.</param>
-    /// <returns>The current builder instance for method chaining.</returns>
+    /// <returnsThe current builder instance for method chaining.</returns>
     public HttpRequestBuilder WithVersionPolicy(HttpVersionPolicy versionPolicy)
     {
         _data.VersionPolicy = versionPolicy;
@@ -554,11 +559,12 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="method">The HTTP method to use.</param>
     /// <returns>The constructed HttpRequestMessage.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public HttpRequestMessage BuildRequest(HttpMethod method)
     {
         _data.Method = method;
         FluentHttpDefaults.ExecuteInterceptor(this);
-        return _data.MapToHttpRequestMessage();
+        return _data.MapToHttpRequestMessage(GetSerializerProvider());
     }
 
     /// <summary>
@@ -568,6 +574,7 @@ public class HttpRequestBuilder
     /// <param name="method">The HTTP method to use.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpResponse> Send(HttpMethod method, CancellationToken cancellationToken = default)
     {
         _data.Method = method;
@@ -582,6 +589,7 @@ public class HttpRequestBuilder
     /// <param name="method">The HTTP method to use.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
     public async Task<HttpResponse<T>> Send<T>(HttpMethod method, CancellationToken cancellationToken = default)
     {
         var response = await Send(method, cancellationToken);
@@ -591,7 +599,9 @@ public class HttpRequestBuilder
     /// <summary>
     /// Sends the request using the HTTP GET method.
     /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpResponse> Get(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Get;
@@ -602,7 +612,9 @@ public class HttpRequestBuilder
     /// Sends the request using the HTTP GET method and deserializes the response to the specified type.
     /// </summary>
     /// <typeparam name="T">The type to deserialize the response body into.</typeparam>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
     public async Task<HttpResponse<T>> Get<T>(CancellationToken cancellationToken = default)
     {
         var response = await Get(cancellationToken);
@@ -612,7 +624,9 @@ public class HttpRequestBuilder
     /// <summary>
     /// Sends the request using the HTTP POST method.
     /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpResponse> Post(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Post;
@@ -623,7 +637,9 @@ public class HttpRequestBuilder
     /// Sends the request using the HTTP POST method and deserializes the response to the specified type.
     /// </summary>
     /// <typeparam name="T">The type to deserialize the response body into.</typeparam>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
     public async Task<HttpResponse<T>> Post<T>(CancellationToken cancellationToken = default)
     {
         var response = await Post(cancellationToken);
@@ -633,7 +649,9 @@ public class HttpRequestBuilder
     /// <summary>
     /// Sends the request using the HTTP PUT method.
     /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpResponse> Put(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Put;
@@ -644,7 +662,9 @@ public class HttpRequestBuilder
     /// Sends the request using the HTTP PUT method and deserializes the response to the specified type.
     /// </summary>
     /// <typeparam name="T">The type to deserialize the response body into.</typeparam>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
     public async Task<HttpResponse<T>> Put<T>(CancellationToken cancellationToken = default)
     {
         var response = await Put(cancellationToken);
@@ -654,7 +674,9 @@ public class HttpRequestBuilder
     /// <summary>
     /// Sends the request using the HTTP DELETE method.
     /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpResponse> Delete(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Delete;
@@ -665,7 +687,9 @@ public class HttpRequestBuilder
     /// Sends the request using the HTTP DELETE method and deserializes the response to the specified type.
     /// </summary>
     /// <typeparam name="T">The type to deserialize the response body into.</typeparam>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
     public async Task<HttpResponse<T>> Delete<T>(CancellationToken cancellationToken = default)
     {
         var response = await Delete(cancellationToken);
@@ -675,7 +699,9 @@ public class HttpRequestBuilder
     /// <summary>
     /// Sends the request using the HTTP PATCH method.
     /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpResponse> Patch(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Patch;
@@ -686,7 +712,9 @@ public class HttpRequestBuilder
     /// Sends the request using the HTTP PATCH method and deserializes the response to the specified type.
     /// </summary>
     /// <typeparam name="T">The type to deserialize the response body into.</typeparam>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
     public async Task<HttpResponse<T>> Patch<T>(CancellationToken cancellationToken = default)
     {
         var response = await Patch(cancellationToken);
@@ -696,7 +724,9 @@ public class HttpRequestBuilder
     /// <summary>
     /// Sends the request using the HTTP HEAD method.
     /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpResponse> Head(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Head;
@@ -706,7 +736,9 @@ public class HttpRequestBuilder
     /// <summary>
     /// Sends the request using the HTTP OPTIONS method.
     /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpResponse> Options(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Options;
@@ -716,7 +748,9 @@ public class HttpRequestBuilder
     /// <summary>
     /// Sends the request using the HTTP TRACE method.
     /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpResponse> Trace(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Trace;
@@ -729,6 +763,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the streaming response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpStreamResponse> GetStream(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Get;
@@ -741,6 +776,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the streaming response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpStreamResponse> PostStream(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Post;
@@ -755,6 +791,7 @@ public class HttpRequestBuilder
     /// <param name="method">The HTTP method to use.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the streaming response.</returns>
+    /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
     public Task<HttpStreamResponse> SendStream(HttpMethod method, CancellationToken cancellationToken = default)
     {
         _data.Method = method;
@@ -766,7 +803,9 @@ public class HttpRequestBuilder
         // Execute global interceptor before building request
         FluentHttpDefaults.ExecuteInterceptor(this);
 
-        var request = _data.MapToHttpRequestMessage();
+        var serializerProvider = GetSerializerProvider();
+
+        var request = _data.MapToHttpRequestMessage(serializerProvider);
 
         var (linkedToken, linkedCts) = GetLinkedCancellationToken(cancellationToken);
         linkedToken.ThrowIfCancellationRequested();
@@ -778,12 +817,6 @@ public class HttpRequestBuilder
 
             var responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
 
-            var serializerProvider = _data.SerializerProvider ?? _data.SerializerOptions switch
-            {
-                null => new SystemTextJsonSerializerProvider(),
-                var options => new SystemTextJsonSerializerProvider(options)
-            };
-
             return new HttpResponse(request, response, responseCookies, rawBytes: responseBytes, serializerProvider);
         }
         finally
@@ -792,12 +825,24 @@ public class HttpRequestBuilder
         }
     }
 
+    private ISerializerProvider GetSerializerProvider()
+    {
+        ISerializerProvider serializerProvider;
+        if (_data.SerializerProvider != null)
+            serializerProvider = _data.SerializerProvider;
+        else if (_data.SerializerOptions != null)
+            serializerProvider = new SystemTextJsonSerializerProvider(_data.SerializerOptions);
+        else
+            serializerProvider = new SystemTextJsonSerializerProvider();
+        return serializerProvider;
+    }
+
     private async Task<HttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
     {
         // Execute global interceptor before building request
         FluentHttpDefaults.ExecuteInterceptor(this);
 
-        var request = _data.MapToHttpRequestMessage();
+        var request = _data.MapToHttpRequestMessage(GetSerializerProvider());
         HttpResponseMessage? response = null;
 
         var (linkedToken, linkedCts) = GetLinkedCancellationToken(cancellationToken);

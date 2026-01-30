@@ -10,21 +10,68 @@ dotnet add package Fuzn.FluentHttp
 
 ## Quick Start
 
+### With Dependency Injection (Recommended)
+
+Register `HttpClient` in your DI container:
+
+```csharp
+// In Program.cs or Startup.cs
+services.AddHttpClient();
+
+// Or with a named client and base address
+services.AddHttpClient("MyApi", client =>
+{
+    client.BaseAddress = new Uri("https://api.example.com");
+});
+```
+
+Inject and use in your service:
+
 ```csharp
 using Fuzn.FluentHttp;
 
-var httpClient = new HttpClient();
-
-// Simple GET request with typed response
-var response = await httpClient
-    .Url("https://api.example.com/users/1")
-    .Get<User>();
-
-if (response.IsSuccessful)
+public class UserHttpClient(HttpClient httpClient)
 {
-    Console.WriteLine(response.Data!.Name);
+    public async Task<User?> GetUserAsync(int id)
+    {
+        var response = await httpClient
+            .Url($"/users/{id}")
+            .Get<User>();
+
+        return response.IsSuccessful ? response.Data : null;
+    }
+}
+
+// Register your service with a typed client
+services.AddHttpClient<UserHttpClient>(client =>
+{
+    client.BaseAddress = new Uri("https://api.example.com");
+});
+```
+
+### With IHttpClientFactory
+
+For scenarios where you need to create clients manually:
+
+```csharp
+using Fuzn.FluentHttp;
+
+public class UserHttpClient(IHttpClientFactory httpClientFactory)
+{
+    public async Task<User?> GetUserAsync(int id)
+    {
+        var httpClient = httpClientFactory.CreateClient("MyApi");
+        
+        var response = await httpClient
+            .Url($"/users/{id}")
+            .Get<User>();
+
+        return response.IsSuccessful ? response.Data : null;
+    }
 }
 ```
+
+> **Why use `IHttpClientFactory`?** Creating `HttpClient` instances with `new HttpClient()` can lead to socket exhaustion and DNS caching issues. `IHttpClientFactory` manages the underlying `HttpMessageHandler` instances, providing proper pooling and lifetime management. See [Microsoft's guidance](https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient-guidelines) for details.
 
 ## Features
 
@@ -427,14 +474,19 @@ var response = await builder.Post();
 
 ## Custom Serialization
 
-### Using System.Text.Json Options
+By default, FluentHttp uses `System.Text.Json` with `JsonSerializerDefaults.Web`, which provides:
+- **camelCase property names** when serializing (e.g., `FirstName` becomes `"firstName"`)
+- **Case-insensitive** property matching when deserializing
+- **Number handling** that allows reading numbers from strings
 
-Configure the default `System.Text.Json` serializer with custom options:
+This works well with most REST APIs. You can override these defaults per-request or globally.
+
+### Using System.Text.Json Options (Per-Request)
 
 ```csharp
 var options = new JsonSerializerOptions
 {
-    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    PropertyNamingPolicy = null, // Preserve PascalCase
     PropertyNameCaseInsensitive = true
 };
 
@@ -469,28 +521,31 @@ var response = await httpClient
 
 > **Note:** When both `WithJsonOptions` and `WithSerializer` are set, `WithSerializer` takes precedence and `WithJsonOptions` is ignored.
 
-## Global Defaults
-
-Use `FluentHttpDefaults.BeforeSend` to configure global behavior for all requests. The interceptor receives the builder, allowing you to inspect current request state via `builder.Data` and modify using builder methods.
-
 ### Setting Global Serializer Options
 
+Use `FluentHttpDefaults.BeforeSend` to configure serialization globally:
+
 ```csharp
+// Use PascalCase globally instead of the default camelCase
 var globalOptions = new JsonSerializerOptions
 {
-    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    PropertyNamingPolicy = null, // Preserve PascalCase
     PropertyNameCaseInsensitive = true
 };
 
 FluentHttpDefaults.BeforeSend = builder =>
 {
     // Only set if not already configured per-request
-    if (builder.Data.SerializerOptions is null)
+    if (builder.Data.SerializerOptions is null && builder.Data.SerializerProvider is null)
     {
         builder.WithJsonOptions(globalOptions);
     }
 };
 ```
+
+## Global Defaults
+
+Use `FluentHttpDefaults.BeforeSend` to configure global behavior for all requests. The interceptor receives the builder, allowing you to inspect current request state via `builder.Data` and modify using builder methods.
 
 ### Adding Default Headers
 

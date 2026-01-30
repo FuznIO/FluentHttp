@@ -57,10 +57,10 @@ public class SerializerProviderTests : Test
     }
 
     [Test]
-    public async Task WithSerializer_DefaultSerializer_SerializesWithPascalCase()
+    public async Task WithSerializer_DefaultSerializer_SerializesWithCamelCase()
     {
         await Scenario()
-            .Step("Default serializer uses default naming policy", async _ =>
+            .Step("Default serializer uses camelCase naming policy", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
@@ -71,8 +71,8 @@ public class SerializerProviderTests : Test
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
-                // The default serializer preserves property names as-is
-                Assert.Contains("TestProperty", response.Content);
+                // The default serializer uses JsonSerializerDefaults.Web which applies camelCase
+                Assert.Contains("testProperty", response.Content);
             })
             .Run();
     }

@@ -90,7 +90,7 @@ public class HttpRequestData
         return string.Join("&", queryPairs);
     }
 
-    internal HttpRequestMessage MapToHttpRequestMessage()
+    internal HttpRequestMessage MapToHttpRequestMessage(ISerializerProvider serializerProvider)
     {
         var request = new HttpRequestMessage(Method, GetRequestUrlWithPathAndQuery());
 
@@ -131,13 +131,13 @@ public class HttpRequestData
         if (string.IsNullOrEmpty(ContentType))
             return request;
 
-        request.Content = MapContent();
+        request.Content = MapContent(serializerProvider);
         request.Content?.Headers.ContentType ??= new MediaTypeHeaderValue(ContentType);
 
         return request;
     }
 
-    private HttpContent? MapContent()
+    private HttpContent? MapContent(ISerializerProvider serializerProvider)
     {
         // Multipart is handled separately and doesn't require Content
         if (ContentType == "multipart/form-data")
@@ -182,9 +182,7 @@ public class HttpRequestData
 
         // For JSON and other content types, serialize as JSON
         // Use SerializerProvider if set, otherwise fall back to SerializerOptions
-        var jsonContent = SerializerProvider is not null
-            ? SerializerProvider.Serialize(Content)
-            : JsonSerializer.Serialize(Content, SerializerOptions);
+        string jsonContent = serializerProvider.Serialize(Content);
         return new StringContent(jsonContent, Encoding.UTF8, ContentType);
     }
 
