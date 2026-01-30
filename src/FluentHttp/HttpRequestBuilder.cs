@@ -1,6 +1,8 @@
 ﻿using Fuzn.FluentHttp.Internals;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -12,6 +14,8 @@ namespace Fuzn.FluentHttp;
 [DebuggerDisplay("{ToString(),nq}")]
 public class HttpRequestBuilder
 {
+    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _propertyCache = new();
+
     private readonly HttpRequestData _data = new();
 
     /// <summary>
@@ -58,7 +62,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder WithSerializer(ISerializerProvider serializerProvider)
     {
-        _data.SerializerProvider = serializerProvider;
+        _data.Serializer = serializerProvider;
         return this;
     }
 
@@ -71,7 +75,7 @@ public class HttpRequestBuilder
     /// <returns>The current builder instance for method chaining.</returns>
     public HttpRequestBuilder WithJsonOptions(JsonSerializerOptions options)
     {
-        _data.SerializerOptions = options;
+        _data.JsonOptions = options;
         return this;
     }
 
@@ -210,7 +214,7 @@ public class HttpRequestBuilder
             var stringValue = value switch
             {
                 string s => s,
-                bool b => b.ToString().ToLowerInvariant(),
+                bool b => b ? "true" : "false",
                 DateTime dt => dt.ToString("O"), // ISO 8601 format
                 DateTimeOffset dto => dto.ToString("O"),
                 _ => value.ToString()
@@ -266,7 +270,9 @@ public class HttpRequestBuilder
         if (parameters == null)
             return this;
 
-        var properties = parameters.GetType().GetProperties();
+        var type = parameters.GetType();
+        var properties = _propertyCache.GetOrAdd(type, t => t.GetProperties());
+
         foreach (var prop in properties)
         {
             var value = prop.GetValue(parameters);
@@ -343,7 +349,7 @@ public class HttpRequestBuilder
 
     /// <summary>
     /// Adds a single header to the request.
-    /// </param>
+    /// </summary>
     /// <param name="key">The header name.</param>
     /// <param name="value">The header value.</param>
     /// <returns>The current builder instance for method chaining.</returns>
@@ -509,8 +515,8 @@ public class HttpRequestBuilder
 
         if (_data.Content != null)
         {
-            var contentJson = _data.SerializerProvider?.Serialize(_data.Content)
-                ?? JsonSerializer.Serialize(_data.Content, _data.SerializerOptions);
+            var contentJson = _data.Serializer?.Serialize(_data.Content)
+                ?? JsonSerializer.Serialize(_data.Content, _data.JsonOptions);
             sb.AppendLine($"Content: {(contentJson.Length > 500 ? contentJson[..500] + "..." : contentJson)}");
         }
 
@@ -828,10 +834,10 @@ public class HttpRequestBuilder
     private ISerializerProvider GetSerializerProvider()
     {
         ISerializerProvider serializerProvider;
-        if (_data.SerializerProvider != null)
-            serializerProvider = _data.SerializerProvider;
-        else if (_data.SerializerOptions != null)
-            serializerProvider = new SystemTextJsonSerializerProvider(_data.SerializerOptions);
+        if (_data.Serializer != null)
+            serializerProvider = _data.Serializer;
+        else if (_data.JsonOptions != null)
+            serializerProvider = new SystemTextJsonSerializerProvider(_data.JsonOptions);
         else
             serializerProvider = new SystemTextJsonSerializerProvider();
         return serializerProvider;

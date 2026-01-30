@@ -497,7 +497,7 @@ var response = await httpClient
     .Post<Result>();
 ```
 
-### Using a Custom Serializer Provider
+### Using a Custom Serializer
 
 Implement `ISerializerProvider` to use your preferred serializer:
 
@@ -519,8 +519,6 @@ var response = await httpClient
     .Post<Result>();
 ```
 
-> **Note:** When both `WithJsonOptions` and `WithSerializer` are set, `WithSerializer` takes precedence and `WithJsonOptions` is ignored.
-
 ### Setting Global Serializer Options
 
 Use `FluentHttpDefaults.BeforeSend` to configure serialization globally:
@@ -536,7 +534,7 @@ var globalOptions = new JsonSerializerOptions
 FluentHttpDefaults.BeforeSend = builder =>
 {
     // Only set if not already configured per-request
-    if (builder.Data.SerializerOptions is null && builder.Data.SerializerProvider is null)
+    if (builder.Data.JsonOptions is null && builder.Data.Serializer is null)
     {
         builder.WithJsonOptions(globalOptions);
     }

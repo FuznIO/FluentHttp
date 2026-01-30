@@ -56,11 +56,11 @@ public class HttpRequestData
     /// <summary>The HTTP version policy that controls upgrade/downgrade behavior.</summary>
     public HttpVersionPolicy? VersionPolicy { get; internal set; }
 
-    /// <summary>JSON serializer options.</summary>
-    public JsonSerializerOptions? SerializerOptions { get; internal set; }
+    /// <summary>JSON serializer options for System.Text.Json.</summary>
+    public JsonSerializerOptions? JsonOptions { get; internal set; }
 
-    /// <summary>Custom serializer provider.</summary>
-    public ISerializerProvider? SerializerProvider { get; internal set; }
+    /// <summary>Custom serializer.</summary>
+    public ISerializerProvider? Serializer { get; internal set; }
 
     /// <summary>Files to upload.</summary>
     public List<FileContent> Files { get; internal set; } = [];
@@ -78,16 +78,19 @@ public class HttpRequestData
 
     private string BuildQueryString()
     {
-        var queryPairs = new List<string>();
+        if (QueryParams.Count == 0)
+            return string.Empty;
 
-        foreach (var param in QueryParams)
+        var sb = new StringBuilder();
+        for (int i = 0; i < QueryParams.Count; i++)
         {
-            var encodedKey = HttpUtility.UrlEncode(param.Key);
-            var encodedValue = HttpUtility.UrlEncode(param.Value);
-            queryPairs.Add($"{encodedKey}={encodedValue}");
+            if (i > 0)
+                sb.Append('&');
+            sb.Append(HttpUtility.UrlEncode(QueryParams[i].Key));
+            sb.Append('=');
+            sb.Append(HttpUtility.UrlEncode(QueryParams[i].Value));
         }
-
-        return string.Join("&", queryPairs);
+        return sb.ToString();
     }
 
     internal HttpRequestMessage MapToHttpRequestMessage(ISerializerProvider serializerProvider)

@@ -4,11 +4,12 @@ namespace Fuzn.FluentHttp.Internals;
 
 internal class SystemTextJsonSerializerProvider : ISerializerProvider
 {
+    private static readonly JsonSerializerOptions _defaultOptions = new(JsonSerializerDefaults.Web);
     private readonly JsonSerializerOptions _options;
 
     public SystemTextJsonSerializerProvider()
     {
-        _options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        _options = _defaultOptions;
     }
 
     public SystemTextJsonSerializerProvider(JsonSerializerOptions jsonSerializerOptions)

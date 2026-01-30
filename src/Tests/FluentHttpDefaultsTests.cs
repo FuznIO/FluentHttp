@@ -28,7 +28,7 @@ public class FluentHttpDefaultsTests : Test
 
                 FluentHttpDefaults.BeforeSend = builder =>
                 {
-                    if (builder.Data.SerializerOptions is null)
+                    if (builder.Data.JsonOptions is null)
                     {
                         builder.WithJsonOptions(globalOptions);
                     }
@@ -67,7 +67,7 @@ public class FluentHttpDefaultsTests : Test
 
                 FluentHttpDefaults.BeforeSend = builder =>
                 {
-                    if (builder.Data.SerializerOptions is null)
+                    if (builder.Data.JsonOptions is null)
                     {
                         builder.WithJsonOptions(globalOptions);
                     }
