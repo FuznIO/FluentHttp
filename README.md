@@ -358,6 +358,20 @@ var response = await httpClient
 
 ## Working with Responses
 
+Both `HttpResponse` and `HttpResponse<T>` implement `IDisposable` to allow explicit cleanup of the underlying `HttpResponseMessage` and `HttpRequestMessage`. While disposal is optional (the response content is already buffered into memory), it's recommended for explicit resource management:
+
+```csharp
+// Using statement for automatic disposal
+using var response = await httpClient
+    .Url("https://api.example.com/users/1")
+    .Get<User>();
+
+if (response.IsSuccessful)
+{
+    User user = response.Data!;
+}
+```
+
 ### `HttpResponse`
 
 ```csharp
@@ -424,6 +438,30 @@ var cookies = response.Cookies;
 var error = response.ContentAs<ProblemDetails>();
 ```
 
+### `HttpStreamResponse`
+
+For streaming responses (via `GetStream()`, `PostStream()`, or `SendStream()`), `HttpStreamResponse` implements both `IDisposable` and `IAsyncDisposable`. Since streaming responses hold an open connection until fully read, disposal is important. Use `await using` for async disposal:
+
+```csharp
+// Async disposal with await using (recommended)
+await using var streamResponse = await httpClient
+    .Url("https://api.example.com/files/large-file.zip")
+    .GetStream();
+
+if (streamResponse.IsSuccessful)
+{
+    // Access metadata
+    long? contentLength = streamResponse.ContentLength;
+    string? fileName = streamResponse.FileName;
+    
+    // Get the stream for reading
+    var stream = await streamResponse.GetStream();
+    
+    // Or read all bytes at once
+    var bytes = await streamResponse.GetBytes();
+}
+```
+
 ## Debugging
 
 ### ToString() for Request Inspection
@@ -478,8 +516,6 @@ Console.WriteLine(response);
 //   sessionId = abc123
 // Content: {"id":1,"name":"John Doe"}
 ```
-
-This is especially useful when debugging in Visual Studio - just hover over the `response` variable to see the complete formatted output, including headers, cookies, and the actual response body content (truncated to 500 characters).
 
 ### BuildRequest() for Advanced Inspection
 

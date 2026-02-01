@@ -7,11 +7,12 @@ namespace Fuzn.FluentHttp;
 /// <summary>
 /// Represents an HTTP response received from executing an HTTP request.
 /// </summary>
-public class HttpResponse
+public class HttpResponse : IDisposable
 {
     private readonly List<Cookie>? _cookies;
     private readonly ISerializerProvider _serializer;
     private readonly byte[] _rawBytes;
+    private int _disposed;
 
     internal HttpResponse(HttpRequestMessage request,
         HttpResponseMessage response,
@@ -203,8 +204,7 @@ public class HttpResponse
 
         if (!string.IsNullOrEmpty(Content))
         {
-            var contentPreview = Content.Length > 500 ? Content[..500] + "..." : Content;
-            sb.AppendLine($"Content: {contentPreview}");
+            sb.AppendLine($"Content: {Content}");
         }
         else
         {
@@ -212,6 +212,19 @@ public class HttpResponse
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Releases all resources used by the <see cref="HttpResponse"/>.
+    /// </summary>
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+            return;
+
+        InnerResponse.Dispose();
+        RequestMessage.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private static string DecodeContent(byte[] bytes, MediaTypeHeaderValue? contentType)
