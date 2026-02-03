@@ -124,6 +124,24 @@ public class HttpResponse : IDisposable
     public HttpRequestMessage RequestMessage { get; }
 
     /// <summary>
+    /// Throws an <see cref="HttpRequestException"/> if the response status code does not indicate success (2xx).
+    /// </summary>
+    /// <returns>The current <see cref="HttpResponse"/> instance for method chaining.</returns>
+    /// <exception cref="HttpRequestException">Thrown when the response status code is not successful.</exception>
+    public HttpResponse EnsureSuccessful()
+    {
+        if (!IsSuccessful)
+        {
+            throw new HttpRequestException(
+                $"Response status code does not indicate success: {(int)StatusCode} ({ReasonPhrase}).",
+                inner: null,
+                StatusCode);
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Deserializes the response content into the specified type.
     /// </summary>
     /// <typeparam name="T">The type to deserialize the content into.</typeparam>

@@ -76,6 +76,24 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
+    /// Throws an <see cref="HttpRequestException"/> if the response status code does not indicate success (2xx).
+    /// </summary>
+    /// <returns>The current <see cref="HttpStreamResponse"/> instance for method chaining.</returns>
+    /// <exception cref="HttpRequestException">Thrown when the response status code is not successful.</exception>
+    public HttpStreamResponse EnsureSuccessful()
+    {
+        if (!IsSuccessful)
+        {
+            throw new HttpRequestException(
+                $"Response status code does not indicate success: {(int)StatusCode} ({ReasonPhrase}).",
+                inner: null,
+                StatusCode);
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Gets the response content as a stream for reading.
     /// The caller is responsible for disposing the stream.
     /// </summary>

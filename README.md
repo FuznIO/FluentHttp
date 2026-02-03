@@ -372,6 +372,40 @@ if (response.IsSuccessful)
 }
 ```
 
+### Ensuring Success
+
+Use `EnsureSuccessful()` to throw an `HttpRequestException` if the response status code is not successful (2xx). The method returns the response instance for method chaining:
+
+```csharp
+// Throws HttpRequestException if status code is not 2xx
+var response = await httpClient
+    .Url("https://api.example.com/users/1")
+    .Get();
+
+response.EnsureSuccessful();
+
+// Or use method chaining
+var user = (await httpClient
+    .Url("https://api.example.com/users/1")
+    .Get<User>())
+    .EnsureSuccessful()
+    .Data;
+
+// The exception includes the status code
+try
+{
+    var data = (await httpClient
+        .Url("https://api.example.com/protected")
+        .Get())
+        .EnsureSuccessful()
+        .ContentAs<Data>();
+}
+catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+{
+    Console.WriteLine("Resource not found");
+}
+```
+
 ### `HttpResponse`
 
 ```csharp
@@ -460,6 +494,13 @@ if (streamResponse.IsSuccessful)
     // Or read all bytes at once
     var bytes = await streamResponse.GetBytes();
 }
+
+// Use EnsureSuccessful() for method chaining
+await using var response = await httpClient
+    .Url("https://api.example.com/files/large-file.zip")
+    .GetStream();
+
+var bytes = await response.EnsureSuccessful().GetBytes();
 ```
 
 ## Debugging
