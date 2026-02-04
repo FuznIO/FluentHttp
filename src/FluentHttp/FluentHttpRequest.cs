@@ -32,23 +32,20 @@ public class FluentHttpRequest
         ArgumentNullException.ThrowIfNull(url);
 
         _data.HttpClient = httpClient;
+        _data.RequestUrl = url;
 
-        if (httpClient.BaseAddress == null)
+        if (httpClient.BaseAddress is null)
         {
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri))
                 throw new ArgumentException("The provided URL is not a valid absolute URL and the HttpClient does not have a BaseAddress set.");
 
-            if (uri == null)
-                throw new ArgumentException("The provided URL is not a valid absolute URL and the HttpClient does not have a BaseAddress set.");
-
-            _data.BaseUri = new UriBuilder(uri.Scheme, uri.Host, uri.IsDefaultPort ? -1 : uri.Port).Uri;
-            _data.RequestUrl = url;
-            _data.AbsoluteUri = uri;
+            _data.AbsoluteUri = absoluteUri;
+            _data.BaseUri = new UriBuilder(absoluteUri.Scheme, absoluteUri.Host, absoluteUri.IsDefaultPort ? -1 : absoluteUri.Port).Uri;
+            _data.RequiresAbsoluteUri = true;
         }
         else
         {
             _data.BaseUri = httpClient.BaseAddress;
-            _data.RequestUrl = url;
             _data.AbsoluteUri = new Uri(httpClient.BaseAddress, url);
         }
     }

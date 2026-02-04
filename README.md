@@ -71,6 +71,31 @@ public class UserHttpClient(IHttpClientFactory httpClientFactory)
 }
 ```
 
+### Without a Base Address
+
+When your `HttpClient` doesn't have a `BaseAddress` configured, you can use absolute URLs directly:
+
+```csharp
+// Register a client without a base address
+services.AddHttpClient("Generic");
+
+// Use with absolute URLs
+var client = httpClientFactory.CreateClient("Generic");
+
+var response = await client
+    .Url("https://api.example.com/users/1")
+    .Get<User>();
+
+// Query parameters and other features work as expected
+var searchResponse = await client
+    .Url("https://api.example.com/search")
+    .WithQueryParam("q", "dotnet")
+    .WithAuthBearer("token")
+    .Get<SearchResult>();
+```
+
+> **Note:** When no `BaseAddress` is set, the URL provided to `.Url()` must be an absolute URL (including scheme and host). Relative URLs will throw an `ArgumentException`.
+
 > **Why use `IHttpClientFactory`?** Creating `HttpClient` instances with `new HttpClient()` can lead to socket exhaustion and DNS caching issues. `IHttpClientFactory` manages the underlying `HttpMessageHandler` instances, providing proper pooling and lifetime management. See [Microsoft's guidance](https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient-guidelines) for details.
 
 ## Features

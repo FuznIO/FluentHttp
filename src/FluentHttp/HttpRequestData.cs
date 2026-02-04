@@ -26,6 +26,7 @@ public class HttpRequestData
     internal bool HasFormFields => _formFields is { Count: > 0 };
     internal bool HasQueryParams => _queryParams is { Count: > 0 };
     internal HttpClient HttpClient { get; set; } = null!;
+    internal bool RequiresAbsoluteUri { get; set; }
 
     /// <summary>The absolute URI being called.</summary>
     public Uri AbsoluteUri { get; internal set; } = null!;
@@ -209,25 +210,34 @@ public class HttpRequestData
     private string GetRequestUrlWithPathAndQuery()
     {
         if (!HasQueryParams)
-            return AbsoluteUri.PathAndQuery;
+            return RequiresAbsoluteUri ? AbsoluteUri.AbsoluteUri : AbsoluteUri.PathAndQuery;
 
         var pathAndQuery = AbsoluteUri.PathAndQuery;
 
         // Build query string
         var queryString = BuildQueryString();
 
+        string resultPath;
         // Check if URL already has query parameters
         if (pathAndQuery.Contains('?'))
         {
             // Append with &
-            return $"{pathAndQuery}&{queryString}";
+            resultPath = $"{pathAndQuery}&{queryString}";
         }
         else
         {
             // Remove existing query from pathAndQuery if present, add new one
             var path = pathAndQuery.Split('?')[0];
-            return $"{path}?{queryString}";
+            resultPath = $"{path}?{queryString}";
         }
+
+        if (RequiresAbsoluteUri)
+        {
+            // Combine base URI with the path and query
+            return new Uri(BaseUri, resultPath).AbsoluteUri;
+        }
+
+        return resultPath;
     }
 
     private MultipartFormDataContent BuildMultipartContent()
