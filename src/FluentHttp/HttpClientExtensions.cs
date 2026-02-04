@@ -11,13 +11,13 @@ public static class HttpClientExtensions
     extension (HttpClient httpClient)
     {
         /// <summary>
-        /// Creates a new <see cref="HttpRequestBuilder"/> with the specified URL.
+        /// Creates a new <see cref="FluentHttpRequest"/> with the specified URL.
         /// </summary>
         /// <param name="url">The URL for the HTTP request.</param>
-        /// <returns>A new <see cref="HttpRequestBuilder"/> instance configured with the specified URL.</returns>
-        public HttpRequestBuilder Url(string url)
+        /// <returns>A new <see cref="FluentHttpRequest"/> instance configured with the specified URL.</returns>
+        public FluentHttpRequest Url(string url)
         {
-            return new HttpRequestBuilder(httpClient, url);
+            return new FluentHttpRequest(httpClient, url);
         }
     }
 }

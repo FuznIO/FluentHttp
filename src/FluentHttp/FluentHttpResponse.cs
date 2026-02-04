@@ -7,14 +7,14 @@ namespace Fuzn.FluentHttp;
 /// <summary>
 /// Represents an HTTP response received from executing an HTTP request.
 /// </summary>
-public class HttpResponse : IDisposable
+public class FluentHttpResponse : IDisposable
 {
     private readonly List<Cookie>? _cookies;
     private readonly ISerializerProvider _serializer;
     private readonly byte[] _rawBytes;
     private int _disposed;
 
-    internal HttpResponse(HttpRequestMessage request,
+    internal FluentHttpResponse(HttpRequestMessage request,
         HttpResponseMessage response,
         CookieContainer? cookieContainer,
         byte[] rawBytes,
@@ -50,8 +50,8 @@ public class HttpResponse : IDisposable
     /// <summary>
     /// Copy constructor for creating derived types.
     /// </summary>
-    /// <param name="other">The HttpResponse to copy from.</param>
-    protected HttpResponse(HttpResponse other)
+    /// <param name="other">The FluentHttpResponse to copy from.</param>
+    protected FluentHttpResponse(FluentHttpResponse other)
     {
         ArgumentNullException.ThrowIfNull(other);
 
@@ -126,9 +126,9 @@ public class HttpResponse : IDisposable
     /// <summary>
     /// Throws an <see cref="HttpRequestException"/> if the response status code does not indicate success (2xx).
     /// </summary>
-    /// <returns>The current <see cref="HttpResponse"/> instance for method chaining.</returns>
+    /// <returns>The current <see cref="FluentHttpResponse"/> instance for method chaining.</returns>
     /// <exception cref="HttpRequestException">Thrown when the response status code is not successful.</exception>
-    public HttpResponse EnsureSuccessful()
+    public FluentHttpResponse EnsureSuccessful()
     {
         if (!IsSuccessful)
         {
@@ -233,7 +233,7 @@ public class HttpResponse : IDisposable
     }
 
     /// <summary>
-    /// Releases all resources used by the <see cref="HttpResponse"/>.
+    /// Releases all resources used by the <see cref="FluentHttpResponse"/>.
     /// </summary>
     public void Dispose()
     {

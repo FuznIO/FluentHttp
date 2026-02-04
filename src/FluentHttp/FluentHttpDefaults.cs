@@ -6,7 +6,7 @@ namespace Fuzn.FluentHttp;
 public static class FluentHttpDefaults
 {
     private static readonly Lock _lock = new();
-    private static Action<HttpRequestBuilder>? _beforeSend;
+    private static Action<FluentHttpRequest>? _beforeSend;
 
     /// <summary>
     /// Gets or sets the interceptor that runs before each request is sent.
@@ -31,18 +31,18 @@ public static class FluentHttpDefaults
     /// };
     /// </code>
     /// </example>
-    public static Action<HttpRequestBuilder>? BeforeSend
+    public static Action<FluentHttpRequest>? BeforeSend
     {
         get { lock (_lock) return _beforeSend; }
         set { lock (_lock) _beforeSend = value; }
     }
 
-    internal static void ExecuteInterceptor(HttpRequestBuilder builder)
+    internal static void ExecuteInterceptor(FluentHttpRequest builder)
     {
         if (builder.Data.InterceptorExecuted)
             return;
 
-        Action<HttpRequestBuilder>? action;
+        Action<FluentHttpRequest>? action;
         lock (_lock)
         {
             action = _beforeSend;

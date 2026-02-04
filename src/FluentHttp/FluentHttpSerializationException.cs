@@ -18,7 +18,7 @@ public class FluentHttpSerializationException : Exception
     /// <summary>
     /// Gets the HTTP response associated with the failure, if available.
     /// </summary>
-    public HttpResponse? Response { get; }
+    public FluentHttpResponse? Response { get; }
 
     internal FluentHttpSerializationException(string message, Exception? innerException = null)
         : base(message, innerException)
@@ -29,7 +29,7 @@ public class FluentHttpSerializationException : Exception
         string message,
         string? content,
         Type? targetType,
-        HttpResponse? response,
+        FluentHttpResponse? response,
         Exception? innerException)
         : base(message, innerException)
     {
@@ -48,7 +48,7 @@ public class FluentHttpSerializationException : Exception
 
     internal static FluentHttpSerializationException ForDeserialization<T>(
         string content,
-        HttpResponse? response,
+        FluentHttpResponse? response,
         Exception innerException) =>
         new(
             $"Failed to deserialize response content into {typeof(T).Name}.",

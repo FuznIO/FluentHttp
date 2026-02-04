@@ -97,7 +97,7 @@ else
 All standard HTTP methods are supported, with both generic and non-generic versions:
 
 ```csharp
-// Non-generic (returns HttpResponse)
+// Non-generic (returns FluentHttpResponse)
 await httpClient.Url("/api/resource").Get();
 await httpClient.Url("/api/resource").Post();
 await httpClient.Url("/api/resource").Put();
@@ -106,7 +106,7 @@ await httpClient.Url("/api/resource").Delete();
 await httpClient.Url("/api/resource").Head();
 await httpClient.Url("/api/resource").Options();
 
-// Generic (returns HttpResponse<T>)
+// Generic (returns FluentHttpResponse<T>)
 await httpClient.Url("/api/resource").Get<MyType>();
 await httpClient.Url("/api/resource").Post<MyType>();
 await httpClient.Url("/api/resource").Put<MyType>();
@@ -358,7 +358,7 @@ var response = await httpClient
 
 ## Working with Responses
 
-Both `HttpResponse` and `HttpResponse<T>` implement `IDisposable` to allow explicit cleanup of the underlying `HttpResponseMessage` and `HttpRequestMessage`. While disposal is optional (the response content is already buffered into memory), it's recommended for explicit resource management:
+Both `FluentHttpResponse` and `FluentHttpResponse<T>` implement `IDisposable` to allow explicit cleanup of the underlying `HttpResponseMessage` and `HttpRequestMessage`. While disposal is optional (the response content is already buffered into memory), it's recommended for explicit resource management:
 
 ```csharp
 // Using statement for automatic disposal
@@ -406,7 +406,7 @@ catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
 }
 ```
 
-### `HttpResponse`
+### `FluentHttpResponse`
 
 ```csharp
 var response = await httpClient
@@ -445,7 +445,7 @@ var cookies = response.Cookies;
 HttpRequestMessage request = response.RequestMessage;
 ```
 
-### `HttpResponse<T>`
+### `FluentHttpResponse<T>`
 
 ```csharp
 var response = await httpClient
@@ -472,9 +472,9 @@ var cookies = response.Cookies;
 var error = response.ContentAs<ProblemDetails>();
 ```
 
-### `HttpStreamResponse`
+### `FluentHttpStreamResponse`
 
-For streaming responses (via `GetStream()`, `PostStream()`, or `SendStream()`), `HttpStreamResponse` implements both `IDisposable` and `IAsyncDisposable`. Since streaming responses hold an open connection until fully read, disposal is important. Use `await using` for async disposal:
+For streaming responses (via `GetStream()`, `PostStream()`, or `SendStream()`), `FluentHttpStreamResponse` implements both `IDisposable` and `IAsyncDisposable`. Since streaming responses hold an open connection until fully read, disposal is important. Use `await using` for async disposal:
 
 ```csharp
 // Async disposal with await using (recommended)
@@ -533,7 +533,7 @@ In Visual Studio, you can also hover over the builder variable in the debugger t
 
 ### ToString() for Response Inspection
 
-Similarly, `HttpResponse` overrides `ToString()` to provide a formatted view of the response for debugging and logging:
+Similarly, `FluentHttpResponse` overrides `ToString()` to provide a formatted view of the response for debugging and logging:
 
 ```csharp
 var response = await httpClient

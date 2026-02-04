@@ -7,12 +7,12 @@ namespace Fuzn.FluentHttp;
 /// Represents an HTTP response optimized for streaming downloads.
 /// The response stream should be disposed after use.
 /// </summary>
-public class HttpStreamResponse : IDisposable, IAsyncDisposable
+public class FluentHttpStreamResponse : IDisposable, IAsyncDisposable
 {
     private Stream? _contentStream;
     private int _disposed;
 
-    internal HttpStreamResponse(HttpResponseMessage response)
+    internal FluentHttpStreamResponse(HttpResponseMessage response)
     {
         ArgumentNullException.ThrowIfNull(response);
         InnerResponse = response;
@@ -78,9 +78,9 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     /// <summary>
     /// Throws an <see cref="HttpRequestException"/> if the response status code does not indicate success (2xx).
     /// </summary>
-    /// <returns>The current <see cref="HttpStreamResponse"/> instance for method chaining.</returns>
+    /// <returns>The current <see cref="FluentHttpStreamResponse"/> instance for method chaining.</returns>
     /// <exception cref="HttpRequestException">Thrown when the response status code is not successful.</exception>
-    public HttpStreamResponse EnsureSuccessful()
+    public FluentHttpStreamResponse EnsureSuccessful()
     {
         if (!IsSuccessful)
         {
@@ -118,7 +118,7 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Releases all resources used by the <see cref="HttpStreamResponse"/>.
+    /// Releases all resources used by the <see cref="FluentHttpStreamResponse"/>.
     /// </summary>
     public void Dispose()
     {
@@ -130,7 +130,7 @@ public class HttpStreamResponse : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Asynchronously releases all resources used by the <see cref="HttpStreamResponse"/>.
+    /// Asynchronously releases all resources used by the <see cref="FluentHttpStreamResponse"/>.
     /// </summary>
     public async ValueTask DisposeAsync()
     {

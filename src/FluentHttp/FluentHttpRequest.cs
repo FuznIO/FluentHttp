@@ -10,7 +10,7 @@ namespace Fuzn.FluentHttp;
 /// <summary>
 /// Fluent builder for constructing and sending HTTP requests.
 /// </summary>
-public class HttpRequestBuilder
+public class FluentHttpRequest
 {
     private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _propertyCache = new();
 
@@ -22,11 +22,11 @@ public class HttpRequestBuilder
     public HttpRequestData Data => _data;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HttpRequestBuilder"/> class.
+    /// Initializes a new instance of the <see cref="FluentHttpRequest"/> class.
     /// </summary>
     /// <param name="httpClient">The HttpClient instance to use for sending requests.</param>
     /// <param name="url">The target URL for the request.</param>
-    internal HttpRequestBuilder(HttpClient httpClient, string url)
+    internal FluentHttpRequest(HttpClient httpClient, string url)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(url);
@@ -56,11 +56,11 @@ public class HttpRequestBuilder
     /// <summary>
     /// Sets a custom serializer provider for request/response body serialization.
     /// </summary>
-    /// <param name="serializerProvider">The serializer provider to use.</param>
+    /// <param name="serializer">The serializer provider to use.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithSerializer(ISerializerProvider serializerProvider)
+    public FluentHttpRequest WithSerializer(ISerializerProvider serializer)
     {
-        _data.Serializer = serializerProvider;
+        _data.Serializer = serializer;
         return this;
     }
 
@@ -71,7 +71,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="options">The JSON serializer options to use.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithJsonOptions(JsonSerializerOptions options)
+    public FluentHttpRequest WithJsonOptions(JsonSerializerOptions options)
     {
         _data.JsonOptions = options;
         return this;
@@ -82,7 +82,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="contentType">The content type to use.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithContentType(ContentTypes contentType)
+    public FluentHttpRequest WithContentType(ContentTypes contentType)
     {
         _data.ContentType = contentType switch
         {
@@ -102,7 +102,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="contentType">The custom content type string (e.g., "application/graphql", "application/x-yaml").</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithContentType(string contentType)
+    public FluentHttpRequest WithContentType(string contentType)
     {
         _data.ContentType = contentType;
         return this;
@@ -118,7 +118,7 @@ public class HttpRequestBuilder
     /// Serialization occurs when the request is sent. If serialization fails, 
     /// a <see cref="FluentHttpSerializationException"/> will be thrown.
     /// </remarks>
-    public HttpRequestBuilder WithContent(object content)
+    public FluentHttpRequest WithContent(object content)
     {
         _data.Content = content;
         
@@ -139,7 +139,7 @@ public class HttpRequestBuilder
     /// <param name="content">The file content as a stream.</param>
     /// <param name="contentType">The MIME type of the file. Defaults to "application/octet-stream".</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithFile(string name, string fileName, Stream content, string contentType = "application/octet-stream")
+    public FluentHttpRequest WithFile(string name, string fileName, Stream content, string contentType = "application/octet-stream")
     {
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(new FileContent(name, fileName, content, contentType));
@@ -154,7 +154,7 @@ public class HttpRequestBuilder
     /// <param name="content">The file content as a byte array.</param>
     /// <param name="contentType">The MIME type of the file. Defaults to "application/octet-stream".</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithFile(string name, string fileName, byte[] content, string contentType = "application/octet-stream")
+    public FluentHttpRequest WithFile(string name, string fileName, byte[] content, string contentType = "application/octet-stream")
     {
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(new FileContent(name, fileName, content, contentType));
@@ -166,7 +166,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="file">The file content to attach.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithFile(FileContent file)
+    public FluentHttpRequest WithFile(FileContent file)
     {
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(file);
@@ -179,7 +179,7 @@ public class HttpRequestBuilder
     /// <param name="name">The form field name.</param>
     /// <param name="value">The form field value.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithFormField(string name, string value)
+    public FluentHttpRequest WithFormField(string name, string value)
     {
         _data.ContentType = "multipart/form-data";
         _data.FormFields[name] = value;
@@ -191,7 +191,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="fields">A dictionary of form field names and values.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithFormFields(IDictionary<string, string> fields)
+    public FluentHttpRequest WithFormFields(IDictionary<string, string> fields)
     {
         _data.ContentType = "multipart/form-data";
         foreach (var field in fields)
@@ -205,7 +205,7 @@ public class HttpRequestBuilder
     /// <param name="key">The parameter name.</param>
     /// <param name="value">The parameter value. Will be converted to string and URL-encoded.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithQueryParam(string key, object? value)
+    public FluentHttpRequest WithQueryParam(string key, object? value)
     {
         if (value != null)
         {
@@ -229,7 +229,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="parameters">A dictionary of parameter names and values.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithQueryParams(IDictionary<string, object?> parameters)
+    public FluentHttpRequest WithQueryParams(IDictionary<string, object?> parameters)
     {
         foreach (var param in parameters)
         {
@@ -245,7 +245,7 @@ public class HttpRequestBuilder
     /// <param name="key">The parameter name.</param>
     /// <param name="values">The collection of values.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithQueryParam(string key, IEnumerable<object?>? values)
+    public FluentHttpRequest WithQueryParam(string key, IEnumerable<object?>? values)
     {
         if (values == null)
             return this;
@@ -263,7 +263,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="parameters">An anonymous object whose properties become query parameters.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithQueryParams(object? parameters)
+    public FluentHttpRequest WithQueryParams(object? parameters)
     {
         if (parameters == null)
             return this;
@@ -285,7 +285,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="acceptTypes">The accepted response content types.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithAccept(AcceptTypes acceptTypes)
+    public FluentHttpRequest WithAccept(AcceptTypes acceptTypes)
     {
         _data.AcceptType = acceptTypes switch
         {
@@ -305,7 +305,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="acceptType">The custom accept type string (e.g., "application/pdf", "image/png").</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithAccept(string acceptType)
+    public FluentHttpRequest WithAccept(string acceptType)
     {
         _data.AcceptType = acceptType;
         return this;
@@ -316,7 +316,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="cookie">The cookie to add.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithCookie(Cookie cookie)
+    public FluentHttpRequest WithCookie(Cookie cookie)
     {
         _data.Cookies.Add(cookie);
         return this;
@@ -331,7 +331,7 @@ public class HttpRequestBuilder
     /// <param name="domain">The domain for which the cookie is valid. Defaults to null.</param>
     /// <param name="duration">The duration until the cookie expires. If not specified, creates a session cookie (no expiration).</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithCookie(string name, string value, string? path = null, string? domain = null, TimeSpan? duration = null)
+    public FluentHttpRequest WithCookie(string name, string value, string? path = null, string? domain = null, TimeSpan? duration = null)
     {
         var cookie = new Cookie(name, value, path, domain);
         
@@ -351,7 +351,7 @@ public class HttpRequestBuilder
     /// <param name="key">The header name.</param>
     /// <param name="value">The header value.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithHeader(string key, string value)
+    public FluentHttpRequest WithHeader(string key, string value)
     {
         _data.Headers[key] = value;
         return this;
@@ -362,7 +362,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="headers">A dictionary of header names and values.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithHeaders(IDictionary<string, string> headers)
+    public FluentHttpRequest WithHeaders(IDictionary<string, string> headers)
     {
         foreach (var header in headers)
             _data.Headers[header.Key] = header.Value;
@@ -375,7 +375,7 @@ public class HttpRequestBuilder
     /// <param name="token">The Bearer token.</param>
     /// <returns>The current builder instance for method chaining.</returns>
     /// <exception cref="InvalidOperationException">Thrown when Basic authentication is already configured.</exception>
-    public HttpRequestBuilder WithAuthBearer(string token)
+    public FluentHttpRequest WithAuthBearer(string token)
     {
         if (_data.HasHeaders && _data.Headers.ContainsKey("Authorization"))
             throw new InvalidOperationException("Authentication is already configured.");
@@ -391,7 +391,7 @@ public class HttpRequestBuilder
     /// <param name="password">The password.</param>
     /// <returns>The current builder instance for method chaining.</returns>
     /// <exception cref="InvalidOperationException">Thrown when Bearer authentication is already configured.</exception>
-    public HttpRequestBuilder WithAuthBasic(string username, string password)
+    public FluentHttpRequest WithAuthBasic(string username, string password)
     {
         if (_data.HasHeaders && _data.Headers.ContainsKey("Authorization"))
             throw new InvalidOperationException("Authentication is already configured.");
@@ -407,7 +407,7 @@ public class HttpRequestBuilder
     /// <param name="apiKey">The API key value.</param>
     /// <param name="headerName">The header name. Defaults to "X-API-Key".</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithAuthApiKey(string apiKey, string headerName = "X-API-Key")
+    public FluentHttpRequest WithAuthApiKey(string apiKey, string headerName = "X-API-Key")
     {
         _data.Headers[headerName] = apiKey;
         return this;
@@ -418,7 +418,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="userAgent">The User-Agent string.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithUserAgent(string userAgent)
+    public FluentHttpRequest WithUserAgent(string userAgent)
     {
         _data.UserAgent = userAgent;
         return this;
@@ -429,7 +429,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="timeout">The timeout duration.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithTimeout(TimeSpan timeout)
+    public FluentHttpRequest WithTimeout(TimeSpan timeout)
     {
         _data.Timeout = timeout;
         return this;
@@ -440,7 +440,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="version">The HTTP version to use (e.g., HttpVersion.Version20 for HTTP/2).</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithVersion(Version version)
+    public FluentHttpRequest WithVersion(Version version)
     {
         _data.Version = version;
         return this;
@@ -452,7 +452,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="versionPolicy">The version policy that controls upgrade/downgrade behavior.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithVersionPolicy(HttpVersionPolicy versionPolicy)
+    public FluentHttpRequest WithVersionPolicy(HttpVersionPolicy versionPolicy)
     {
         _data.VersionPolicy = versionPolicy;
         return this;
@@ -463,7 +463,7 @@ public class HttpRequestBuilder
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithCancellationToken(CancellationToken cancellationToken)
+    public FluentHttpRequest WithCancellationToken(CancellationToken cancellationToken)
     {
         _data.CancellationToken = cancellationToken;
         return this;
@@ -475,7 +475,7 @@ public class HttpRequestBuilder
     /// <param name="key">The option key.</param>
     /// <param name="value">The option value.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public HttpRequestBuilder WithOption(string key, object value)
+    public FluentHttpRequest WithOption(string key, object value)
     {
         _data.Options.Add(key, value);
         return this;
@@ -579,7 +579,7 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpResponse> Send(HttpMethod method, CancellationToken cancellationToken = default)
+    public Task<FluentHttpResponse> Send(HttpMethod method, CancellationToken cancellationToken = default)
     {
         _data.Method = method;
         return SendInternal(cancellationToken);
@@ -594,10 +594,10 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
-    public async Task<HttpResponse<T>> Send<T>(HttpMethod method, CancellationToken cancellationToken = default)
+    public async Task<FluentHttpResponse<T>> Send<T>(HttpMethod method, CancellationToken cancellationToken = default)
     {
         var response = await Send(method, cancellationToken);
-        return new HttpResponse<T>(response);
+        return new FluentHttpResponse<T>(response);
     }
 
     /// <summary>
@@ -606,7 +606,7 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpResponse> Get(CancellationToken cancellationToken = default)
+    public Task<FluentHttpResponse> Get(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Get;
         return SendInternal(cancellationToken);
@@ -619,10 +619,10 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
-    public async Task<HttpResponse<T>> Get<T>(CancellationToken cancellationToken = default)
+    public async Task<FluentHttpResponse<T>> Get<T>(CancellationToken cancellationToken = default)
     {
         var response = await Get(cancellationToken);
-        return new HttpResponse<T>(response);
+        return new FluentHttpResponse<T>(response);
     }
 
     /// <summary>
@@ -631,7 +631,7 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpResponse> Post(CancellationToken cancellationToken = default)
+    public Task<FluentHttpResponse> Post(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Post;
         return SendInternal(cancellationToken);
@@ -644,10 +644,10 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
-    public async Task<HttpResponse<T>> Post<T>(CancellationToken cancellationToken = default)
+    public async Task<FluentHttpResponse<T>> Post<T>(CancellationToken cancellationToken = default)
     {
         var response = await Post(cancellationToken);
-        return new HttpResponse<T>(response);
+        return new FluentHttpResponse<T>(response);
     }
 
     /// <summary>
@@ -656,7 +656,7 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpResponse> Put(CancellationToken cancellationToken = default)
+    public Task<FluentHttpResponse> Put(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Put;
         return SendInternal(cancellationToken);
@@ -669,10 +669,10 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
-    public async Task<HttpResponse<T>> Put<T>(CancellationToken cancellationToken = default)
+    public async Task<FluentHttpResponse<T>> Put<T>(CancellationToken cancellationToken = default)
     {
         var response = await Put(cancellationToken);
-        return new HttpResponse<T>(response);
+        return new FluentHttpResponse<T>(response);
     }
 
     /// <summary>
@@ -681,7 +681,7 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpResponse> Delete(CancellationToken cancellationToken = default)
+    public Task<FluentHttpResponse> Delete(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Delete;
         return SendInternal(cancellationToken);
@@ -694,10 +694,10 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
-    public async Task<HttpResponse<T>> Delete<T>(CancellationToken cancellationToken = default)
+    public async Task<FluentHttpResponse<T>> Delete<T>(CancellationToken cancellationToken = default)
     {
         var response = await Delete(cancellationToken);
-        return new HttpResponse<T>(response);
+        return new FluentHttpResponse<T>(response);
     }
 
     /// <summary>
@@ -706,7 +706,7 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpResponse> Patch(CancellationToken cancellationToken = default)
+    public Task<FluentHttpResponse> Patch(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Patch;
         return SendInternal(cancellationToken);
@@ -719,10 +719,10 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the typed HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization or response deserialization fails.</exception>
-    public async Task<HttpResponse<T>> Patch<T>(CancellationToken cancellationToken = default)
+    public async Task<FluentHttpResponse<T>> Patch<T>(CancellationToken cancellationToken = default)
     {
         var response = await Patch(cancellationToken);
-        return new HttpResponse<T>(response);
+        return new FluentHttpResponse<T>(response);
     }
 
     /// <summary>
@@ -731,7 +731,7 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpResponse> Head(CancellationToken cancellationToken = default)
+    public Task<FluentHttpResponse> Head(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Head;
         return SendInternal(cancellationToken);
@@ -743,7 +743,7 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpResponse> Options(CancellationToken cancellationToken = default)
+    public Task<FluentHttpResponse> Options(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Options;
         return SendInternal(cancellationToken);
@@ -755,7 +755,7 @@ public class HttpRequestBuilder
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the HTTP response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpResponse> Trace(CancellationToken cancellationToken = default)
+    public Task<FluentHttpResponse> Trace(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Trace;
         return SendInternal(cancellationToken);
@@ -763,12 +763,12 @@ public class HttpRequestBuilder
 
     /// <summary>
     /// Downloads the response as a stream using HTTP GET. 
-    /// The returned HttpStreamResponse should be disposed after use.
+    /// The returned FluentHttpStreamResponse should be disposed after use.
     /// </summary>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the streaming response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpStreamResponse> GetStream(CancellationToken cancellationToken = default)
+    public Task<FluentHttpStreamResponse> GetStream(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Get;
         return SendForStream(cancellationToken);
@@ -776,12 +776,12 @@ public class HttpRequestBuilder
 
     /// <summary>
     /// Sends a POST request and returns the response as a stream.
-    /// The returned HttpStreamResponse should be disposed after use.
+    /// The returned FluentHttpStreamResponse should be disposed after use.
     /// </summary>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the streaming response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpStreamResponse> PostStream(CancellationToken cancellationToken = default)
+    public Task<FluentHttpStreamResponse> PostStream(CancellationToken cancellationToken = default)
     {
         _data.Method = HttpMethod.Post;
         return SendForStream(cancellationToken);
@@ -790,19 +790,19 @@ public class HttpRequestBuilder
     /// <summary>
     /// Sends the request using the specified HTTP method and returns the response as a stream.
     /// Useful for custom or non-standard HTTP methods that return streaming content.
-    /// The returned HttpStreamResponse should be disposed after use.
+    /// The returned FluentHttpStreamResponse should be disposed after use.
     /// </summary>
     /// <param name="method">The HTTP method to use.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task representing the asynchronous operation, containing the streaming response.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
-    public Task<HttpStreamResponse> SendStream(HttpMethod method, CancellationToken cancellationToken = default)
+    public Task<FluentHttpStreamResponse> SendStream(HttpMethod method, CancellationToken cancellationToken = default)
     {
         _data.Method = method;
         return SendForStream(cancellationToken);
     }
 
-    private async Task<HttpResponse> SendInternal(CancellationToken cancellationToken = default)
+    private async Task<FluentHttpResponse> SendInternal(CancellationToken cancellationToken = default)
     {
         // Execute global interceptor before building request
         FluentHttpDefaults.ExecuteInterceptor(this);
@@ -821,7 +821,7 @@ public class HttpRequestBuilder
 
             var responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
 
-            return new HttpResponse(request, response, responseCookies, rawBytes: responseBytes, serializerProvider);
+            return new FluentHttpResponse(request, response, responseCookies, rawBytes: responseBytes, serializerProvider);
         }
         finally
         {
@@ -841,7 +841,7 @@ public class HttpRequestBuilder
         return serializerProvider;
     }
 
-    private async Task<HttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
+    private async Task<FluentHttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
     {
         // Execute global interceptor before building request
         FluentHttpDefaults.ExecuteInterceptor(this);
@@ -857,7 +857,7 @@ public class HttpRequestBuilder
             // Use ResponseHeadersRead for streaming to avoid buffering the entire response
             response = await _data.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedToken);
 
-            return new HttpStreamResponse(response);
+            return new FluentHttpStreamResponse(response);
         }
         catch
         {

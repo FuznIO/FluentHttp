@@ -6,11 +6,11 @@ namespace Fuzn.FluentHttp;
 /// Represents a typed HTTP response with deserialized data.
 /// </summary>
 /// <typeparam name="T">The type of the deserialized response data.</typeparam>
-public class HttpResponse<T> : HttpResponse
+public class FluentHttpResponse<T> : FluentHttpResponse
 {
     private readonly Lazy<T?> _data;
 
-    internal HttpResponse(HttpResponse response)
+    internal FluentHttpResponse(FluentHttpResponse response)
         : base(response)
     {
         _data = new Lazy<T?>(ContentAs<T>);
