@@ -479,9 +479,20 @@ public class FluentHttpRequest
     }
 
     /// <summary>
+    /// Applies settings from a <see cref="FluentHttpSettings"/> instance.
+    /// Settings are used as defaults and can be overridden by per-request configuration.
+    /// </summary>
+    /// <param name="settings">The settings to apply.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    public FluentHttpRequest WithSettings(FluentHttpSettings settings)
+    {
+        _data.Settings = settings;
+        return this;
+    }
+
+    /// <summary>
     /// Returns a formatted debug string showing the current request configuration.
     /// Useful for logging and debugging.
-    /// Note: This shows the state BEFORE the BeforeSend interceptor runs.
     /// </summary>
     /// <returns>A formatted string containing the request configuration details.</returns>
     public override string ToString()
@@ -554,7 +565,6 @@ public class FluentHttpRequest
     /// <summary>
     /// Builds the HttpRequestMessage without sending it.
     /// Useful for debugging, logging, or testing request construction.
-    /// Runs the BeforeSend interceptor to show the exact request that would be sent.
     /// Note: Use this OR the Send methods (Get, Post, etc.), not both.
     /// For quick inspection without side effects, use <see cref="ToString"/> instead.
     /// </summary>
@@ -564,7 +574,6 @@ public class FluentHttpRequest
     public HttpRequestMessage BuildRequest(HttpMethod method)
     {
         _data.Method = method;
-        FluentHttpDefaults.ExecuteInterceptor(this);
         return _data.MapToHttpRequestMessage(GetSerializer());
     }
 
@@ -801,9 +810,6 @@ public class FluentHttpRequest
 
     private async Task<FluentHttpResponse> SendInternal(CancellationToken cancellationToken = default)
     {
-        // Execute global interceptor before building request
-        FluentHttpDefaults.ExecuteInterceptor(this);
-
         var serializerProvider = GetSerializer();
 
         var request = _data.MapToHttpRequestMessage(serializerProvider);
@@ -828,21 +834,30 @@ public class FluentHttpRequest
 
     private ISerializerProvider GetSerializer()
     {
-        ISerializerProvider serializerProvider;
-        if (_data.Serializer != null)
-            serializerProvider = _data.Serializer;
-        else if (_data.JsonOptions != null)
-            serializerProvider = new SystemTextJsonSerializerProvider(_data.JsonOptions);
-        else
-            serializerProvider = new SystemTextJsonSerializerProvider();
-        return serializerProvider;
+        // Priority: per-request > instance settings > global settings > default
+        if (_data.Serializer is not null)
+            return _data.Serializer;
+
+        if (_data.JsonOptions is not null)
+            return new SystemTextJsonSerializerProvider(_data.JsonOptions);
+
+        if (_data.Settings?.Serializer is not null)
+            return _data.Settings.Serializer;
+
+        if (_data.Settings?.JsonOptions is not null)
+            return new SystemTextJsonSerializerProvider(_data.Settings.JsonOptions);
+
+        if (FluentHttpDefaults.Settings.Serializer is not null)
+            return FluentHttpDefaults.Settings.Serializer;
+
+        if (FluentHttpDefaults.Settings.JsonOptions is not null)
+            return new SystemTextJsonSerializerProvider(FluentHttpDefaults.Settings.JsonOptions);
+
+        return new SystemTextJsonSerializerProvider();
     }
 
     private async Task<FluentHttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
     {
-        // Execute global interceptor before building request
-        FluentHttpDefaults.ExecuteInterceptor(this);
-
         var request = _data.MapToHttpRequestMessage(GetSerializer());
         HttpResponseMessage? response = null;
 

@@ -85,9 +85,9 @@ public class HttpRequestData
     /// <summary>Query parameters.</summary>
     public List<KeyValuePair<string, string>> QueryParams => _queryParams ??= [];
 
-    internal CancellationToken CancellationToken { get; set; } = default;
+    internal FluentHttpSettings? Settings { get; set; }
 
-    internal bool InterceptorExecuted { get; set; }
+    internal CancellationToken CancellationToken { get; set; } = default;
 
     private string BuildQueryString()
     {

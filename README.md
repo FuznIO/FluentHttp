@@ -585,7 +585,7 @@ Console.WriteLine(response);
 
 ### BuildRequest() for Advanced Inspection
 
-To get the actual `HttpRequestMessage` that would be sent (after the `BeforeSend` interceptor runs):
+To get the actual `HttpRequestMessage` that would be sent:
 
 ```csharp
 var builder = httpClient
@@ -610,7 +610,7 @@ By default, FluentHttp uses `System.Text.Json` with `JsonSerializerDefaults.Web`
 - **Case-insensitive** property matching when deserializing
 - **Number handling** that allows reading numbers from strings
 
-This works well with most REST APIs. You can override these defaults per-request or globally.
+This works well with most REST APIs. You can override these defaults per-request, per-client, or globally.
 
 ### Using System.Text.Json Options (Per-Request)
 
@@ -650,74 +650,78 @@ var response = await httpClient
     .Post<Result>();
 ```
 
-### Setting Global Serializer Options
+## Global and Instance Settings
 
-Use `FluentHttpDefaults.BeforeSend` to configure serialization globally:
+FluentHttp provides `FluentHttpSettings` for configuring serialization defaults. Settings can be applied at three levels with the following precedence (highest to lowest):
+
+1. **Per-request** - via `.WithJsonOptions()` or `.WithSerializer()`
+2. **Instance settings** - via `.WithSettings()`
+3. **Global settings** - via `FluentHttpDefaults.Settings`
+
+### Global Settings (Static)
+
+Configure global defaults that apply to all requests:
 
 ```csharp
 // Use PascalCase globally instead of the default camelCase
-var globalOptions = new JsonSerializerOptions
+FluentHttpDefaults.Settings = new FluentHttpSettings
 {
-    PropertyNamingPolicy = null, // Preserve PascalCase
-    PropertyNameCaseInsensitive = true
+    JsonOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = null, // Preserve PascalCase
+        PropertyNameCaseInsensitive = true
+    }
 };
 
-FluentHttpDefaults.BeforeSend = builder =>
+// Or use a custom serializer globally
+FluentHttpDefaults.Settings = new FluentHttpSettings
 {
-    // Only set if not already configured per-request
-    if (builder.Data.JsonOptions is null && builder.Data.Serializer is null)
-    {
-        builder.WithJsonOptions(globalOptions);
-    }
+    Serializer = new NewtonsoftSerializerProvider()
 };
 ```
 
-## Global Defaults
+### Instance Settings (Dependency Injection)
 
-Use `FluentHttpDefaults.BeforeSend` to configure global behavior for all requests. The interceptor receives the builder, allowing you to inspect current request state via `builder.Data` and modify using builder methods.
-
-### Adding Default Headers
+For DI scenarios, register `FluentHttpSettings` and inject it into your services:
 
 ```csharp
-FluentHttpDefaults.BeforeSend = builder =>
+// In Program.cs or Startup.cs
+services.AddFluentHttp(settings =>
 {
-    // Add correlation ID to all requests
-    if (!builder.Data.Headers.ContainsKey("X-Correlation-Id"))
+    settings.JsonOptions = new JsonSerializerOptions
     {
-        builder.WithHeader("X-Correlation-Id", Guid.NewGuid().ToString());
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+});
+
+// In your service
+public class UserService(HttpClient httpClient, FluentHttpSettings settings)
+{
+    public async Task<User?> GetUserAsync(int id)
+    {
+        var response = await httpClient
+            .Url($"/users/{id}")
+            .WithSettings(settings)
+            .Get<User>();
+
+        return response.IsSuccessful ? response.Data : null;
     }
-    
-    // Add app version header
-    builder.Data.Headers.TryAdd("X-App-Version", "1.0.0");
-};
+}
 ```
 
-### URL-Based Conditional Logic
+### Per-Request Override
+
+Per-request settings always take precedence:
 
 ```csharp
-FluentHttpDefaults.BeforeSend = builder =>
-{
-    // Different serializer for legacy API
-    if (builder.Data.AbsoluteUri.Host.Contains("legacy-api"))
-    {
-        builder.WithSerializer(new LegacySerializerProvider());
-    }
-    
-    // Longer timeout for report endpoints
-    if (builder.Data.RequestUrl.Contains("/reports/"))
-    {
-        builder.WithTimeout(TimeSpan.FromMinutes(5));
-    }
-};
+var response = await httpClient
+    .Url("/api/data")
+    .WithSettings(injectedSettings)           // Instance settings
+    .WithJsonOptions(specialOptions)          // Per-request overrides instance
+    .Post<Result>();
 ```
 
-### Clearing the Interceptor
-
-```csharp
-FluentHttpDefaults.BeforeSend = null;
-```
-
-> **Note:** Per-request settings always take precedence. The pattern is to check `builder.Data` first, then only set defaults if not already configured. For async operations like token refresh, use a `DelegatingHandler` instead.
+> **Note:** For request/response interception (headers, authentication, logging), use a `DelegatingHandler` instead. `FluentHttpSettings` is focused on serialization configuration which cannot be done at the `HttpClient` pipeline level.
 
 ## Resilience and Retry Policies
 
