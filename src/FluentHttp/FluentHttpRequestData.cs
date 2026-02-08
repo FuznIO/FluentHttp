@@ -10,7 +10,7 @@ namespace Fuzn.FluentHttp;
 /// Contains all data for building an HTTP request.
 /// Exposed to interceptors for inspection and modification.
 /// </summary>
-public class HttpRequestData
+public class FluentHttpRequestData
 {
     private List<Cookie>? _cookies;
     private Dictionary<string, string>? _headers;
@@ -86,8 +86,6 @@ public class HttpRequestData
     public List<KeyValuePair<string, string>> QueryParams => _queryParams ??= [];
 
     internal CancellationToken CancellationToken { get; set; } = default;
-
-    internal bool InterceptorExecuted { get; set; }
 
     private string BuildQueryString()
     {

@@ -4,32 +4,26 @@ A lightweight fluent API for building and sending HTTP requests with `HttpClient
 
 ## Installation
 
+To get started, add the Fuzn.FluentHttp package to your project using the following command:
+
 ```bash
 dotnet add package Fuzn.FluentHttp
 ```
 
 ## Quick Start
 
-### With Dependency Injection (Recommended)
-
-Register `HttpClient` in your DI container:
-
-```csharp
-// In Program.cs or Startup.cs
-services.AddHttpClient();
-
-// Or with a named client and base address
-services.AddHttpClient("MyApi", client =>
-{
-    client.BaseAddress = new Uri("https://api.example.com");
-});
-```
-
-Inject and use in your service:
+The following example demonstrates how to register an `HttpClient` with dependency injection and use it to make a simple GET request:
 
 ```csharp
 using Fuzn.FluentHttp;
 
+// Register HttpClient with DI
+services.AddHttpClient<UserHttpClient>(client =>
+{
+    client.BaseAddress = new Uri("https://api.example.com");
+});
+
+// Use in your service
 public class UserHttpClient(HttpClient httpClient)
 {
     public async Task<User?> GetUserAsync(int id)
@@ -41,773 +35,245 @@ public class UserHttpClient(HttpClient httpClient)
         return response.IsSuccessful ? response.Data : null;
     }
 }
-
-// Register your service with a typed client
-services.AddHttpClient<UserHttpClient>(client =>
-{
-    client.BaseAddress = new Uri("https://api.example.com");
-});
 ```
 
-### With IHttpClientFactory
-
-For scenarios where you need to create clients manually:
-
+**Alternative syntax** using `Request().WithUrl()`:
 ```csharp
-using Fuzn.FluentHttp;
-
-public class UserHttpClient(IHttpClientFactory httpClientFactory)
-{
-    public async Task<User?> GetUserAsync(int id)
-    {
-        var httpClient = httpClientFactory.CreateClient("MyApi");
-        
-        var response = await httpClient
-            .Url($"/users/{id}")
-            .Get<User>();
-
-        return response.IsSuccessful ? response.Data : null;
-    }
-}
+var response = await httpClient.Request().WithUrl("/users/1").Get<User>();
 ```
 
-### Without a Base Address
+> **Note:** When `HttpClient` has no `BaseAddress`, you must use absolute URLs.
 
-When your `HttpClient` doesn't have a `BaseAddress` configured, you can use absolute URLs directly:
+## HTTP Methods
+
+All standard HTTP methods are supported with both generic and non-generic versions. Generic methods automatically deserialize the response body:
 
 ```csharp
-// Register a client without a base address
-services.AddHttpClient("Generic");
+// Non-generic returns FluentHttpResponse
+await httpClient.Url("/resource").Get();
+await httpClient.Url("/resource").Post();
+await httpClient.Url("/resource").Put();
+await httpClient.Url("/resource").Patch();
+await httpClient.Url("/resource").Delete();
+await httpClient.Url("/resource").Head();
+await httpClient.Url("/resource").Options();
 
-// Use with absolute URLs
-var client = httpClientFactory.CreateClient("Generic");
+// Generic returns FluentHttpResponse<T> with deserialized Data property
+await httpClient.Url("/resource").Get<T>();
+await httpClient.Url("/resource").Post<T>();
 
-var response = await client
-    .Url("https://api.example.com/users/1")
-    .Get<User>();
-
-// Query parameters and other features work as expected
-var searchResponse = await client
-    .Url("https://api.example.com/search")
-    .WithQueryParam("q", "dotnet")
-    .WithAuthBearer("token")
-    .Get<SearchResult>();
+// Custom HTTP methods (e.g., WebDAV)
+await httpClient.Url("/resource").Send(new HttpMethod("PROPFIND"));
+await httpClient.Url("/resource").Send<T>(new HttpMethod("MKCOL"));
 ```
 
-> **Note:** When no `BaseAddress` is set, the URL provided to `.Url()` must be an absolute URL (including scheme and host). Relative URLs will throw an `ArgumentException`.
+## Request Configuration
 
-> **Why use `IHttpClientFactory`?** Creating `HttpClient` instances with `new HttpClient()` can lead to socket exhaustion and DNS caching issues. `IHttpClientFactory` manages the underlying `HttpMessageHandler` instances, providing proper pooling and lifetime management. See [Microsoft's guidance](https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient-guidelines) for details.
+### Content
 
-## Features
-
-### Typed Responses
-
-Use generic HTTP methods to get strongly-typed responses:
+Objects are automatically serialized to JSON:
 
 ```csharp
-var response = await httpClient.Url("/api/users/1").Get<User>();
-
-if (response.IsSuccessful)
-{
-    User user = response.Data!;
-}
-else
-{
-    Console.WriteLine($"Error {response.StatusCode}: {response.Content}");
-}
-```
-
-### HTTP Methods
-
-All standard HTTP methods are supported, with both generic and non-generic versions:
-
-```csharp
-// Non-generic (returns FluentHttpResponse)
-await httpClient.Url("/api/resource").Get();
-await httpClient.Url("/api/resource").Post();
-await httpClient.Url("/api/resource").Put();
-await httpClient.Url("/api/resource").Patch();
-await httpClient.Url("/api/resource").Delete();
-await httpClient.Url("/api/resource").Head();
-await httpClient.Url("/api/resource").Options();
-
-// Generic (returns FluentHttpResponse<T>)
-await httpClient.Url("/api/resource").Get<MyType>();
-await httpClient.Url("/api/resource").Post<MyType>();
-await httpClient.Url("/api/resource").Put<MyType>();
-await httpClient.Url("/api/resource").Patch<MyType>();
-await httpClient.Url("/api/resource").Delete<MyType>();
-```
-
-### Custom HTTP Methods
-
-For non-standard HTTP methods (e.g., WebDAV's PROPFIND, MKCOL), use the `Send` method:
-
-```csharp
-// Custom HTTP method
-var response = await httpClient
-    .Url("https://webdav.example.com/folder")
-    .Send(new HttpMethod("PROPFIND"));
-
-// With typed response
-var response = await httpClient
-    .Url("https://webdav.example.com/folder")
-    .WithContent(propfindRequest)
-    .Send<PropfindResponse>(new HttpMethod("MKCOL"));
-
-// With streaming response
-await using var streamResponse = await httpClient
-    .Url("https://webdav.example.com/largefile")
-    .SendStream(new HttpMethod("PROPFIND"));
-```
-
-### Request Content
-
-```csharp
-var response = await httpClient
-    .Url("https://api.example.com/users")
+await httpClient
+    .Url("/users")
     .WithContent(new { Name = "John", Email = "john@example.com" })
     .Post<User>();
 ```
 
 ### Query Parameters
 
+Multiple ways to add query parameters:
+
 ```csharp
-// Single parameter
-var response = await httpClient
-    .Url("https://api.example.com/search")
-    .WithQueryParam("q", "dotnet")
-    .WithQueryParam("page", 1)
-    .Get<SearchResult>();
+// Individual parameters
+.WithQueryParam("q", "dotnet")
+.WithQueryParam("page", 1)
 
-// Multiple parameters via dictionary
-var response = await httpClient
-    .Url("https://api.example.com/search")
-    .WithQueryParams(new Dictionary<string, object?> 
-    { 
-        ["q"] = "dotnet", 
-        ["page"] = 1 
-    })
-    .Get<SearchResult>();
+// From anonymous object
+.WithQueryParams(new { q = "dotnet", page = 1 })
 
-// Anonymous object
-var response = await httpClient
-    .Url("https://api.example.com/search")
-    .WithQueryParams(new { q = "dotnet", page = 1 })
-    .Get<SearchResult>();
+// From dictionary
+.WithQueryParams(new Dictionary<string, object?> { ["q"] = "dotnet" })
 
-// Multiple values for same parameter
-var response = await httpClient
-    .Url("https://api.example.com/items")
-    .WithQueryParam("tags", new[] { "c#", "dotnet", "http" })
-    .Get<ItemList>();
+// Multiple values for same key (e.g., ?tags=c%23&tags=dotnet)
+.WithQueryParam("tags", new[] { "c#", "dotnet" })
 ```
 
 ### Headers
 
 ```csharp
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithHeader("X-Custom-Header", "value")
-    .WithHeaders(new Dictionary<string, string> 
-    { 
-        ["X-Another"] = "another-value" 
-    })
-    .Get<Data>();
+.WithHeader("X-Custom", "value")
+.WithHeaders(new Dictionary<string, string> { ["X-Another"] = "value" })
 ```
 
 ### Authentication
 
+Built-in support for common authentication schemes:
+
 ```csharp
-// Bearer token
-var response = await httpClient
-    .Url("https://api.example.com/protected")
-    .WithAuthBearer("your-jwt-token")
-    .Get<ProtectedData>();
-
-// Basic authentication
-var response = await httpClient
-    .Url("https://api.example.com/protected")
-    .WithAuthBasic("username", "password")
-    .Get<ProtectedData>();
-
-// API Key
-var response = await httpClient
-    .Url("https://api.example.com/protected")
-    .WithAuthApiKey("your-api-key")
-    .Get<ProtectedData>();
-
-// Custom header name for API key
-var response = await httpClient
-    .Url("https://api.example.com/protected")
-    .WithAuthApiKey("your-api-key", "Authorization")
-    .Get<ProtectedData>();
+.WithAuthBearer("jwt-token")
+.WithAuthBasic("username", "password")
+.WithAuthApiKey("api-key")                    // Uses X-API-Key header
+.WithAuthApiKey("api-key", "Authorization")   // Custom header name
 ```
 
-### Content Types
+### Content & Accept Types
+
+Control request and response content types:
 
 ```csharp
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithContentType(ContentTypes.Json)
-    .WithContent(data)
-    .Post<Result>();
-
-// Custom content type
-var response = await httpClient
-    .Url("https://api.example.com/graphql")
-    .WithContentType("application/graphql")
-    .WithContent(query)
-    .Post<GraphQLResponse>();
-```
-
-### Accept Headers
-
-```csharp
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithAccept(AcceptTypes.Json)
-    .Get<Data>();
-
-// Custom accept type
-var response = await httpClient
-    .Url("https://api.example.com/report")
-    .WithAccept("application/pdf")
-    .Get();
+.WithContentType(ContentTypes.Json)
+.WithContentType("application/graphql")
+.WithAccept(AcceptTypes.Json)
+.WithAccept("application/pdf")
 ```
 
 ### File Uploads
 
+Upload files with automatic multipart/form-data handling:
+
 ```csharp
-// Upload file from stream
-var response = await httpClient
-    .Url("https://api.example.com/upload")
-    .WithFile("file", "document.pdf", fileStream, "application/pdf")
-    .Post<UploadResult>();
-
-// Upload file from byte array
-var response = await httpClient
-    .Url("https://api.example.com/upload")
-    .WithFile("file", "image.png", imageBytes, "image/png")
-    .Post<UploadResult>();
-
-// Multiple files with form fields
-var response = await httpClient
-    .Url("https://api.example.com/upload")
-    .WithFile("file1", "doc1.pdf", stream1)
-    .WithFile("file2", "doc2.pdf", stream2)
-    .WithFormField("description", "My documents")
+await httpClient
+    .Url("/upload")
+    .WithFile("file", "doc.pdf", fileStream, "application/pdf")
+    .WithFormField("description", "My document")
     .Post<UploadResult>();
 ```
 
-### Cookies
+### Other Options
 
 ```csharp
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithCookie("session", "abc123")
-    .WithCookie("preference", "dark-mode", path: "/", duration: TimeSpan.FromDays(30))
-    .Get<Data>();
-```
-
-### Timeouts
-
-```csharp
-var response = await httpClient
-    .Url("https://api.example.com/slow-endpoint")
-    .WithTimeout(TimeSpan.FromSeconds(30))
-    .Get<Data>();
-```
-
-### Custom User-Agent
-
-```csharp
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithUserAgent("MyApp/1.0")
-    .Get<Data>();
-```
-
-### HTTP Version
-
-Control the HTTP protocol version for the request. Useful for HTTP/2, HTTP/3, or legacy system compatibility:
-
-```csharp
-using System.Net;
-
-// Force HTTP/2
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithVersion(HttpVersion.Version20)
-    .Get<Data>();
-
-// Force HTTP/3 (QUIC)
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithVersion(HttpVersion.Version30)
-    .Get<Data>();
-
-// HTTP/1.1 for legacy systems
-var response = await httpClient
-    .Url("https://legacy-api.example.com/data")
-    .WithVersion(HttpVersion.Version11)
-    .Get<Data>();
-```
-
-### HTTP Version Policy
-
-Control how the HTTP version is negotiated with the server:
-
-```csharp
-// Require exact version match (fail if server doesn't support it)
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithVersion(HttpVersion.Version20)
-    .WithVersionPolicy(HttpVersionPolicy.RequestVersionExact)
-    .Get<Data>();
-
-// Allow downgrade to lower versions
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithVersion(HttpVersion.Version20)
-    .WithVersionPolicy(HttpVersionPolicy.RequestVersionOrLower)
-    .Get<Data>();
-
-// Allow upgrade to higher versions
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithVersion(HttpVersion.Version11)
-    .WithVersionPolicy(HttpVersionPolicy.RequestVersionOrHigher)
-    .Get<Data>();
+.WithTimeout(TimeSpan.FromSeconds(30))
+.WithUserAgent("MyApp/1.0")
+.WithCookie("session", "abc123")
+.WithVersion(HttpVersion.Version20)
+.WithVersionPolicy(HttpVersionPolicy.RequestVersionExact)
+.WithCancellationToken(cancellationToken)
 ```
 
 ## Working with Responses
 
-Both `FluentHttpResponse` and `FluentHttpResponse<T>` implement `IDisposable` to allow explicit cleanup of the underlying `HttpResponseMessage` and `HttpRequestMessage`. While disposal is optional (the response content is already buffered into memory), it's recommended for explicit resource management:
+### FluentHttpResponse / FluentHttpResponse&lt;T&gt;
+
+Responses provide easy access to status, content, headers, and cookies. The response body is only deserialized when you access the `Data` property, not automatically upon receiving the response:
 
 ```csharp
-// Using statement for automatic disposal
-using var response = await httpClient
-    .Url("https://api.example.com/users/1")
-    .Get<User>();
+var response = await httpClient.Url("/users/1").Get<User>();
 
+// Check status
 if (response.IsSuccessful)
 {
-    User user = response.Data!;
+    User user = response.Data!;  // Deserialization happens here
 }
-```
 
-### Ensuring Success
-
-Use `EnsureSuccessful()` to throw an `HttpRequestException` if the response status code is not successful (2xx). The method returns the response instance for method chaining:
-
-```csharp
-// Throws HttpRequestException if status code is not 2xx
-var response = await httpClient
-    .Url("https://api.example.com/users/1")
-    .Get();
-
+// Or throw HttpRequestException on failure
 response.EnsureSuccessful();
 
-// Or use method chaining
-var user = (await httpClient
-    .Url("https://api.example.com/users/1")
-    .Get<User>())
-    .EnsureSuccessful()
-    .Data;
-
-// The exception includes the status code
-try
-{
-    var data = (await httpClient
-        .Url("https://api.example.com/protected")
-        .Get())
-        .EnsureSuccessful()
-        .ContentAs<Data>();
-}
-catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-{
-    Console.WriteLine("Resource not found");
-}
-```
-
-### `FluentHttpResponse`
-
-```csharp
-var response = await httpClient
-    .Url("https://api.example.com/users/1")
-    .Get();
-
-// Check if successful (2xx status code)
-if (response.IsSuccessful)
-{
-    // Deserialize to type
-    var user = response.ContentAs<User>();
-    
-    // Get content as string
-    string content = response.Content;
-}
-
-// Access status code and reason
+// Access response properties
 HttpStatusCode status = response.StatusCode;
 string? reason = response.ReasonPhrase;
-
-// Access content metadata
+string content = response.Content;
 string? contentType = response.ContentType;
 long? contentLength = response.ContentLength;
-
-// Access HTTP version
 Version version = response.Version;
 
-// Access headers
+// Access headers and cookies
 var headers = response.Headers;
 var contentHeaders = response.ContentHeaders;
-
-// Access cookies
 var cookies = response.Cookies;
 
-// Access the underlying request message
+// Access underlying messages
+HttpResponseMessage inner = response.InnerResponse;
 HttpRequestMessage request = response.RequestMessage;
-```
 
-### `FluentHttpResponse<T>`
-
-```csharp
-var response = await httpClient
-    .Url("https://api.example.com/users/1")
-    .Get<User>();
-
-// Typed data (auto-deserialized)
-User? user = response.Data;
-
-// Check success
-bool success = response.IsSuccessful;
-
-// Status code
-HttpStatusCode status = response.StatusCode;
-
-// Content as string
-string content = response.Content;
-
-// Headers and cookies
-var headers = response.Headers;
-var cookies = response.Cookies;
-
-// Deserialize to a different type
+// Deserialize to different type (useful for error responses)
 var error = response.ContentAs<ProblemDetails>();
+
+// Try deserialize without throwing
+if (response.TryContentAs<User>(out var user))
+{
+    // Use user
+}
 ```
 
-### `FluentHttpStreamResponse`
+### Streaming Responses
 
-For streaming responses (via `GetStream()`, `PostStream()`, or `SendStream()`), `FluentHttpStreamResponse` implements both `IDisposable` and `IAsyncDisposable`. Since streaming responses hold an open connection until fully read, disposal is important. Use `await using` for async disposal:
+For large files, use streaming to avoid loading the entire response into memory. The `FluentHttpStreamResponse` must be disposed after use:
 
 ```csharp
-// Async disposal with await using (recommended)
-await using var streamResponse = await httpClient
-    .Url("https://api.example.com/files/large-file.zip")
-    .GetStream();
+await using var response = await httpClient.Url("/files/large.zip").GetStream();
 
-if (streamResponse.IsSuccessful)
+if (response.IsSuccessful)
 {
     // Access metadata
-    long? contentLength = streamResponse.ContentLength;
-    string? fileName = streamResponse.FileName;
-    
-    // Get the stream for reading
-    var stream = await streamResponse.GetStream();
-    
-    // Or read all bytes at once
-    var bytes = await streamResponse.GetBytes();
+    long? size = response.ContentLength;
+    string? type = response.ContentType;
+    string? fileName = response.FileName;  // From Content-Disposition header
+
+    // Read as stream or bytes
+    var stream = await response.GetStream();
+    // Or: var bytes = await response.GetBytes();
 }
-
-// Use EnsureSuccessful() for method chaining
-await using var response = await httpClient
-    .Url("https://api.example.com/files/large-file.zip")
-    .GetStream();
-
-var bytes = await response.EnsureSuccessful().GetBytes();
-```
-
-## Debugging
-
-### ToString() for Request Inspection
-
-The builder overrides `ToString()` to provide a formatted view of the current request configuration. This is useful for logging and debugging:
-
-```csharp
-var builder = httpClient
-    .Url("https://api.example.com/users")
-    .WithContent(new { Name = "John" })
-    .WithAuthBearer("token123");
-
-// Log the request
-Console.WriteLine(builder);
-
-// Output:
-// === FluentHttp Request ===
-// Method: (not set)
-// URL: https://api.example.com/users
-// Headers:
-//   Authorization: [REDACTED]
-// Content-Type: application/json
-// Accept: application/json
-// Content: {"Name":"John"}
-```
-
-In Visual Studio, you can also hover over the builder variable in the debugger to see this information.
-
-### ToString() for Response Inspection
-
-Similarly, `FluentHttpResponse` overrides `ToString()` to provide a formatted view of the response for debugging and logging:
-
-```csharp
-var response = await httpClient
-    .Url("https://api.example.com/users/1")
-    .Get();
-
-// Log the response
-Console.WriteLine(response);
-
-// Output:
-// === FluentHttp Response ===
-// Status: 200 OK
-// Success: True
-// Version: HTTP/1.1
-// Headers:
-//   Date: Mon, 01 Jan 2024 12:00:00 GMT
-// Content Headers:
-//   Content-Type: application/json; charset=utf-8
-//   Content-Length: 42
-// Cookies: 1
-//   sessionId = abc123
-// Content: {"id":1,"name":"John Doe"}
-```
-
-### BuildRequest() for Advanced Inspection
-
-To get the actual `HttpRequestMessage` that would be sent (after the `BeforeSend` interceptor runs):
-
-```csharp
-var builder = httpClient
-    .Url("https://api.example.com/users")
-    .WithContent(new { Name = "John" });
-
-// Get the HttpRequestMessage without sending
-var request = builder.BuildRequest(HttpMethod.Post);
-
-// Inspect the actual request
-Console.WriteLine($"URL: {request.RequestUri}");
-Console.WriteLine($"Content: {await request.Content!.ReadAsStringAsync()}");
-
-// You can still send the request afterwards
-var response = await builder.Post();
 ```
 
 ## Custom Serialization
 
-By default, FluentHttp uses `System.Text.Json` with `JsonSerializerDefaults.Web`, which provides:
-- **camelCase property names** when serializing (e.g., `FirstName` becomes `"firstName"`)
-- **Case-insensitive** property matching when deserializing
-- **Number handling** that allows reading numbers from strings
+By default, FluentHttp uses `System.Text.Json` with `JsonSerializerDefaults.Web` (camelCase, case-insensitive).
 
-This works well with most REST APIs. You can override these defaults per-request or globally.
+### Per-Request Options
 
-### Using System.Text.Json Options (Per-Request)
+Customize serialization on a per-request basis:
 
 ```csharp
-var options = new JsonSerializerOptions
-{
-    PropertyNamingPolicy = null, // Preserve PascalCase
-    PropertyNameCaseInsensitive = true
-};
-
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithJsonOptions(options)
-    .WithContent(data)
-    .Post<Result>();
+.WithJsonOptions(new JsonSerializerOptions { PropertyNamingPolicy = null })
+.WithSerializer(new MyCustomSerializer())
 ```
 
-### Using a Custom Serializer
+### Global Defaults
 
-Implement `ISerializerProvider` to use your preferred serializer:
+Configure defaults for all requests:
+
+```csharp
+FluentHttpDefaults.JsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = null };
+FluentHttpDefaults.Serializer = new NewtonsoftSerializerProvider();
+```
+
+### Custom Serializer
+
+Implement `ISerializerProvider` for custom serialization:
 
 ```csharp
 public class NewtonsoftSerializerProvider : ISerializerProvider
 {
-    public string Serialize<T>(T obj) => 
-        JsonConvert.SerializeObject(obj);
-
-    public T? Deserialize<T>(string json) => 
-        JsonConvert.DeserializeObject<T>(json);
+    public string Serialize<T>(T obj) => JsonConvert.SerializeObject(obj);
+    public T? Deserialize<T>(string json) => JsonConvert.DeserializeObject<T>(json);
 }
-
-// Use custom serializer
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithSerializer(new NewtonsoftSerializerProvider())
-    .WithContent(data)
-    .Post<Result>();
 ```
 
-### Setting Global Serializer Options
+## Resilience & Retry
 
-Use `FluentHttpDefaults.BeforeSend` to configure serialization globally:
-
-```csharp
-// Use PascalCase globally instead of the default camelCase
-var globalOptions = new JsonSerializerOptions
-{
-    PropertyNamingPolicy = null, // Preserve PascalCase
-    PropertyNameCaseInsensitive = true
-};
-
-FluentHttpDefaults.BeforeSend = builder =>
-{
-    // Only set if not already configured per-request
-    if (builder.Data.JsonOptions is null && builder.Data.Serializer is null)
-    {
-        builder.WithJsonOptions(globalOptions);
-    }
-};
-```
-
-## Global Defaults
-
-Use `FluentHttpDefaults.BeforeSend` to configure global behavior for all requests. The interceptor receives the builder, allowing you to inspect current request state via `builder.Data` and modify using builder methods.
-
-### Adding Default Headers
+FluentHttp works seamlessly with `HttpClient`'s `DelegatingHandler` pipeline. Use libraries like Polly for retry policies, circuit breakers, and other resilience patterns:
 
 ```csharp
-FluentHttpDefaults.BeforeSend = builder =>
-{
-    // Add correlation ID to all requests
-    if (!builder.Data.Headers.ContainsKey("X-Correlation-Id"))
-    {
-        builder.WithHeader("X-Correlation-Id", Guid.NewGuid().ToString());
-    }
-    
-    // Add app version header
-    builder.Data.Headers.TryAdd("X-App-Version", "1.0.0");
-};
-```
-
-### URL-Based Conditional Logic
-
-```csharp
-FluentHttpDefaults.BeforeSend = builder =>
-{
-    // Different serializer for legacy API
-    if (builder.Data.AbsoluteUri.Host.Contains("legacy-api"))
-    {
-        builder.WithSerializer(new LegacySerializerProvider());
-    }
-    
-    // Longer timeout for report endpoints
-    if (builder.Data.RequestUrl.Contains("/reports/"))
-    {
-        builder.WithTimeout(TimeSpan.FromMinutes(5));
-    }
-};
-```
-
-### Clearing the Interceptor
-
-```csharp
-FluentHttpDefaults.BeforeSend = null;
-```
-
-> **Note:** Per-request settings always take precedence. The pattern is to check `builder.Data` first, then only set defaults if not already configured. For async operations like token refresh, use a `DelegatingHandler` instead.
-
-## Resilience and Retry Policies
-
-FluentHttp works seamlessly with resilience libraries like [Polly](https://github.com/App-vNext/Polly) through `HttpClient`'s `DelegatingHandler` pipeline. This is the recommended approach for implementing retry policies, circuit breakers, and other resilience patterns.
-
-### Using Microsoft.Extensions.Http.Resilience (Recommended)
-
-```csharp
-// Install: dotnet add package Microsoft.Extensions.Http.Resilience
-
-services.AddHttpClient("MyApi", client =>
-{
-    client.BaseAddress = new Uri("https://api.example.com");
-})
-.AddStandardResilienceHandler(); // Adds retry, circuit breaker, and timeout policies
-```
-
-### Using Polly Directly
-
-```csharp
-// Install: dotnet add package Microsoft.Extensions.Http.Polly
-
-services.AddHttpClient("MyApi", client =>
-{
-    client.BaseAddress = new Uri("https://api.example.com");
-})
-.AddTransientHttpErrorPolicy(builder => 
-    builder.WaitAndRetryAsync(3, retryAttempt => 
-        TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));
-```
-
-### Custom DelegatingHandler
-
-```csharp
-public class RetryHandler : DelegatingHandler
-{
-    protected override async Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request, 
-        CancellationToken cancellationToken)
-    {
-        HttpResponseMessage response = null!;
-        for (int i = 0; i < 3; i++)
-        {
-            response = await base.SendAsync(request, cancellationToken);
-            if (response.IsSuccessStatusCode)
-                return response;
-            
-            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)), cancellationToken);
-        }
-        return response;
-    }
-}
-
-// Register
 services.AddHttpClient("MyApi")
-    .AddHttpMessageHandler<RetryHandler>();
+    .AddStandardResilienceHandler();  // Microsoft.Extensions.Http.Resilience
+    // Or: .AddTransientHttpErrorPolicy(...) // Microsoft.Extensions.Http.Polly
 ```
 
-Then use FluentHttp with the configured client:
+## Debugging
+
+Both requests and responses override `ToString()` for easy inspection:
 
 ```csharp
-var client = httpClientFactory.CreateClient("MyApi");
-var response = await client
-    .Url("/api/users")
-    .Get<User[]>();
-```
+// Inspect request configuration
+var builder = httpClient.Url("/users").WithAuthBearer("token");
+Console.WriteLine(builder);  // Prints formatted request details (auth is redacted)
 
-## Cancellation Support
+// Inspect response
+Console.WriteLine(response);  // Prints status, headers, and content
 
-All HTTP methods support cancellation tokens:
-
-```csharp
-var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .Get<Data>(cts.Token);
-```
-
-You can also set a cancellation token on the builder, which will be linked with any token passed to the HTTP method:
-
-```csharp
-var builderCts = new CancellationTokenSource();
-var methodCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-
-// Both tokens are linked - cancelling either will cancel the request
-var response = await httpClient
-    .Url("https://api.example.com/data")
-    .WithCancellationToken(builderCts.Token)
-    .Get<Data>(methodCts.Token);
+// Get HttpRequestMessage without sending
+var request = builder.BuildRequest(HttpMethod.Post);
 ```
 
 ## License

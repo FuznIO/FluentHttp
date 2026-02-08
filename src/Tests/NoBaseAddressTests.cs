@@ -29,10 +29,10 @@ public class NoBaseAddressTests : Test
             {
                 var client = SuiteData.HttpClientFactory.CreateClient(SuiteData.NoBaseAddressClientName);
 
-                var request = client.Url("https://localhost:5201/api/status/ok");
+                var request = client.Url("https://localhost:5201/api/status/ok")
+                    .BuildRequest(HttpMethod.Get);
 
-                Assert.AreEqual(new Uri("https://localhost:5201/"), request.Data.BaseUri);
-                Assert.AreEqual(new Uri("https://localhost:5201/api/status/ok"), request.Data.AbsoluteUri);
+                Assert.AreEqual(new Uri("https://localhost:5201/api/status/ok"), request.RequestUri);
             })
             .Run();
     }
@@ -41,13 +41,14 @@ public class NoBaseAddressTests : Test
     public async Task Url_WithAbsoluteUrlAndPort_WhenNoBaseAddress_PreservesPort()
     {
         await Scenario()
-            .Step("Non-default port is preserved in BaseUri", _ =>
+            .Step("Non-default port is preserved in request URI", _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient(SuiteData.NoBaseAddressClientName);
 
-                var request = client.Url("https://localhost:5201/api/test");
+                var request = client.Url("https://localhost:5201/api/test")
+                    .BuildRequest(HttpMethod.Get);
 
-                Assert.AreEqual(new Uri("https://localhost:5201/"), request.Data.BaseUri);
+                Assert.AreEqual(5201, request.RequestUri!.Port);
             })
             .Run();
     }
@@ -56,13 +57,14 @@ public class NoBaseAddressTests : Test
     public async Task Url_WithAbsoluteUrlAndDefaultPort_WhenNoBaseAddress_OmitsDefaultPort()
     {
         await Scenario()
-            .Step("Default port is omitted from BaseUri", _ =>
+            .Step("Default port is omitted from request URI", _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient(SuiteData.NoBaseAddressClientName);
 
-                var request = client.Url("https://example.com/api/test");
+                var request = client.Url("https://example.com/api/test")
+                    .BuildRequest(HttpMethod.Get);
 
-                Assert.AreEqual(new Uri("https://example.com/"), request.Data.BaseUri);
+                Assert.IsTrue(request.RequestUri!.IsDefaultPort);
             })
             .Run();
     }
@@ -155,10 +157,11 @@ public class NoBaseAddressTests : Test
             {
                 var client = SuiteData.HttpClientFactory.CreateClient(SuiteData.NoBaseAddressClientName);
 
-                var request = client.Url("http://example.com/api/test");
+                var request = client.Url("http://example.com/api/test")
+                    .BuildRequest(HttpMethod.Get);
 
-                Assert.AreEqual(new Uri("http://example.com/"), request.Data.BaseUri);
-                Assert.AreEqual(new Uri("http://example.com/api/test"), request.Data.AbsoluteUri);
+                Assert.AreEqual("http", request.RequestUri!.Scheme);
+                Assert.AreEqual(new Uri("http://example.com/api/test"), request.RequestUri);
             })
             .Run();
     }

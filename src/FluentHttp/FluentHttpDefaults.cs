@@ -1,54 +1,22 @@
+using System.Text.Json;
+
 namespace Fuzn.FluentHttp;
 
 /// <summary>
-/// Global defaults and interceptors for FluentHttp requests.
+/// Global defaults for FluentHttp requests.
+/// These settings apply to all requests unless overridden per-request.
 /// </summary>
 public static class FluentHttpDefaults
 {
-    private static readonly Lock _lock = new();
-    private static Action<FluentHttpRequest>? _beforeSend;
+    /// <summary>
+    /// Gets or sets the default JSON serializer options.
+    /// Ignored if <see cref="Serializer"/> is set.
+    /// </summary>
+    public static JsonSerializerOptions? JsonOptions { get; set; }
 
     /// <summary>
-    /// Gets or sets the interceptor that runs before each request is sent.
-    /// Use <c>builder.Data</c> to inspect the current request state and builder methods to modify.
-    /// For async operations like token refresh, use a <see cref="DelegatingHandler"/> instead.
+    /// Gets or sets the custom serializer provider.
+    /// Takes precedence over <see cref="JsonOptions"/>.
     /// </summary>
-    /// <example>
-    /// <code>
-    /// FluentHttpDefaults.BeforeSend = builder =>
-    /// {
-    ///     // Set default serializer if not already configured per-request
-    ///     if (builder.Data.SerializerOptions is null)
-    ///     {
-    ///         builder.WithJsonOptions(myGlobalOptions);
-    ///     }
-    ///     
-    ///     // Add correlation ID to all requests
-    ///     if (!builder.Data.Headers.ContainsKey("X-Correlation-Id"))
-    ///     {
-    ///         builder.WithHeader("X-Correlation-Id", Guid.NewGuid().ToString());
-    ///     }
-    /// };
-    /// </code>
-    /// </example>
-    public static Action<FluentHttpRequest>? BeforeSend
-    {
-        get { lock (_lock) return _beforeSend; }
-        set { lock (_lock) _beforeSend = value; }
-    }
-
-    internal static void ExecuteInterceptor(FluentHttpRequest builder)
-    {
-        if (builder.Data.InterceptorExecuted)
-            return;
-
-        Action<FluentHttpRequest>? action;
-        lock (_lock)
-        {
-            action = _beforeSend;
-        }
-
-        action?.Invoke(builder);
-        builder.Data.InterceptorExecuted = true;
-    }
+    public static ISerializerProvider? Serializer { get; set; }
 }

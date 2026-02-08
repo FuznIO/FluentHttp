@@ -79,7 +79,7 @@ public class EnsureSuccessfulTests : Test
 
                 Assert.IsNotNull(caughtException, "Expected HttpRequestException to be thrown");
                 Assert.AreEqual(HttpStatusCode.BadRequest, caughtException!.StatusCode);
-                Assert.IsTrue(caughtException.Message.Contains("400"));
+                Assert.Contains("400", caughtException.Message);
             })
             .Run();
     }
@@ -106,7 +106,7 @@ public class EnsureSuccessfulTests : Test
 
                 Assert.IsNotNull(caughtException, "Expected HttpRequestException to be thrown");
                 Assert.AreEqual(HttpStatusCode.NotFound, caughtException!.StatusCode);
-                Assert.IsTrue(caughtException.Message.Contains("404"));
+                Assert.Contains("404", caughtException.Message);
             })
             .Run();
     }
@@ -133,7 +133,7 @@ public class EnsureSuccessfulTests : Test
 
                 Assert.IsNotNull(caughtException, "Expected HttpRequestException to be thrown");
                 Assert.AreEqual(HttpStatusCode.InternalServerError, caughtException!.StatusCode);
-                Assert.IsTrue(caughtException.Message.Contains("500"));
+                Assert.Contains("500", caughtException.Message);
             })
             .Run();
     }

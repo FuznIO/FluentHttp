@@ -12,29 +12,39 @@ namespace Fuzn.FluentHttp;
 /// </summary>
 public class FluentHttpRequest
 {
-    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _propertyCache = new();
+    private static ConcurrentDictionary<Type, PropertyInfo[]>? _propertyCache;
 
-    private readonly HttpRequestData _data = new();
+    private readonly FluentHttpRequestData _data = new();
 
     /// <summary>
     /// Gets the underlying request data for inspection or direct modification.
     /// </summary>
-    public HttpRequestData Data => _data;
+    public FluentHttpRequestData Data => _data;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FluentHttpRequest"/> class.
     /// </summary>
     /// <param name="httpClient">The HttpClient instance to use for sending requests.</param>
-    /// <param name="url">The target URL for the request.</param>
-    internal FluentHttpRequest(HttpClient httpClient, string url)
+    internal FluentHttpRequest(HttpClient httpClient)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
+        _data.HttpClient = httpClient;
+    }
+
+    /// <summary>
+    /// Sets the target URL for the request.
+    /// </summary>
+    /// <param name="url">The target URL for the request. Must be absolute if HttpClient has no BaseAddress.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when url is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when the URL is not valid and HttpClient has no BaseAddress.</exception>
+    public FluentHttpRequest WithUrl(string url)
+    {
         ArgumentNullException.ThrowIfNull(url);
 
-        _data.HttpClient = httpClient;
         _data.RequestUrl = url;
 
-        if (httpClient.BaseAddress is null)
+        if (_data.HttpClient.BaseAddress is null)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri))
                 throw new ArgumentException("The provided URL is not a valid absolute URL and the HttpClient does not have a BaseAddress set.");
@@ -45,9 +55,11 @@ public class FluentHttpRequest
         }
         else
         {
-            _data.BaseUri = httpClient.BaseAddress;
-            _data.AbsoluteUri = new Uri(httpClient.BaseAddress, url);
+            _data.BaseUri = _data.HttpClient.BaseAddress;
+            _data.AbsoluteUri = new Uri(_data.HttpClient.BaseAddress, url);
         }
+
+        return this;
     }
 
     /// <summary>
@@ -266,6 +278,7 @@ public class FluentHttpRequest
             return this;
 
         var type = parameters.GetType();
+        _propertyCache ??= new();
         var properties = _propertyCache.GetOrAdd(type, t => t.GetProperties());
 
         foreach (var prop in properties)
@@ -481,7 +494,6 @@ public class FluentHttpRequest
     /// <summary>
     /// Returns a formatted debug string showing the current request configuration.
     /// Useful for logging and debugging.
-    /// Note: This shows the state BEFORE the BeforeSend interceptor runs.
     /// </summary>
     /// <returns>A formatted string containing the request configuration details.</returns>
     public override string ToString()
@@ -554,7 +566,6 @@ public class FluentHttpRequest
     /// <summary>
     /// Builds the HttpRequestMessage without sending it.
     /// Useful for debugging, logging, or testing request construction.
-    /// Runs the BeforeSend interceptor to show the exact request that would be sent.
     /// Note: Use this OR the Send methods (Get, Post, etc.), not both.
     /// For quick inspection without side effects, use <see cref="ToString"/> instead.
     /// </summary>
@@ -564,7 +575,6 @@ public class FluentHttpRequest
     public HttpRequestMessage BuildRequest(HttpMethod method)
     {
         _data.Method = method;
-        FluentHttpDefaults.ExecuteInterceptor(this);
         return _data.MapToHttpRequestMessage(GetSerializer());
     }
 
@@ -801,9 +811,6 @@ public class FluentHttpRequest
 
     private async Task<FluentHttpResponse> SendInternal(CancellationToken cancellationToken = default)
     {
-        // Execute global interceptor before building request
-        FluentHttpDefaults.ExecuteInterceptor(this);
-
         var serializerProvider = GetSerializer();
 
         var request = _data.MapToHttpRequestMessage(serializerProvider);
@@ -828,21 +835,24 @@ public class FluentHttpRequest
 
     private ISerializerProvider GetSerializer()
     {
-        ISerializerProvider serializerProvider;
-        if (_data.Serializer != null)
-            serializerProvider = _data.Serializer;
-        else if (_data.JsonOptions != null)
-            serializerProvider = new SystemTextJsonSerializerProvider(_data.JsonOptions);
-        else
-            serializerProvider = new SystemTextJsonSerializerProvider();
-        return serializerProvider;
+        // Priority: per-request > global settings > default
+        if (_data.Serializer is not null)
+            return _data.Serializer;
+
+        if (_data.JsonOptions is not null)
+            return new SystemTextJsonSerializerProvider(_data.JsonOptions);
+
+        if (FluentHttpDefaults.Serializer is not null)
+            return FluentHttpDefaults.Serializer;
+
+        if (FluentHttpDefaults.JsonOptions is not null)
+            return new SystemTextJsonSerializerProvider(FluentHttpDefaults.JsonOptions);
+
+        return new SystemTextJsonSerializerProvider();
     }
 
     private async Task<FluentHttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
     {
-        // Execute global interceptor before building request
-        FluentHttpDefaults.ExecuteInterceptor(this);
-
         var request = _data.MapToHttpRequestMessage(GetSerializer());
         HttpResponseMessage? response = null;
 
