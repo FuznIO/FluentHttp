@@ -17,24 +17,29 @@ public class FluentHttpRequest
     private readonly HttpRequestData _data = new();
 
     /// <summary>
-    /// Gets the underlying request data for inspection or direct modification.
-    /// </summary>
-    public HttpRequestData Data => _data;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="FluentHttpRequest"/> class.
     /// </summary>
     /// <param name="httpClient">The HttpClient instance to use for sending requests.</param>
-    /// <param name="url">The target URL for the request.</param>
-    internal FluentHttpRequest(HttpClient httpClient, string url)
+    internal FluentHttpRequest(HttpClient httpClient)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
+        _data.HttpClient = httpClient;
+    }
+
+    /// <summary>
+    /// Sets the target URL for the request.
+    /// </summary>
+    /// <param name="url">The target URL for the request. Must be absolute if HttpClient has no BaseAddress.</param>
+    /// <returns>The current builder instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when url is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when the URL is not valid and HttpClient has no BaseAddress.</exception>
+    public FluentHttpRequest WithUrl(string url)
+    {
         ArgumentNullException.ThrowIfNull(url);
 
-        _data.HttpClient = httpClient;
         _data.RequestUrl = url;
 
-        if (httpClient.BaseAddress is null)
+        if (_data.HttpClient.BaseAddress is null)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri))
                 throw new ArgumentException("The provided URL is not a valid absolute URL and the HttpClient does not have a BaseAddress set.");
@@ -45,9 +50,11 @@ public class FluentHttpRequest
         }
         else
         {
-            _data.BaseUri = httpClient.BaseAddress;
-            _data.AbsoluteUri = new Uri(httpClient.BaseAddress, url);
+            _data.BaseUri = _data.HttpClient.BaseAddress;
+            _data.AbsoluteUri = new Uri(_data.HttpClient.BaseAddress, url);
         }
+
+        return this;
     }
 
     /// <summary>

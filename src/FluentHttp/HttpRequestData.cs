@@ -10,7 +10,7 @@ namespace Fuzn.FluentHttp;
 /// Contains all data for building an HTTP request.
 /// Exposed to interceptors for inspection and modification.
 /// </summary>
-public class HttpRequestData
+internal class HttpRequestData
 {
     private List<Cookie>? _cookies;
     private Dictionary<string, string>? _headers;

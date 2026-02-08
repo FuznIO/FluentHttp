@@ -6,18 +6,23 @@
 public static class HttpClientExtensions
 {
     /// <summary>
-    /// Provides fluent HTTP request building extensions for <see cref="HttpClient"/>.
+    /// Creates a new <see cref="FluentHttpRequest"/> for the specified HttpClient.
     /// </summary>
-    extension (HttpClient httpClient)
+    /// <param name="httpClient">The HttpClient to use for the request.</param>
+    /// <returns>A new <see cref="FluentHttpRequest"/> instance.</returns>
+    public static FluentHttpRequest Request(this HttpClient httpClient)
     {
-        /// <summary>
-        /// Creates a new <see cref="FluentHttpRequest"/> with the specified URL.
-        /// </summary>
-        /// <param name="url">The URL for the HTTP request.</param>
-        /// <returns>A new <see cref="FluentHttpRequest"/> instance configured with the specified URL.</returns>
-        public FluentHttpRequest Url(string url)
-        {
-            return new FluentHttpRequest(httpClient, url);
-        }
+        return new FluentHttpRequest(httpClient);
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="FluentHttpRequest"/> with the specified URL.
+    /// </summary>
+    /// <param name="httpClient">The HttpClient to use for the request.</param>
+    /// <param name="url">The URL for the HTTP request.</param>
+    /// <returns>A new <see cref="FluentHttpRequest"/> instance configured with the specified URL.</returns>
+    public static FluentHttpRequest Url(this HttpClient httpClient, string url)
+    {
+        return new FluentHttpRequest(httpClient).WithUrl(url);
     }
 }

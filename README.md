@@ -49,6 +49,19 @@ services.AddHttpClient<UserHttpClient>(client =>
 });
 ```
 
+### Alternative: Fluent URL Configuration
+
+You can also use the `Request()` extension with `WithUrl()` for a more explicit fluent chain:
+
+```csharp
+var response = await httpClient
+    .Request()
+    .WithUrl("/users/1")
+    .Get<User>();
+```
+
+Both approaches are equivalent - use whichever style you prefer.
+
 ### With IHttpClientFactory
 
 For scenarios where you need to create clients manually:
@@ -94,7 +107,7 @@ var searchResponse = await client
     .Get<SearchResult>();
 ```
 
-> **Note:** When no `BaseAddress` is set, the URL provided to `.Url()` must be an absolute URL (including scheme and host). Relative URLs will throw an `ArgumentException`.
+> **Note:** When no `BaseAddress` is set, the URL provided to `.Url()` or `.WithUrl()` must be an absolute URL (including scheme and host). Relative URLs will throw an `ArgumentException`.
 
 > **Why use `IHttpClientFactory`?** Creating `HttpClient` instances with `new HttpClient()` can lead to socket exhaustion and DNS caching issues. `IHttpClientFactory` manages the underlying `HttpMessageHandler` instances, providing proper pooling and lifetime management. See [Microsoft's guidance](https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient-guidelines) for details.
 
