@@ -17,7 +17,7 @@ internal static class SuiteData
             client.BaseAddress = new Uri("https://localhost:5201/");
         });
 
-        services.AddHttpClient<TestApiHttpClientWithGlobalSettings>(client =>
+        services.AddHttpClient<TestApiHttpClient>(client =>
         {
             client.BaseAddress = new Uri("https://localhost:5201/");
         });

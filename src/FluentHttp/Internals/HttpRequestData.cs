@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Web;
 
-namespace Fuzn.FluentHttp;
+namespace Fuzn.FluentHttp.Internals;
 
 /// <summary>
 /// Contains all data for building an HTTP request.
