@@ -12,9 +12,14 @@ namespace Fuzn.FluentHttp;
 /// </summary>
 public class FluentHttpRequest
 {
-    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _propertyCache = new();
+    private static ConcurrentDictionary<Type, PropertyInfo[]>? _propertyCache;
 
-    private readonly HttpRequestData _data = new();
+    private readonly FluentHttpRequestData _data = new();
+
+    /// <summary>
+    /// Gets the underlying request data for inspection or direct modification.
+    /// </summary>
+    public FluentHttpRequestData Data => _data;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FluentHttpRequest"/> class.
@@ -273,6 +278,7 @@ public class FluentHttpRequest
             return this;
 
         var type = parameters.GetType();
+        _propertyCache ??= new();
         var properties = _propertyCache.GetOrAdd(type, t => t.GetProperties());
 
         foreach (var prop in properties)
@@ -482,18 +488,6 @@ public class FluentHttpRequest
     public FluentHttpRequest WithOption(string key, object value)
     {
         _data.Options.Add(key, value);
-        return this;
-    }
-
-    /// <summary>
-    /// Applies settings from a <see cref="FluentHttpSettings"/> instance.
-    /// Settings are used as defaults and can be overridden by per-request configuration.
-    /// </summary>
-    /// <param name="settings">The settings to apply.</param>
-    /// <returns>The current builder instance for method chaining.</returns>
-    public FluentHttpRequest WithSettings(FluentHttpSettings settings)
-    {
-        _data.Settings = settings;
         return this;
     }
 
@@ -841,24 +835,18 @@ public class FluentHttpRequest
 
     private ISerializerProvider GetSerializer()
     {
-        // Priority: per-request > instance settings > global settings > default
+        // Priority: per-request > global settings > default
         if (_data.Serializer is not null)
             return _data.Serializer;
 
         if (_data.JsonOptions is not null)
             return new SystemTextJsonSerializerProvider(_data.JsonOptions);
 
-        if (_data.Settings?.Serializer is not null)
-            return _data.Settings.Serializer;
+        if (FluentHttpDefaults.Serializer is not null)
+            return FluentHttpDefaults.Serializer;
 
-        if (_data.Settings?.JsonOptions is not null)
-            return new SystemTextJsonSerializerProvider(_data.Settings.JsonOptions);
-
-        if (FluentHttpDefaults.Settings.Serializer is not null)
-            return FluentHttpDefaults.Settings.Serializer;
-
-        if (FluentHttpDefaults.Settings.JsonOptions is not null)
-            return new SystemTextJsonSerializerProvider(FluentHttpDefaults.Settings.JsonOptions);
+        if (FluentHttpDefaults.JsonOptions is not null)
+            return new SystemTextJsonSerializerProvider(FluentHttpDefaults.JsonOptions);
 
         return new SystemTextJsonSerializerProvider();
     }

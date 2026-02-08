@@ -9,14 +9,13 @@ public class TestApiHttpClient
     public TestApiHttpClient(HttpClient client)
     {
         _client = client;
-        
     }
 
     private FluentHttpRequest GetRequest()
     {
         return _client
             .Request()
-            .WithSettings(new FluentHttpSettings() { Serializer = new CustomJsonSerializerProvider() });
+            .WithSerializer(new CustomJsonSerializerProvider());
     }
 
     public async Task<PersonDto> GetPerson1()

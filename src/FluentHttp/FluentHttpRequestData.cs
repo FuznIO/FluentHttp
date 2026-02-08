@@ -4,13 +4,13 @@ using System.Text;
 using System.Text.Json;
 using System.Web;
 
-namespace Fuzn.FluentHttp.Internals;
+namespace Fuzn.FluentHttp;
 
 /// <summary>
 /// Contains all data for building an HTTP request.
 /// Exposed to interceptors for inspection and modification.
 /// </summary>
-internal class HttpRequestData
+public class FluentHttpRequestData
 {
     private List<Cookie>? _cookies;
     private Dictionary<string, string>? _headers;
@@ -84,8 +84,6 @@ internal class HttpRequestData
 
     /// <summary>Query parameters.</summary>
     public List<KeyValuePair<string, string>> QueryParams => _queryParams ??= [];
-
-    internal FluentHttpSettings? Settings { get; set; }
 
     internal CancellationToken CancellationToken { get; set; } = default;
 

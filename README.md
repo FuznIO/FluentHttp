@@ -623,7 +623,7 @@ By default, FluentHttp uses `System.Text.Json` with `JsonSerializerDefaults.Web`
 - **Case-insensitive** property matching when deserializing
 - **Number handling** that allows reading numbers from strings
 
-This works well with most REST APIs. You can override these defaults per-request, per-client, or globally.
+This works well with most REST APIs. You can override these defaults per-request or globally.
 
 ### Using System.Text.Json Options (Per-Request)
 
@@ -663,78 +663,41 @@ var response = await httpClient
     .Post<Result>();
 ```
 
-## Global and Instance Settings
+## Global Settings
 
-FluentHttp provides `FluentHttpSettings` for configuring serialization defaults. Settings can be applied at three levels with the following precedence (highest to lowest):
+FluentHttp provides `FluentHttpDefaults` for configuring serialization defaults globally. Settings can be applied at two levels with the following precedence (highest to lowest):
 
 1. **Per-request** - via `.WithJsonOptions()` or `.WithSerializer()`
-2. **Instance settings** - via `.WithSettings()`
-3. **Global settings** - via `FluentHttpDefaults.Settings`
+2. **Global settings** - via `FluentHttpDefaults`
 
-### Global Settings (Static)
+### Configuring Global Defaults
 
 Configure global defaults that apply to all requests:
 
 ```csharp
 // Use PascalCase globally instead of the default camelCase
-FluentHttpDefaults.Settings = new FluentHttpSettings
+FluentHttpDefaults.JsonOptions = new JsonSerializerOptions
 {
-    JsonOptions = new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = null, // Preserve PascalCase
-        PropertyNameCaseInsensitive = true
-    }
+    PropertyNamingPolicy = null, // Preserve PascalCase
+    PropertyNameCaseInsensitive = true
 };
 
 // Or use a custom serializer globally
-FluentHttpDefaults.Settings = new FluentHttpSettings
-{
-    Serializer = new NewtonsoftSerializerProvider()
-};
-```
-
-### Instance Settings (Dependency Injection)
-
-For DI scenarios, register `FluentHttpSettings` and inject it into your services:
-
-```csharp
-// In Program.cs or Startup.cs
-services.AddFluentHttp(settings =>
-{
-    settings.JsonOptions = new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-});
-
-// In your service
-public class UserService(HttpClient httpClient, FluentHttpSettings settings)
-{
-    public async Task<User?> GetUserAsync(int id)
-    {
-        var response = await httpClient
-            .Url($"/users/{id}")
-            .WithSettings(settings)
-            .Get<User>();
-
-        return response.IsSuccessful ? response.Data : null;
-    }
-}
+FluentHttpDefaults.Serializer = new NewtonsoftSerializerProvider();
 ```
 
 ### Per-Request Override
 
-Per-request settings always take precedence:
+Per-request settings always take precedence over global settings:
 
 ```csharp
 var response = await httpClient
     .Url("/api/data")
-    .WithSettings(injectedSettings)           // Instance settings
-    .WithJsonOptions(specialOptions)          // Per-request overrides instance
+    .WithJsonOptions(specialOptions)          // Per-request overrides global
     .Post<Result>();
 ```
 
-> **Note:** For request/response interception (headers, authentication, logging), use a `DelegatingHandler` instead. `FluentHttpSettings` is focused on serialization configuration which cannot be done at the `HttpClient` pipeline level.
+> **Note:** For request/response interception (headers, authentication, logging), use a `DelegatingHandler` instead. Global settings are focused on serialization configuration which cannot be done at the `HttpClient` pipeline level.
 
 ## Resilience and Retry Policies
 

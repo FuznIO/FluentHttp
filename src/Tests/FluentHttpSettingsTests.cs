@@ -6,7 +6,7 @@ namespace Fuzn.FluentHttp.Tests;
 
 [TestClass]
 [DoNotParallelize]
-public class FluentHttpSettingsTests : Test
+public class FluentHttpDefaultsTests : Test
 {
     [Test]
     public async Task GlobalSettings_SetsDefaultSerializerOptions()
@@ -14,12 +14,9 @@ public class FluentHttpSettingsTests : Test
         await Scenario()
             .BeforeScenario(_ =>
             {
-                FluentHttpDefaults.Settings = new FluentHttpSettings
+                FluentHttpDefaults.JsonOptions = new JsonSerializerOptions
                 {
-                    JsonOptions = new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                    }
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 };
                 return Task.CompletedTask;
             })
@@ -39,7 +36,8 @@ public class FluentHttpSettingsTests : Test
             })
             .AfterScenario(_ =>
             {
-                FluentHttpDefaults.Settings = new FluentHttpSettings();
+                FluentHttpDefaults.JsonOptions = null;
+                FluentHttpDefaults.Serializer = null;
                 return Task.CompletedTask;
             })
             .Run();
@@ -51,12 +49,9 @@ public class FluentHttpSettingsTests : Test
         await Scenario()
             .BeforeScenario(_ =>
             {
-                FluentHttpDefaults.Settings = new FluentHttpSettings
+                FluentHttpDefaults.JsonOptions = new JsonSerializerOptions
                 {
-                    JsonOptions = new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                    }
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 };
                 return Task.CompletedTask;
             })
@@ -82,90 +77,45 @@ public class FluentHttpSettingsTests : Test
             })
             .AfterScenario(_ =>
             {
-                FluentHttpDefaults.Settings = new FluentHttpSettings();
+                FluentHttpDefaults.JsonOptions = null;
+                FluentHttpDefaults.Serializer = null;
                 return Task.CompletedTask;
             })
             .Run();
     }
 
     [Test]
-    public async Task InstanceSettings_TakesPrecedence_OverGlobalSettings()
+    public async Task GlobalSerializer_TakesPrecedence_OverJsonOptions()
     {
         await Scenario()
             .BeforeScenario(_ =>
             {
-                FluentHttpDefaults.Settings = new FluentHttpSettings
-                {
-                    JsonOptions = new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                    }
-                };
-                return Task.CompletedTask;
-            })
-            .Step("Instance settings override global settings", async _ =>
-            {
-                var client = SuiteData.HttpClientFactory.CreateClient();
-
-                var instanceSettings = new FluentHttpSettings
-                {
-                    JsonOptions = new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = null // PascalCase
-                    }
-                };
-
-                var payload = new { TestProperty = "value" };
-
-                var response = await client.Url("/api/echo")
-                    .WithSettings(instanceSettings)
-                    .WithContent(payload)
-                    .Post();
-
-                Assert.IsTrue(response.IsSuccessful);
-                // Instance settings use PascalCase, so TestProperty stays as-is
-                Assert.Contains("TestProperty", response.Content);
-            })
-            .AfterScenario(_ =>
-            {
-                FluentHttpDefaults.Settings = new FluentHttpSettings();
-                return Task.CompletedTask;
-            })
-            .Run();
-    }
-
-    [Test]
-    public async Task PerRequestOptions_TakesPrecedence_OverInstanceSettings()
-    {
-        await Scenario()
-            .Step("Per-request options override instance settings", async _ =>
-            {
-                var client = SuiteData.HttpClientFactory.CreateClient();
-
-                var instanceSettings = new FluentHttpSettings
-                {
-                    JsonOptions = new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                    }
-                };
-
-                var perRequestOptions = new JsonSerializerOptions
+                FluentHttpDefaults.JsonOptions = new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = null // PascalCase
                 };
+                FluentHttpDefaults.Serializer = new CustomJsonSerializerProvider(); // Uses camelCase
+                return Task.CompletedTask;
+            })
+            .Step("Global Serializer takes precedence over JsonOptions", async _ =>
+            {
+                var client = SuiteData.HttpClientFactory.CreateClient();
 
                 var payload = new { TestProperty = "value" };
 
                 var response = await client.Url("/api/echo")
-                    .WithSettings(instanceSettings)
-                    .WithJsonOptions(perRequestOptions)
                     .WithContent(payload)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
-                // Per-request uses PascalCase, so TestProperty stays as-is
-                Assert.Contains("TestProperty", response.Content);
+                // Serializer uses camelCase, so testProperty
+                Assert.Contains("testProperty", response.Content);
+            })
+            .AfterScenario(_ =>
+            {
+                FluentHttpDefaults.JsonOptions = null;
+                FluentHttpDefaults.Serializer = null;
+                return Task.CompletedTask;
             })
             .Run();
     }
@@ -176,7 +126,8 @@ public class FluentHttpSettingsTests : Test
         await Scenario()
             .BeforeScenario(_ =>
             {
-                FluentHttpDefaults.Settings = new FluentHttpSettings();
+                FluentHttpDefaults.JsonOptions = null;
+                FluentHttpDefaults.Serializer = null;
                 return Task.CompletedTask;
             })
             .Step("Request works normally with default settings", async _ =>

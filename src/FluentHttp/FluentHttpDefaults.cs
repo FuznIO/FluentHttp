@@ -1,15 +1,22 @@
+using System.Text.Json;
+
 namespace Fuzn.FluentHttp;
 
 /// <summary>
 /// Global defaults for FluentHttp requests.
-/// For dependency injection scenarios, register <see cref="FluentHttpSettings"/> directly
-/// and use <see cref="FluentHttpRequest.WithSettings"/> instead.
+/// These settings apply to all requests unless overridden per-request.
 /// </summary>
 public static class FluentHttpDefaults
 {
     /// <summary>
-    /// Gets or sets the global settings applied to all requests unless overridden
-    /// per-request via <see cref="FluentHttpRequest.WithSettings"/> or per-property methods.
+    /// Gets or sets the default JSON serializer options.
+    /// Ignored if <see cref="Serializer"/> is set.
     /// </summary>
-    public static FluentHttpSettings Settings { get; set; } = new();
+    public static JsonSerializerOptions? JsonOptions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the custom serializer provider.
+    /// Takes precedence over <see cref="JsonOptions"/>.
+    /// </summary>
+    public static ISerializerProvider? Serializer { get; set; }
 }
