@@ -82,21 +82,20 @@ await httpClient
 
 ### Query Parameters
 
-Multiple ways to add query parameters:
+Add query parameters to the request URL:
 
 ```csharp
-// Individual parameters
+// Individual parameters (values must be strings)
 .WithQueryParam("q", "dotnet")
-.WithQueryParam("page", 1)
-
-// From anonymous object
-.WithQueryParams(new { q = "dotnet", page = 1 })
-
-// From dictionary
-.WithQueryParams(new Dictionary<string, object?> { ["q"] = "dotnet" })
+.WithQueryParam("page", "1")
 
 // Multiple values for same key (e.g., ?tags=c%23&tags=dotnet)
-.WithQueryParam("tags", new[] { "c#", "dotnet" })
+.WithQueryParam("tags", "c#")
+.WithQueryParam("tags", "dotnet")
+
+// For non-string values, convert to string yourself
+.WithQueryParam("date", DateTime.UtcNow.ToString("O"))
+.WithQueryParam("active", true.ToString().ToLower())
 ```
 
 ### Headers
