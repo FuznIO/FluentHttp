@@ -8,7 +8,6 @@ namespace Fuzn.FluentHttp;
 
 /// <summary>
 /// Contains all data for building an HTTP request.
-/// Exposed to interceptors for inspection and modification.
 /// </summary>
 public class FluentHttpRequestData
 {
@@ -211,27 +210,14 @@ public class FluentHttpRequestData
             return RequiresAbsoluteUri ? AbsoluteUri.AbsoluteUri : AbsoluteUri.PathAndQuery;
 
         var pathAndQuery = AbsoluteUri.PathAndQuery;
-
-        // Build query string
         var queryString = BuildQueryString();
 
-        string resultPath;
-        // Check if URL already has query parameters
-        if (pathAndQuery.Contains('?'))
-        {
-            // Append with &
-            resultPath = $"{pathAndQuery}&{queryString}";
-        }
-        else
-        {
-            // Remove existing query from pathAndQuery if present, add new one
-            var path = pathAndQuery.Split('?')[0];
-            resultPath = $"{path}?{queryString}";
-        }
+        // Determine the separator: & if URL already has query params, ? otherwise
+        var separator = pathAndQuery.Contains('?') ? '&' : '?';
+        var resultPath = $"{pathAndQuery}{separator}{queryString}";
 
         if (RequiresAbsoluteUri)
         {
-            // Combine base URI with the path and query
             return new Uri(BaseUri, resultPath).AbsoluteUri;
         }
 

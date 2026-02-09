@@ -12,7 +12,8 @@ namespace Fuzn.FluentHttp;
 /// </summary>
 public class FluentHttpRequest
 {
-    private static ConcurrentDictionary<Type, PropertyInfo[]>? _propertyCache;
+    private static readonly Lazy<ConcurrentDictionary<Type, PropertyInfo[]>> _propertyCache = 
+        new(() => new ConcurrentDictionary<Type, PropertyInfo[]>());
 
     private readonly FluentHttpRequestData _data = new();
 
@@ -55,8 +56,19 @@ public class FluentHttpRequest
         }
         else
         {
-            _data.BaseUri = _data.HttpClient.BaseAddress;
-            _data.AbsoluteUri = new Uri(_data.HttpClient.BaseAddress, url);
+            // When BaseAddress is set, honor absolute URLs instead of treating them as relative
+            if (Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri))
+            {
+                _data.AbsoluteUri = absoluteUri;
+                _data.BaseUri = new UriBuilder(absoluteUri.Scheme, absoluteUri.Host, absoluteUri.IsDefaultPort ? -1 : absoluteUri.Port).Uri;
+                _data.RequiresAbsoluteUri = true;
+            }
+            else
+            {
+                _data.BaseUri = _data.HttpClient.BaseAddress;
+                _data.AbsoluteUri = new Uri(_data.HttpClient.BaseAddress, url);
+                _data.RequiresAbsoluteUri = false;
+            }
         }
 
         return this;
@@ -278,8 +290,7 @@ public class FluentHttpRequest
             return this;
 
         var type = parameters.GetType();
-        _propertyCache ??= new();
-        var properties = _propertyCache.GetOrAdd(type, t => t.GetProperties());
+        var properties = _propertyCache.Value.GetOrAdd(type, t => t.GetProperties());
 
         foreach (var prop in properties)
         {
@@ -514,7 +525,7 @@ public class FluentHttpRequest
         {
             sb.AppendLine("Headers:");
             foreach (var h in _data.Headers)
-                sb.AppendLine($"  {h.Key}: {(h.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase) ? "[REDACTED]" : h.Value)}");
+                sb.AppendLine($"  {h.Key}: {h.Value}");
         }
 
         sb.AppendLine($"Content-Type: {_data.ContentType ?? "(not set)"}");
@@ -522,9 +533,9 @@ public class FluentHttpRequest
 
         if (_data.Content != null)
         {
-            var contentJson = _data.Serializer?.Serialize(_data.Content)
-                ?? JsonSerializer.Serialize(_data.Content, _data.JsonOptions);
-            sb.AppendLine($"Content: {(contentJson.Length > 500 ? contentJson[..500] + "..." : contentJson)}");
+            var serializer = GetSerializer();
+            var contentJson = serializer.Serialize(_data.Content);
+            sb.AppendLine($"Content: {contentJson}");
         }
 
         if (_data.HasFiles)
@@ -572,8 +583,12 @@ public class FluentHttpRequest
     /// <param name="method">The HTTP method to use.</param>
     /// <returns>The constructed HttpRequestMessage.</returns>
     /// <exception cref="FluentHttpSerializationException">Thrown when request content serialization fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when URL has not been set.</exception>
     public HttpRequestMessage BuildRequest(HttpMethod method)
     {
+        if (_data.AbsoluteUri is null)
+            throw new InvalidOperationException("URL must be set before building the request. Call WithUrl() first.");
+
         _data.Method = method;
         return _data.MapToHttpRequestMessage(GetSerializer());
     }
@@ -811,6 +826,9 @@ public class FluentHttpRequest
 
     private async Task<FluentHttpResponse> SendInternal(CancellationToken cancellationToken = default)
     {
+        if (_data.AbsoluteUri is null)
+            throw new InvalidOperationException("URL must be set before sending the request. Call HttpClient.Url() or HttpClient.Request().WithUrl() first.");
+
         var serializerProvider = GetSerializer();
 
         var request = _data.MapToHttpRequestMessage(serializerProvider);

@@ -18,19 +18,7 @@ public class TestApiHttpClient
             .WithSerializer(new CustomJsonSerializerProvider());
     }
 
-    public async Task<PersonDto> GetPerson1()
-    {
-        var response = await GetRequest().WithUrl("/api/deserialize/person").Get();
-
-        if (!response.IsSuccessful)
-        {
-            throw new Exception($"Request failed with status code: {response.StatusCode}");
-        }
-
-        return response.ContentAs<PersonDto>() ?? throw new Exception("Failed to deserialize response content.");
-    }
-
-    public async Task<PersonDto> GetPerson2()
+    public async Task<PersonDto> GetPerson()
     {
         var response = await GetRequest().WithUrl("/api/deserialize/person").Get();
 

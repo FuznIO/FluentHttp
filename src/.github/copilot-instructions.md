@@ -2,7 +2,7 @@
 
 ## Project Overview
 FluentHttp is an open source fluent HTTP client library for .NET.
-The version is still in beta so make any breaking changes, propose the best changes, dont propose backwards compatible changes.
+The version is still in beta, so feel free to propose breaking changes; you don't need to maintain backward compatibility.
 
 ## Technical Stack
 - .NET 10
