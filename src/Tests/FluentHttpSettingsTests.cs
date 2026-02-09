@@ -6,7 +6,7 @@ namespace Fuzn.FluentHttp.Tests;
 
 [TestClass]
 [DoNotParallelize]
-public class FluentHttpDefaultsTests : Test
+public class FluentHttpSettingsTests : Test
 {
     [Test]
     public async Task GlobalSettings_SetsDefaultSerializerOptions()

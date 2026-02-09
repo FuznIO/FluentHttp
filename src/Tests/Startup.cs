@@ -31,6 +31,7 @@ public class Startup : IStartup, IBeforeSuite, IAfterSuite
 
     public Task AfterSuite(Context context)
     {
+        SuiteData.ServiceProvider?.Dispose();
         return Task.CompletedTask;
     }
 }
