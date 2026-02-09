@@ -1,7 +1,5 @@
 ﻿using Fuzn.FluentHttp.Internals;
-using System.Collections.Concurrent;
 using System.Net;
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -12,9 +10,6 @@ namespace Fuzn.FluentHttp;
 /// </summary>
 public class FluentHttpRequest
 {
-    private static readonly Lazy<ConcurrentDictionary<Type, PropertyInfo[]>> _propertyCache = 
-        new(() => new ConcurrentDictionary<Type, PropertyInfo[]>());
-
     private readonly FluentHttpRequestData _data = new();
 
     /// <summary>
@@ -224,80 +219,11 @@ public class FluentHttpRequest
     /// Adds a query parameter to the request URL.
     /// </summary>
     /// <param name="key">The parameter name.</param>
-    /// <param name="value">The parameter value. Will be converted to string and URL-encoded.</param>
+    /// <param name="value">The parameter value. Will be URL-encoded.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public FluentHttpRequest WithQueryParam(string key, object? value)
+    public FluentHttpRequest WithQueryParam(string key, string value)
     {
-        if (value != null)
-        {
-            var stringValue = value switch
-            {
-                string s => s,
-                bool b => b ? "true" : "false",
-                DateTime dt => dt.ToString("O"), // ISO 8601 format
-                DateTimeOffset dto => dto.ToString("O"),
-                _ => value.ToString()
-            };
-
-            _data.QueryParams.Add(new KeyValuePair<string, string>(key, stringValue ?? string.Empty));
-        }
-
-        return this;
-    }
-
-    /// <summary>
-    /// Adds multiple query parameters to the request URL.
-    /// </summary>
-    /// <param name="parameters">A dictionary of parameter names and values.</param>
-    /// <returns>The current builder instance for method chaining.</returns>
-    public FluentHttpRequest WithQueryParams(IDictionary<string, object?> parameters)
-    {
-        foreach (var param in parameters)
-        {
-            WithQueryParam(param.Key, param.Value);
-        }
-
-        return this;
-    }
-
-    /// <summary>
-    /// Adds multiple values for the same query parameter (e.g., ?tags=c%23&amp;tags=dotnet&amp;tags=http).
-    /// </summary>
-    /// <param name="key">The parameter name.</param>
-    /// <param name="values">The collection of values.</param>
-    /// <returns>The current builder instance for method chaining.</returns>
-    public FluentHttpRequest WithQueryParam(string key, IEnumerable<object?>? values)
-    {
-        if (values == null)
-            return this;
-
-        foreach (var value in values)
-        {
-            WithQueryParam(key, value);
-        }
-
-        return this;
-    }
-
-    /// <summary>
-    /// Adds query parameters from an anonymous object.
-    /// </summary>
-    /// <param name="parameters">An anonymous object whose properties become query parameters.</param>
-    /// <returns>The current builder instance for method chaining.</returns>
-    public FluentHttpRequest WithQueryParams(object? parameters)
-    {
-        if (parameters == null)
-            return this;
-
-        var type = parameters.GetType();
-        var properties = _propertyCache.Value.GetOrAdd(type, t => t.GetProperties());
-
-        foreach (var prop in properties)
-        {
-            var value = prop.GetValue(parameters);
-            WithQueryParam(prop.Name, value);
-        }
-
+        _data.QueryParams.Add(new KeyValuePair<string, string>(key, value));
         return this;
     }
 

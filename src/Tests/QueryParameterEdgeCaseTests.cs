@@ -7,16 +7,16 @@ namespace Fuzn.FluentHttp.Tests;
 public class QueryParameterEdgeCaseTests : Test
 {
     [Test]
-    public async Task WithQueryParam_DateTimeValue_FormatsAsIso8601()
+    public async Task WithQueryParam_DateTimeValue_CanBeFormattedByDeveloper()
     {
         await Scenario()
-            .Step("DateTime query parameter is formatted as ISO 8601", async _ =>
+            .Step("DateTime query parameter formatted by developer as ISO 8601", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 var testDate = new DateTime(2024, 6, 15, 10, 30, 0, DateTimeKind.Utc);
                 
                 var response = await client.Url("/api/echo")
-                    .WithQueryParam("date", testDate)
+                    .WithQueryParam("date", testDate.ToString("O"))
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
@@ -27,35 +27,16 @@ public class QueryParameterEdgeCaseTests : Test
     }
 
     [Test]
-    public async Task WithQueryParam_DateTimeOffsetValue_FormatsAsIso8601()
+    public async Task WithQueryParam_BooleanValue_CanBeFormattedByDeveloper()
     {
         await Scenario()
-            .Step("DateTimeOffset query parameter is formatted as ISO 8601", async _ =>
-            {
-                var client = SuiteData.HttpClientFactory.CreateClient();
-                var testDate = new DateTimeOffset(2024, 6, 15, 10, 30, 0, TimeSpan.Zero);
-                
-                var response = await client.Url("/api/echo")
-                    .WithQueryParam("date", testDate)
-                    .Get();
-
-                Assert.IsTrue(response.IsSuccessful);
-                Assert.Contains("2024-06-15", response.Content);
-            })
-            .Run();
-    }
-
-    [Test]
-    public async Task WithQueryParam_BooleanValue_FormatsAsLowercase()
-    {
-        await Scenario()
-            .Step("Boolean query parameter is formatted as lowercase", async _ =>
+            .Step("Boolean query parameter formatted by developer as lowercase", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 
                 var response = await client.Url("/api/echo")
-                    .WithQueryParam("enabled", true)
-                    .WithQueryParam("disabled", false)
+                    .WithQueryParam("enabled", "true")
+                    .WithQueryParam("disabled", "false")
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
@@ -75,73 +56,13 @@ public class QueryParameterEdgeCaseTests : Test
                 
                 var response = await client.Url("/api/query/single")
                     .WithQueryParam("name", "Test & Value")
-                    .WithQueryParam("count", 1)
+                    .WithQueryParam("count", "1")
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
                 
                 var body = response.ContentAs<SingleQueryParamsResponse>();
                 Assert.AreEqual("Test & Value", body!.Name);
-            })
-            .Run();
-    }
-
-    [Test]
-    public async Task WithQueryParams_NullValuesInCollection_AreIgnored()
-    {
-        await Scenario()
-            .Step("Null values in collection are ignored", async _ =>
-            {
-                var client = SuiteData.HttpClientFactory.CreateClient();
-                
-                var values = new object?[] { "value1", null, "value2" };
-                
-                var response = await client.Url("/api/query/multiple")
-                    .WithQueryParam("tags", values)
-                    .Get();
-
-                Assert.IsTrue(response.IsSuccessful);
-                
-                var body = response.ContentAs<MultipleQueryParamsResponse>();
-                Assert.HasCount(2, body!.Tags);
-            })
-            .Run();
-    }
-
-    [Test]
-    public async Task WithQueryParam_NullCollection_IsIgnored()
-    {
-        await Scenario()
-            .Step("Null collection is ignored", async _ =>
-            {
-                var client = SuiteData.HttpClientFactory.CreateClient();
-                
-                IEnumerable<object?>? nullCollection = null;
-                
-                var response = await client.Url("/api/status/ok")
-                    .WithQueryParam("tags", nullCollection)
-                    .Get();
-
-                Assert.IsTrue(response.IsSuccessful);
-            })
-            .Run();
-    }
-
-    [Test]
-    public async Task WithQueryParams_NullObject_IsIgnored()
-    {
-        await Scenario()
-            .Step("Null object for WithQueryParams is ignored", async _ =>
-            {
-                var client = SuiteData.HttpClientFactory.CreateClient();
-                
-                object? nullObj = null;
-                
-                var response = await client.Url("/api/status/ok")
-                    .WithQueryParams(nullObj)
-                    .Get();
-
-                Assert.IsTrue(response.IsSuccessful);
             })
             .Run();
     }
