@@ -38,7 +38,7 @@ public class FluentHttpRequest
     {
         ArgumentNullException.ThrowIfNull(url);
 
-        _data.RequestUrl = url;
+        _data.Url = url;
 
         if (_data.HttpClient.BaseAddress is null)
         {
@@ -51,19 +51,12 @@ public class FluentHttpRequest
         }
         else
         {
-            // When BaseAddress is set, honor absolute URLs instead of treating them as relative
-            if (Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri))
-            {
-                _data.AbsoluteUri = absoluteUri;
-                _data.BaseUri = new UriBuilder(absoluteUri.Scheme, absoluteUri.Host, absoluteUri.IsDefaultPort ? -1 : absoluteUri.Port).Uri;
-                _data.RequiresAbsoluteUri = true;
-            }
-            else
-            {
-                _data.BaseUri = _data.HttpClient.BaseAddress;
-                _data.AbsoluteUri = new Uri(_data.HttpClient.BaseAddress, url);
-                _data.RequiresAbsoluteUri = false;
-            }
+            if (Uri.TryCreate(url, UriKind.Absolute, out _))
+                throw new ArgumentException("Cannot use an absolute URL when HttpClient has a BaseAddress configured. Use a relative URL instead.");
+
+            _data.AbsoluteUri = new Uri(_data.HttpClient.BaseAddress, url);
+            _data.BaseUri = _data.HttpClient.BaseAddress;
+            _data.RequiresAbsoluteUri = false;
         }
 
         return this;
