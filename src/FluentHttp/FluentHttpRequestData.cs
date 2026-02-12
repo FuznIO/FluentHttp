@@ -33,8 +33,8 @@ public class FluentHttpRequestData
     /// <summary>The base URI (scheme + host + port).</summary>
     public Uri BaseUri { get; internal set; } = null!;
 
-    /// <summary>The original request URL/path.</summary>
-    public string RequestUrl { get; internal set; } = null!;
+    /// <summary>The original URL/path passed to WithUrl().</summary>
+    public string Url { get; internal set; } = null!;
 
     /// <summary>The Content-Type header value.</summary>
     public string? ContentType { get; internal set; }
@@ -206,22 +206,17 @@ public class FluentHttpRequestData
 
     private string GetRequestUrlWithPathAndQuery()
     {
-        if (!HasQueryParams)
-            return RequiresAbsoluteUri ? AbsoluteUri.AbsoluteUri : AbsoluteUri.PathAndQuery;
-
         var pathAndQuery = AbsoluteUri.PathAndQuery;
-        var queryString = BuildQueryString();
 
-        // Determine the separator: & if URL already has query params, ? otherwise
-        var separator = pathAndQuery.Contains('?') ? '&' : '?';
-        var resultPath = $"{pathAndQuery}{separator}{queryString}";
-
-        if (RequiresAbsoluteUri)
+        if (HasQueryParams)
         {
-            return new Uri(BaseUri, resultPath).AbsoluteUri;
+            var separator = pathAndQuery.Contains('?') ? '&' : '?';
+            pathAndQuery = $"{pathAndQuery}{separator}{BuildQueryString()}";
         }
 
-        return resultPath;
+        return RequiresAbsoluteUri
+            ? new Uri(BaseUri, pathAndQuery).AbsoluteUri
+            : pathAndQuery;
     }
 
     private MultipartFormDataContent BuildMultipartContent()
