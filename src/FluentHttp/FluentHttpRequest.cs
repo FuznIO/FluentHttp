@@ -42,7 +42,7 @@ public class FluentHttpRequest
 
         if (_data.HttpClient.BaseAddress is null)
         {
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri))
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri) || !IsHttpScheme(absoluteUri))
                 throw new ArgumentException("The provided URL is not a valid absolute URL and the HttpClient does not have a BaseAddress set.");
 
             _data.AbsoluteUri = absoluteUri;
@@ -51,7 +51,7 @@ public class FluentHttpRequest
         }
         else
         {
-            if (Uri.TryCreate(url, UriKind.Absolute, out _))
+            if (Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri) && IsHttpScheme(absoluteUri))
                 throw new ArgumentException("Cannot use an absolute URL when HttpClient has a BaseAddress configured. Use a relative URL instead.");
 
             _data.AbsoluteUri = new Uri(_data.HttpClient.BaseAddress, url);
@@ -130,13 +130,13 @@ public class FluentHttpRequest
     public FluentHttpRequest WithContent(object content)
     {
         _data.Content = content;
-        
+
         // Auto-set Content-Type to JSON if not already set
         if (string.IsNullOrEmpty(_data.ContentType))
         {
             _data.ContentType = "application/json";
         }
-        
+
         return this;
     }
 
@@ -274,13 +274,13 @@ public class FluentHttpRequest
     public FluentHttpRequest WithCookie(string name, string value, string? path = null, string? domain = null, TimeSpan? duration = null)
     {
         var cookie = new Cookie(name, value, path, domain);
-        
+
         if (duration.HasValue)
         {
             cookie.Expires = DateTime.UtcNow.Add(duration.Value);
         }
         // If duration is not specified, don't set Expires - creates a session cookie
-        
+
         _data.Cookies.Add(cookie);
         return this;
     }
@@ -857,4 +857,8 @@ public class FluentHttpRequest
 
         return null;
     }
+
+    private static bool IsHttpScheme(Uri uri) =>
+        uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+        uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
 }

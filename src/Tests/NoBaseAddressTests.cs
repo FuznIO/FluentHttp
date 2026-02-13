@@ -116,6 +116,32 @@ public class NoBaseAddressTests : Test
     }
 
     [Test]
+    public async Task Url_WithNullUrl_WhenNoBaseAddress_ThrowsArgumentNullException()
+    {
+        await Scenario()
+            .Step("Null URL throws ArgumentNullException", _ =>
+            {
+                var client = SuiteData.HttpClientFactory.CreateClient(SuiteData.NoBaseAddressClientName);
+
+                Assert.Throws<ArgumentNullException>(() => client.Url(null!));
+            })
+            .Run();
+    }
+
+    [Test]
+    public async Task Url_WithNonHttpScheme_WhenNoBaseAddress_ThrowsArgumentException()
+    {
+        await Scenario()
+            .Step("Non-HTTP scheme throws ArgumentException", _ =>
+            {
+                var client = SuiteData.HttpClientFactory.CreateClient(SuiteData.NoBaseAddressClientName);
+
+                Assert.Throws<ArgumentException>(() => client.Url("ftp://example.com/file.txt"));
+            })
+            .Run();
+    }
+
+    [Test]
     public async Task Url_WithHeaders_WhenNoBaseAddress_WorksCorrectly()
     {
         await Scenario()
