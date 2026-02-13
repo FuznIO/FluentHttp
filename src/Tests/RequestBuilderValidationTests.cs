@@ -60,6 +60,49 @@ public class RequestBuilderValidationTests : Test
     }
 
     [Test]
+    public async Task Url_AbsoluteUrl_WithBaseAddress_ThrowsArgumentException()
+    {
+        await Scenario()
+            .Step("Absolute URL with BaseAddress throws ArgumentException", _ =>
+            {
+                var client = SuiteData.HttpClientFactory.CreateClient();
+
+                Assert.Throws<ArgumentException>(() => client.Url("https://example.com/api/test"));
+            })
+            .Run();
+    }
+
+    [Test]
+    public async Task Url_RelativeUrl_WithBaseAddress_SetsCorrectAbsoluteUri()
+    {
+        await Scenario()
+            .Step("AbsoluteUri is correctly resolved from BaseAddress and relative URL", _ =>
+            {
+                var client = SuiteData.HttpClientFactory.CreateClient();
+
+                var builder = client.Request().WithUrl("/api/status/ok");
+
+                Assert.AreEqual(new Uri("https://localhost:5201/api/status/ok"), builder.Data.AbsoluteUri);
+            })
+            .Run();
+    }
+
+    [Test]
+    public async Task Url_RelativeUrl_WithBaseAddress_SetsBaseUriToClientBaseAddress()
+    {
+        await Scenario()
+            .Step("BaseUri equals HttpClient BaseAddress", _ =>
+            {
+                var client = SuiteData.HttpClientFactory.CreateClient();
+
+                var builder = client.Request().WithUrl("/api/status/ok");
+
+                Assert.AreEqual(new Uri("https://localhost:5201/"), builder.Data.BaseUri);
+            })
+            .Run();
+    }
+
+    [Test]
     public async Task WithAuthBearer_DuplicateAuth_ThrowsInvalidOperationException()
     {
         await Scenario()

@@ -204,7 +204,7 @@ public class FluentHttpRequestData
         return new StringContent(jsonContent, Encoding.UTF8, ContentType);
     }
 
-    private string GetRequestUrlWithPathAndQuery()
+    private Uri GetRequestUrlWithPathAndQuery()
     {
         var pathAndQuery = AbsoluteUri.PathAndQuery;
 
@@ -215,8 +215,8 @@ public class FluentHttpRequestData
         }
 
         return RequiresAbsoluteUri
-            ? new Uri(BaseUri, pathAndQuery).AbsoluteUri
-            : pathAndQuery;
+            ? new Uri(BaseUri, pathAndQuery)
+            : new Uri(pathAndQuery, UriKind.Relative);
     }
 
     private MultipartFormDataContent BuildMultipartContent()
