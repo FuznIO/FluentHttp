@@ -38,13 +38,16 @@ public class FluentHttpSerializationException : Exception
         Response = response;
     }
 
-    internal static FluentHttpSerializationException ForSerialization<T>(T? obj, Exception innerException) =>
-        new(
-            $"Failed to serialize object of type {typeof(T).Name}.",
+    internal static FluentHttpSerializationException ForSerialization(object? obj, Exception innerException)
+    {
+        var type = obj?.GetType() ?? typeof(object);
+        return new(
+            $"Failed to serialize object of type {type.Name}.",
             obj?.ToString(),
-            typeof(T),
+            type,
             null,
             innerException);
+    }
 
     internal static FluentHttpSerializationException ForDeserialization<T>(
         string content,

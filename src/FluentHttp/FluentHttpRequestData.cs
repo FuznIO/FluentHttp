@@ -200,8 +200,15 @@ public class FluentHttpRequestData
 
         // For JSON and other content types, serialize as JSON
         // Use SerializerProvider if set, otherwise fall back to SerializerOptions
-        string jsonContent = serializerProvider.Serialize(Content);
-        return new StringContent(jsonContent, Encoding.UTF8, ContentType);
+        try
+        {
+            string jsonContent = serializerProvider.Serialize(Content);
+            return new StringContent(jsonContent, Encoding.UTF8, ContentType);
+        }
+        catch (Exception ex)
+        {
+            throw FluentHttpSerializationException.ForSerialization(Content, ex);
+        }
     }
 
     private Uri GetRequestUrlWithPathAndQuery()
