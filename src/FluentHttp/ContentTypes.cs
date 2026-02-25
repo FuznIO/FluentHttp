@@ -21,11 +21,6 @@ public enum ContentTypes
     Multipart,
 
     /// <summary>
-    /// XML content (application/xml).
-    /// </summary>
-    Xml,
-
-    /// <summary>
     /// Plain text content (text/plain).
     /// </summary>
     PlainText,

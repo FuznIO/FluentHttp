@@ -96,7 +96,6 @@ public class FluentHttpRequest
         _data.ContentType = contentType switch
         {
             ContentTypes.Json => "application/json",
-            ContentTypes.Xml => "application/xml",
             ContentTypes.PlainText => "text/plain",
             ContentTypes.XFormUrlEncoded => "application/x-www-form-urlencoded",
             ContentTypes.Multipart => "multipart/form-data",
@@ -113,6 +112,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithContentType(string contentType)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
         _data.ContentType = contentType;
         return this;
     }
@@ -129,6 +129,9 @@ public class FluentHttpRequest
     /// </remarks>
     public FluentHttpRequest WithContent(object content)
     {
+        if (_data.HasFiles || _data.HasFormFields)
+            throw new InvalidOperationException("Cannot use WithContent when files or form fields have been added. Use WithFile/WithFormField for multipart requests.");
+
         _data.Content = content;
 
         // Auto-set Content-Type to JSON if not already set
@@ -150,6 +153,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithFile(string name, string fileName, Stream content, string contentType = "application/octet-stream")
     {
+        EnsureNoContent();
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(new FileContent(name, fileName, content, contentType));
         return this;
@@ -165,6 +169,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithFile(string name, string fileName, byte[] content, string contentType = "application/octet-stream")
     {
+        EnsureNoContent();
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(new FileContent(name, fileName, content, contentType));
         return this;
@@ -177,6 +182,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithFile(FileContent file)
     {
+        EnsureNoContent();
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(file);
         return this;
@@ -190,6 +196,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithFormField(string name, string value)
     {
+        EnsureNoContent();
         _data.ContentType = "multipart/form-data";
         _data.FormFields[name] = value;
         return this;
@@ -202,6 +209,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithFormFields(IDictionary<string, string> fields)
     {
+        EnsureNoContent();
         _data.ContentType = "multipart/form-data";
         foreach (var field in fields)
             _data.FormFields[field.Key] = field.Value;
@@ -231,7 +239,6 @@ public class FluentHttpRequest
         {
             AcceptTypes.Json => "application/json",
             AcceptTypes.Html => "text/html,application/xhtml+xml",
-            AcceptTypes.Xml => "application/xml",
             AcceptTypes.PlainText => "text/plain",
             AcceptTypes.Any => "*/*",
             AcceptTypes.OctetStream => "application/octet-stream",
@@ -247,6 +254,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithAccept(string acceptType)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(acceptType);
         _data.AcceptType = acceptType;
         return this;
     }
@@ -452,9 +460,13 @@ public class FluentHttpRequest
 
         if (_data.Content != null)
         {
-            var serializer = GetSerializer();
-            var contentJson = serializer.Serialize(_data.Content);
-            sb.AppendLine($"Content: {contentJson}");
+            var contentStr = _data.Content switch
+            {
+                Stream s => $"Stream (Length: {(s.CanSeek ? s.Length.ToString() : "unknown")})",
+                byte[] b => $"byte[] (Length: {b.Length})",
+                _ => SerializeContentForDebug(_data.Content)
+            };
+            sb.AppendLine($"Content: {contentStr}");
         }
 
         if (_data.HasFiles)
@@ -790,6 +802,10 @@ public class FluentHttpRequest
 
     private async Task<FluentHttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
     {
+        // Default to */* for streaming requests instead of application/json
+        if (_data.AcceptType == "application/json")
+            _data.AcceptType = "*/*";
+
         var request = _data.MapToHttpRequestMessage(GetSerializer());
         HttpResponseMessage? response = null;
 
@@ -856,6 +872,24 @@ public class FluentHttpRequest
         }
 
         return null;
+    }
+
+    private string SerializeContentForDebug(object content)
+    {
+        try
+        {
+            return GetSerializer().Serialize(content);
+        }
+        catch
+        {
+            return $"{content.GetType().Name} (serialization failed)";
+        }
+    }
+
+    private void EnsureNoContent()
+    {
+        if (_data.Content is not null)
+            throw new InvalidOperationException("Cannot use WithFile/WithFormField when content has been set via WithContent. Use either WithContent for body content or WithFile/WithFormField for multipart requests, not both.");
     }
 
     private static bool IsHttpScheme(Uri uri) =>

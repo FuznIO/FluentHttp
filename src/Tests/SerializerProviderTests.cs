@@ -25,9 +25,9 @@ public class CustomJsonSerializerProvider : ISerializerProvider
         return JsonSerializer.Serialize(obj, _options);
     }
 
-    public T? Deserialize<T>(string json)
+    public T? Deserialize<T>(string content)
     {
-        return JsonSerializer.Deserialize<T>(json, _options);
+        return JsonSerializer.Deserialize<T>(content, _options);
     }
 }
 

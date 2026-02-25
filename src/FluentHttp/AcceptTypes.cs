@@ -16,11 +16,6 @@ public enum AcceptTypes
     Html,
 
     /// <summary>
-    /// Accept XML responses (application/xml).
-    /// </summary>
-    Xml,
-
-    /// <summary>
     /// Accept plain text responses (text/plain).
     /// </summary>
     PlainText,

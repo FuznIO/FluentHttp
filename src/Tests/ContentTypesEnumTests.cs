@@ -7,27 +7,6 @@ namespace Fuzn.FluentHttp.Tests;
 public class ContentTypesEnumTests : Test
 {
     [Test]
-    public async Task WithContentType_XmlEnum_SetsCorrectContentType()
-    {
-        await Scenario()
-            .Step("Send request with ContentType Xml enum", async _ =>
-            {
-                var client = SuiteData.HttpClientFactory.CreateClient();
-                
-                var response = await client.Url("/api/echo")
-                    .WithContentType(ContentTypes.Xml)
-                    .WithContent("<root><value>test</value></root>")
-                    .Post();
-
-                Assert.IsTrue(response.IsSuccessful);
-                
-                var body = response.ContentAs<ContentTypeResponse>();
-                Assert.Contains("application/xml", body!.ContentType);
-            })
-            .Run();
-    }
-
-    [Test]
     public async Task WithContentType_PlainTextEnum_SetsCorrectContentType()
     {
         await Scenario()
