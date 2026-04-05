@@ -1,7 +1,6 @@
 ﻿using Fuzn.FluentHttp.Internals;
 using System.Net;
 using System.Text;
-using System.Text.Json;
 
 namespace Fuzn.FluentHttp;
 
@@ -64,6 +63,7 @@ public class FluentHttpRequest
 
     /// <summary>
     /// Sets a custom serializer provider for request/response body serialization.
+    /// This overrides all other serializer resolution (registry, global defaults) for both request and response.
     /// </summary>
     /// <param name="serializer">The serializer provider to use.</param>
     /// <returns>The current builder instance for method chaining.</returns>
@@ -74,15 +74,16 @@ public class FluentHttpRequest
     }
 
     /// <summary>
-    /// Sets custom JSON serializer options for the default System.Text.Json serializer.
-    /// These options are used for request body serialization and response deserialization.
-    /// Note: This is ignored if a custom <see cref="ISerializerProvider"/> is set via <see cref="WithSerializer"/>.
+    /// Registers a serializer provider for a specific content type on this request.
+    /// Serializers registered here take precedence over global <see cref="FluentHttpDefaults.Serializers"/>.
     /// </summary>
-    /// <param name="options">The JSON serializer options to use.</param>
+    /// <param name="contentType">The content type (e.g., "application/json", "application/xml").</param>
+    /// <param name="serializer">The serializer provider to use for this content type.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public FluentHttpRequest WithJsonOptions(JsonSerializerOptions options)
+    public FluentHttpRequest WithSerializer(string contentType, ISerializerProvider serializer)
     {
-        _data.JsonOptions = options;
+        _data.SerializerRegistry ??= new SerializerRegistry();
+        _data.SerializerRegistry.Register(contentType, serializer);
         return this;
     }
 
@@ -96,7 +97,6 @@ public class FluentHttpRequest
         _data.ContentType = contentType switch
         {
             ContentTypes.Json => "application/json",
-            ContentTypes.Xml => "application/xml",
             ContentTypes.PlainText => "text/plain",
             ContentTypes.XFormUrlEncoded => "application/x-www-form-urlencoded",
             ContentTypes.Multipart => "multipart/form-data",
@@ -113,6 +113,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithContentType(string contentType)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
         _data.ContentType = contentType;
         return this;
     }
@@ -129,6 +130,9 @@ public class FluentHttpRequest
     /// </remarks>
     public FluentHttpRequest WithContent(object content)
     {
+        if (_data.HasFiles || _data.HasFormFields)
+            throw new InvalidOperationException("Cannot use WithContent when files or form fields have been added. Use WithFile/WithFormField for multipart requests.");
+
         _data.Content = content;
 
         // Auto-set Content-Type to JSON if not already set
@@ -150,6 +154,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithFile(string name, string fileName, Stream content, string contentType = "application/octet-stream")
     {
+        EnsureNoContent();
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(new FileContent(name, fileName, content, contentType));
         return this;
@@ -165,6 +170,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithFile(string name, string fileName, byte[] content, string contentType = "application/octet-stream")
     {
+        EnsureNoContent();
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(new FileContent(name, fileName, content, contentType));
         return this;
@@ -177,6 +183,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithFile(FileContent file)
     {
+        EnsureNoContent();
         _data.ContentType = "multipart/form-data";
         _data.Files.Add(file);
         return this;
@@ -190,6 +197,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithFormField(string name, string value)
     {
+        EnsureNoContent();
         _data.ContentType = "multipart/form-data";
         _data.FormFields[name] = value;
         return this;
@@ -202,6 +210,7 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithFormFields(IDictionary<string, string> fields)
     {
+        EnsureNoContent();
         _data.ContentType = "multipart/form-data";
         foreach (var field in fields)
             _data.FormFields[field.Key] = field.Value;
@@ -231,12 +240,12 @@ public class FluentHttpRequest
         {
             AcceptTypes.Json => "application/json",
             AcceptTypes.Html => "text/html,application/xhtml+xml",
-            AcceptTypes.Xml => "application/xml",
             AcceptTypes.PlainText => "text/plain",
             AcceptTypes.Any => "*/*",
             AcceptTypes.OctetStream => "application/octet-stream",
             _ => "application/json"
         };
+
         return this;
     }
 
@@ -247,7 +256,9 @@ public class FluentHttpRequest
     /// <returns>The current builder instance for method chaining.</returns>
     public FluentHttpRequest WithAccept(string acceptType)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(acceptType);
         _data.AcceptType = acceptType;
+
         return this;
     }
 
@@ -452,9 +463,13 @@ public class FluentHttpRequest
 
         if (_data.Content != null)
         {
-            var serializer = GetSerializer();
-            var contentJson = serializer.Serialize(_data.Content);
-            sb.AppendLine($"Content: {contentJson}");
+            var contentStr = _data.Content switch
+            {
+                Stream s => $"Stream (Length: {(s.CanSeek ? s.Length.ToString() : "unknown")})",
+                byte[] b => $"byte[] (Length: {b.Length})",
+                _ => SerializeContentForDebug(_data.Content)
+            };
+            sb.AppendLine($"Content: {contentStr}");
         }
 
         if (_data.HasFiles)
@@ -509,7 +524,8 @@ public class FluentHttpRequest
             throw new InvalidOperationException("URL must be set before building the request. Call WithUrl() first.");
 
         _data.Method = method;
-        return _data.MapToHttpRequestMessage(GetSerializer());
+
+        return _data.MapToHttpRequestMessage(CreateSerializerResolver().ResolveForRequest(_data.ContentType));
     }
 
     /// <summary>
@@ -748,9 +764,10 @@ public class FluentHttpRequest
         if (_data.AbsoluteUri is null)
             throw new InvalidOperationException("URL must be set before sending the request. Call HttpClient.Url() or HttpClient.Request().WithUrl() first.");
 
-        var serializerProvider = GetSerializer();
 
-        var request = _data.MapToHttpRequestMessage(serializerProvider);
+
+        var resolver = CreateSerializerResolver();
+        var request = _data.MapToHttpRequestMessage(resolver.ResolveForRequest(_data.ContentType));
 
         var (linkedToken, linkedCts) = GetLinkedCancellationToken(cancellationToken);
         linkedToken.ThrowIfCancellationRequested();
@@ -762,7 +779,7 @@ public class FluentHttpRequest
 
             var responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
 
-            return new FluentHttpResponse(request, response, responseCookies, rawBytes: responseBytes, serializerProvider);
+            return new FluentHttpResponse(request, response, responseCookies, rawBytes: responseBytes, resolver);
         }
         finally
         {
@@ -770,27 +787,18 @@ public class FluentHttpRequest
         }
     }
 
-    private ISerializerProvider GetSerializer()
+    private SerializerResolver CreateSerializerResolver()
     {
-        // Priority: per-request > global settings > default
-        if (_data.Serializer is not null)
-            return _data.Serializer;
-
-        if (_data.JsonOptions is not null)
-            return new SystemTextJsonSerializerProvider(_data.JsonOptions);
-
-        if (FluentHttpDefaults.Serializer is not null)
-            return FluentHttpDefaults.Serializer;
-
-        if (FluentHttpDefaults.JsonOptions is not null)
-            return new SystemTextJsonSerializerProvider(FluentHttpDefaults.JsonOptions);
-
-        return new SystemTextJsonSerializerProvider();
+        return new SerializerResolver(_data.Serializer, _data.SerializerRegistry);
     }
 
     private async Task<FluentHttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
     {
-        var request = _data.MapToHttpRequestMessage(GetSerializer());
+        // Default to */* for streaming requests instead of application/json
+        if (_data.AcceptType == "application/json")
+            _data.AcceptType = "*/*";
+
+        var request = _data.MapToHttpRequestMessage(CreateSerializerResolver().ResolveForRequest(_data.ContentType));
         HttpResponseMessage? response = null;
 
         var (linkedToken, linkedCts) = GetLinkedCancellationToken(cancellationToken);
@@ -856,6 +864,25 @@ public class FluentHttpRequest
         }
 
         return null;
+    }
+
+    private string SerializeContentForDebug(object content)
+    {
+        try
+        {
+            return CreateSerializerResolver().ResolveForRequest(_data.ContentType).Serialize(content);
+        }
+        catch
+        {
+            return $"{content.GetType().Name} (serialization failed)";
+        }
+    }
+
+
+    private void EnsureNoContent()
+    {
+        if (_data.Content is not null)
+            throw new InvalidOperationException("Cannot use WithFile/WithFormField when content has been set via WithContent. Use either WithContent for body content or WithFile/WithFormField for multipart requests, not both.");
     }
 
     private static bool IsHttpScheme(Uri uri) =>

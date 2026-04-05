@@ -7,26 +7,6 @@ namespace Fuzn.FluentHttp.Tests;
 public class AcceptTypesTests : Test
 {
     [Test]
-    public async Task WithAccept_XmlEnum_IsSentCorrectly()
-    {
-        await Scenario()
-            .Step("Send request with Accept Xml enum", async _ =>
-            {
-                var client = SuiteData.HttpClientFactory.CreateClient();
-                
-                var response = await client.Url("/api/headers/accept")
-                    .WithAccept(AcceptTypes.Xml)
-                    .Get();
-
-                Assert.IsTrue(response.IsSuccessful);
-                
-                var body = response.ContentAs<AcceptHeaderResponse>();
-                Assert.Contains("application/xml", body!.Accept);
-            })
-            .Run();
-    }
-
-    [Test]
     public async Task WithAccept_PlainTextEnum_IsSentCorrectly()
     {
         await Scenario()

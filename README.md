@@ -215,31 +215,26 @@ if (response.IsSuccessful)
 }
 ```
 
-## Custom Serialization
+## Serialization
 
-By default, FluentHttp uses `System.Text.Json` with `JsonSerializerDefaults.Web` (camelCase, case-insensitive).
+By default, FluentHttp uses `System.Text.Json` with `JsonSerializerDefaults.Web` (camelCase, case-insensitive). No configuration is needed for standard JSON APIs.
 
-### Per-Request Options
+### Changing the Default Serializer
 
-Customize serialization on a per-request basis:
-
-```csharp
-.WithJsonOptions(new JsonSerializerOptions { PropertyNamingPolicy = null })
-.WithSerializer(new MyCustomSerializer())
-```
-
-### Global Defaults
-
-Configure defaults for all requests:
+The default serializer is used when no content-type-specific serializer matches. To customize JSON serialization options, replace the default with a new `SystemTextJsonSerializerProvider` configured with your options:
 
 ```csharp
-FluentHttpDefaults.JsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = null };
-FluentHttpDefaults.Serializer = new NewtonsoftSerializerProvider();
+// Change JSON options (e.g., use PascalCase instead of camelCase)
+FluentHttpDefaults.Serializers.Default = new SystemTextJsonSerializerProvider(
+    new JsonSerializerOptions { PropertyNamingPolicy = null });
+
+// Or swap to a completely different serializer
+FluentHttpDefaults.Serializers.Default = new NewtonsoftSerializerProvider();
 ```
 
 ### Custom Serializer
 
-Implement `ISerializerProvider` for custom serialization:
+Implement `ISerializerProvider` to use a different serialization library:
 
 ```csharp
 public class NewtonsoftSerializerProvider : ISerializerProvider
@@ -247,7 +242,45 @@ public class NewtonsoftSerializerProvider : ISerializerProvider
     public string Serialize<T>(T obj) => JsonConvert.SerializeObject(obj);
     public T? Deserialize<T>(string json) => JsonConvert.DeserializeObject<T>(json);
 }
+
+FluentHttpDefaults.Serializers.Default = new NewtonsoftSerializerProvider();
 ```
+
+### Serializers by Content Type
+
+Register serializers for specific content types. The correct serializer is automatically selected based on the request's content type for serialization and the response's `Content-Type` header for deserialization:
+
+```csharp
+FluentHttpDefaults.Serializers
+    .Register("application/json", new SystemTextJsonSerializerProvider())
+    .Register("application/xml", new XmlSerializerProvider());
+```
+
+### Per-Request Overrides
+
+Override serializer resolution for a single request. You can override by content type or override all resolution entirely:
+
+```csharp
+// Override by content type
+client.Url("/api/data")
+    .WithSerializer("application/json", new SystemTextJsonSerializerProvider(myJsonOptions))
+    .WithSerializer("application/xml", new XmlSerializerProvider())
+    .WithContentType("application/xml")
+    .WithContent(payload)
+    .Post<MyResponse>();
+
+// Override all serializer resolution for both request and response
+client.Url("/api/data")
+    .WithSerializer(new MyCustomSerializer())
+    .Get();
+```
+
+### Serializer Resolution Order
+
+1. Per-request `WithSerializer()` (overrides everything)
+2. Per-request registry (via `WithSerializer(contentType, serializer)`)
+3. Global registry (`FluentHttpDefaults.Serializers`)
+4. Default (`FluentHttpDefaults.Serializers.Default`)
 
 ## Resilience & Retry
 

@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Json;
 using System.Web;
 
 namespace Fuzn.FluentHttp;
@@ -69,11 +68,11 @@ public class FluentHttpRequestData
     /// <summary>The HTTP version policy that controls upgrade/downgrade behavior.</summary>
     public HttpVersionPolicy? VersionPolicy { get; internal set; }
 
-    /// <summary>JSON serializer options for System.Text.Json.</summary>
-    public JsonSerializerOptions? JsonOptions { get; internal set; }
-
-    /// <summary>Custom serializer.</summary>
+    /// <summary>Custom serializer that overrides all other serializer resolution.</summary>
     public ISerializerProvider? Serializer { get; internal set; }
+
+    /// <summary>Per-request serializer registry for content-type-based resolution.</summary>
+    public SerializerRegistry? SerializerRegistry { get; internal set; }
 
     /// <summary>Files to upload.</summary>
     public List<FileContent> Files => _files ??= [];
@@ -200,8 +199,15 @@ public class FluentHttpRequestData
 
         // For JSON and other content types, serialize as JSON
         // Use SerializerProvider if set, otherwise fall back to SerializerOptions
-        string jsonContent = serializerProvider.Serialize(Content);
-        return new StringContent(jsonContent, Encoding.UTF8, ContentType);
+        try
+        {
+            string jsonContent = serializerProvider.Serialize(Content);
+            return new StringContent(jsonContent, Encoding.UTF8, ContentType);
+        }
+        catch (Exception ex)
+        {
+            throw FluentHttpSerializationException.ForSerialization(Content, ex);
+        }
     }
 
     private Uri GetRequestUrlWithPathAndQuery()

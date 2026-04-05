@@ -25,9 +25,9 @@ public class CustomJsonSerializerProvider : ISerializerProvider
         return JsonSerializer.Serialize(obj, _options);
     }
 
-    public T? Deserialize<T>(string json)
+    public T? Deserialize<T>(string content)
     {
-        return JsonSerializer.Deserialize<T>(json, _options);
+        return JsonSerializer.Deserialize<T>(content, _options);
     }
 }
 
@@ -42,13 +42,13 @@ public class SerializerProviderTests : Test
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 var customSerializer = new CustomJsonSerializerProvider();
-                
+
                 var response = await client.Url("/api/deserialize/person")
                     .WithSerializer(customSerializer)
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
-                
+
                 var person = response.ContentAs<PersonDto>();
                 Assert.IsNotNull(person);
                 Assert.AreEqual("John Doe", person!.Name);
@@ -63,9 +63,9 @@ public class SerializerProviderTests : Test
             .Step("Default serializer uses camelCase naming policy", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
-                
+
                 var payload = new { TestProperty = "value" };
-                
+
                 var response = await client.Url("/api/echo")
                     .WithContent(payload)
                     .Post();
@@ -78,10 +78,10 @@ public class SerializerProviderTests : Test
     }
 
     [Test]
-    public async Task WithJsonOptions_CamelCase_SerializesWithCamelCase()
+    public async Task WithSerializer_ByContentType_SerializesWithCamelCase()
     {
         await Scenario()
-            .Step("WithJsonOptions with CamelCase naming policy serializes properties as camelCase", async _ =>
+            .Step("Per-request registry with CamelCase serializer serializes properties as camelCase", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
@@ -93,12 +93,11 @@ public class SerializerProviderTests : Test
                 var payload = new { TestProperty = "value", AnotherProperty = 123 };
 
                 var response = await client.Url("/api/echo")
-                    .WithJsonOptions(options)
+                    .WithSerializer("application/json", new SystemTextJsonSerializerProvider(options))
                     .WithContent(payload)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
-                // With CamelCase policy, TestProperty becomes testProperty
                 Assert.Contains("testProperty", response.Content);
                 Assert.Contains("anotherProperty", response.Content);
             })
@@ -106,10 +105,10 @@ public class SerializerProviderTests : Test
     }
 
     [Test]
-    public async Task WithJsonOptions_CaseInsensitive_DeserializesCorrectly()
+    public async Task WithSerializer_ByContentType_DeserializesCorrectly()
     {
         await Scenario()
-            .Step("WithJsonOptions with case insensitive option deserializes regardless of casing", async _ =>
+            .Step("Per-request registry with case insensitive option deserializes regardless of casing", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
@@ -119,7 +118,7 @@ public class SerializerProviderTests : Test
                 };
 
                 var response = await client.Url("/api/deserialize/person")
-                    .WithJsonOptions(options)
+                    .WithSerializer("application/json", new SystemTextJsonSerializerProvider(options))
                     .Get();
 
                 Assert.IsTrue(response.IsSuccessful);
@@ -132,24 +131,24 @@ public class SerializerProviderTests : Test
     }
 
     [Test]
-    public async Task WithJsonOptions_IgnoredWhenWithSerializerSet()
+    public async Task WithSerializer_OverridesRegistry()
     {
         await Scenario()
-            .Step("WithJsonOptions is ignored when custom WithSerializer is set", async _ =>
+            .Step("WithSerializer takes precedence over per-request registry", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
                 var customSerializer = new CustomJsonSerializerProvider();
 
-                // WithJsonOptions would use PascalCase, but WithSerializer uses CamelCase
-                var options = new JsonSerializerOptions
+                // Registry would use PascalCase, but WithSerializer uses CamelCase
+                var pascalOptions = new JsonSerializerOptions
                 {
-                    PropertyNamingPolicy = null // PascalCase (default)
+                    PropertyNamingPolicy = null // PascalCase
                 };
 
                 var payload = new { TestProperty = "value" };
 
                 var response = await client.Url("/api/echo")
-                    .WithJsonOptions(options)
+                    .WithSerializer("application/json", new SystemTextJsonSerializerProvider(pascalOptions))
                     .WithSerializer(customSerializer)
                     .WithContent(payload)
                     .Post();

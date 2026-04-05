@@ -17,7 +17,7 @@ public interface ISerializerProvider
     /// Deserializes a string representation to an object of the specified type.
     /// </summary>
     /// <typeparam name="T">The type to deserialize to.</typeparam>
-    /// <param name="json">The string representation to deserialize.</param>
+    /// <param name="content">The string representation to deserialize.</param>
     /// <returns>The deserialized object, or null if deserialization fails.</returns>
-    T? Deserialize<T>(string json);
+    T? Deserialize<T>(string content);
 }

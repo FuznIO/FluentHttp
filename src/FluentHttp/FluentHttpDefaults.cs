@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Fuzn.FluentHttp;
 
 /// <summary>
@@ -9,14 +7,8 @@ namespace Fuzn.FluentHttp;
 public static class FluentHttpDefaults
 {
     /// <summary>
-    /// Gets or sets the default JSON serializer options.
-    /// Ignored if <see cref="Serializer"/> is set.
+    /// Gets the global serializer registry for content-type-based serializer resolution.
+    /// Register serializers for specific content types (e.g., "application/json", "application/xml").
     /// </summary>
-    public static JsonSerializerOptions? JsonOptions { get; set; }
-
-    /// <summary>
-    /// Gets or sets the custom serializer provider.
-    /// Takes precedence over <see cref="JsonOptions"/>.
-    /// </summary>
-    public static ISerializerProvider? Serializer { get; set; }
+    public static SerializerRegistry Serializers { get; } = new();
 }

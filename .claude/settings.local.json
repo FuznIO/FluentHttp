@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://raw.githubusercontent.com/restsharp/RestSharp/dev/src/RestSharp/Serializers/SerializerRecord.cs\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/restsharp/RestSharp/dev/src/RestSharp/RestRequest.cs\")",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet run:*)"
+    ]
+  }
+}
