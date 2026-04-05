@@ -1,7 +1,6 @@
 ﻿using Fuzn.FluentHttp.Internals;
 using System.Net;
 using System.Text;
-using System.Text.Json;
 
 namespace Fuzn.FluentHttp;
 
@@ -64,6 +63,7 @@ public class FluentHttpRequest
 
     /// <summary>
     /// Sets a custom serializer provider for request/response body serialization.
+    /// This overrides all other serializer resolution (registry, global defaults) for both request and response.
     /// </summary>
     /// <param name="serializer">The serializer provider to use.</param>
     /// <returns>The current builder instance for method chaining.</returns>
@@ -74,15 +74,16 @@ public class FluentHttpRequest
     }
 
     /// <summary>
-    /// Sets custom JSON serializer options for the default System.Text.Json serializer.
-    /// These options are used for request body serialization and response deserialization.
-    /// Note: This is ignored if a custom <see cref="ISerializerProvider"/> is set via <see cref="WithSerializer"/>.
+    /// Registers a serializer provider for a specific content type on this request.
+    /// Serializers registered here take precedence over global <see cref="FluentHttpDefaults.Serializers"/>.
     /// </summary>
-    /// <param name="options">The JSON serializer options to use.</param>
+    /// <param name="contentType">The content type (e.g., "application/json", "application/xml").</param>
+    /// <param name="serializer">The serializer provider to use for this content type.</param>
     /// <returns>The current builder instance for method chaining.</returns>
-    public FluentHttpRequest WithJsonOptions(JsonSerializerOptions options)
+    public FluentHttpRequest WithSerializer(string contentType, ISerializerProvider serializer)
     {
-        _data.JsonOptions = options;
+        _data.SerializerRegistry ??= new SerializerRegistry();
+        _data.SerializerRegistry.Register(contentType, serializer);
         return this;
     }
 
@@ -244,6 +245,7 @@ public class FluentHttpRequest
             AcceptTypes.OctetStream => "application/octet-stream",
             _ => "application/json"
         };
+
         return this;
     }
 
@@ -256,6 +258,7 @@ public class FluentHttpRequest
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(acceptType);
         _data.AcceptType = acceptType;
+
         return this;
     }
 
@@ -521,7 +524,8 @@ public class FluentHttpRequest
             throw new InvalidOperationException("URL must be set before building the request. Call WithUrl() first.");
 
         _data.Method = method;
-        return _data.MapToHttpRequestMessage(GetSerializer());
+
+        return _data.MapToHttpRequestMessage(CreateSerializerResolver().ResolveForRequest(_data.ContentType));
     }
 
     /// <summary>
@@ -760,9 +764,10 @@ public class FluentHttpRequest
         if (_data.AbsoluteUri is null)
             throw new InvalidOperationException("URL must be set before sending the request. Call HttpClient.Url() or HttpClient.Request().WithUrl() first.");
 
-        var serializerProvider = GetSerializer();
 
-        var request = _data.MapToHttpRequestMessage(serializerProvider);
+
+        var resolver = CreateSerializerResolver();
+        var request = _data.MapToHttpRequestMessage(resolver.ResolveForRequest(_data.ContentType));
 
         var (linkedToken, linkedCts) = GetLinkedCancellationToken(cancellationToken);
         linkedToken.ThrowIfCancellationRequested();
@@ -774,7 +779,7 @@ public class FluentHttpRequest
 
             var responseCookies = ExtractResponseCookies(response, _data.AbsoluteUri);
 
-            return new FluentHttpResponse(request, response, responseCookies, rawBytes: responseBytes, serializerProvider);
+            return new FluentHttpResponse(request, response, responseCookies, rawBytes: responseBytes, resolver);
         }
         finally
         {
@@ -782,22 +787,9 @@ public class FluentHttpRequest
         }
     }
 
-    private ISerializerProvider GetSerializer()
+    private SerializerResolver CreateSerializerResolver()
     {
-        // Priority: per-request > global settings > default
-        if (_data.Serializer is not null)
-            return _data.Serializer;
-
-        if (_data.JsonOptions is not null)
-            return new SystemTextJsonSerializerProvider(_data.JsonOptions);
-
-        if (FluentHttpDefaults.Serializer is not null)
-            return FluentHttpDefaults.Serializer;
-
-        if (FluentHttpDefaults.JsonOptions is not null)
-            return new SystemTextJsonSerializerProvider(FluentHttpDefaults.JsonOptions);
-
-        return new SystemTextJsonSerializerProvider();
+        return new SerializerResolver(_data.Serializer, _data.SerializerRegistry);
     }
 
     private async Task<FluentHttpStreamResponse> SendForStream(CancellationToken cancellationToken = default)
@@ -806,7 +798,7 @@ public class FluentHttpRequest
         if (_data.AcceptType == "application/json")
             _data.AcceptType = "*/*";
 
-        var request = _data.MapToHttpRequestMessage(GetSerializer());
+        var request = _data.MapToHttpRequestMessage(CreateSerializerResolver().ResolveForRequest(_data.ContentType));
         HttpResponseMessage? response = null;
 
         var (linkedToken, linkedCts) = GetLinkedCancellationToken(cancellationToken);
@@ -878,13 +870,14 @@ public class FluentHttpRequest
     {
         try
         {
-            return GetSerializer().Serialize(content);
+            return CreateSerializerResolver().ResolveForRequest(_data.ContentType).Serialize(content);
         }
         catch
         {
             return $"{content.GetType().Name} (serialization failed)";
         }
     }
+
 
     private void EnsureNoContent()
     {

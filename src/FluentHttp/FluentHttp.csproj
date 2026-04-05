@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <InternalsVisibleTo Include="Fuzn.FluentHttp.Tests" />
   </ItemGroup>
 
 </Project>

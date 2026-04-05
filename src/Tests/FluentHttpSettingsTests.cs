@@ -9,18 +9,18 @@ namespace Fuzn.FluentHttp.Tests;
 public class FluentHttpSettingsTests : Test
 {
     [Test]
-    public async Task GlobalSettings_SetsDefaultSerializerOptions()
+    public async Task GlobalSettings_SetsDefaultSerializerViaRegistry()
     {
         await Scenario()
             .BeforeScenario(_ =>
             {
-                FluentHttpDefaults.JsonOptions = new JsonSerializerOptions
+                FluentHttpDefaults.Serializers.Register("application/json", new SystemTextJsonSerializerProvider(new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
+                }));
                 return Task.CompletedTask;
             })
-            .Step("Global settings apply serializer options", async _ =>
+            .Step("Global registry serializer applies to request", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
@@ -31,73 +31,103 @@ public class FluentHttpSettingsTests : Test
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
-                // With CamelCase policy, TestProperty becomes testProperty
                 Assert.Contains("testProperty", response.Content);
             })
             .AfterScenario(_ =>
             {
-                FluentHttpDefaults.JsonOptions = null;
-                FluentHttpDefaults.Serializer = null;
+                FluentHttpDefaults.Serializers.Clear();
                 return Task.CompletedTask;
             })
             .Run();
     }
 
     [Test]
-    public async Task PerRequestOptions_TakesPrecedence_OverGlobalSettings()
+    public async Task PerRequestSerializer_TakesPrecedence_OverGlobalRegistry()
     {
         await Scenario()
             .BeforeScenario(_ =>
             {
-                FluentHttpDefaults.JsonOptions = new JsonSerializerOptions
+                FluentHttpDefaults.Serializers.Register("application/json", new SystemTextJsonSerializerProvider(new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
+                }));
                 return Task.CompletedTask;
             })
-            .Step("Per-request options override global settings", async _ =>
+            .Step("Per-request WithSerializer overrides global registry", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
-                var perRequestOptions = new JsonSerializerOptions
+                var perRequestSerializer = new SystemTextJsonSerializerProvider(new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = null // PascalCase
-                };
+                });
 
                 var payload = new { TestProperty = "value" };
 
                 var response = await client.Url("/api/echo")
-                    .WithJsonOptions(perRequestOptions)
+                    .WithSerializer(perRequestSerializer)
                     .WithContent(payload)
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
-                // Per-request uses PascalCase, so TestProperty stays as-is
                 Assert.Contains("TestProperty", response.Content);
             })
             .AfterScenario(_ =>
             {
-                FluentHttpDefaults.JsonOptions = null;
-                FluentHttpDefaults.Serializer = null;
+                FluentHttpDefaults.Serializers.Clear();
                 return Task.CompletedTask;
             })
             .Run();
     }
 
     [Test]
-    public async Task GlobalSerializer_TakesPrecedence_OverJsonOptions()
+    public async Task PerRequestRegistry_TakesPrecedence_OverGlobalRegistry()
     {
         await Scenario()
             .BeforeScenario(_ =>
             {
-                FluentHttpDefaults.JsonOptions = new JsonSerializerOptions
+                FluentHttpDefaults.Serializers.Register("application/json", new SystemTextJsonSerializerProvider(new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = null // PascalCase
-                };
-                FluentHttpDefaults.Serializer = new CustomJsonSerializerProvider(); // Uses camelCase
+                }));
                 return Task.CompletedTask;
             })
-            .Step("Global Serializer takes precedence over JsonOptions", async _ =>
+            .Step("Per-request registry overrides global registry", async _ =>
+            {
+                var client = SuiteData.HttpClientFactory.CreateClient();
+
+                var payload = new { TestProperty = "value" };
+
+                var response = await client.Url("/api/echo")
+                    .WithSerializer("application/json", new CustomJsonSerializerProvider())
+                    .WithContent(payload)
+                    .Post();
+
+                Assert.IsTrue(response.IsSuccessful);
+                // CustomJsonSerializerProvider uses camelCase
+                Assert.Contains("testProperty", response.Content);
+            })
+            .AfterScenario(_ =>
+            {
+                FluentHttpDefaults.Serializers.Clear();
+                return Task.CompletedTask;
+            })
+            .Run();
+    }
+
+    [Test]
+    public async Task GlobalDefaultSerializer_IsUsedWhenNoContentTypeMatch()
+    {
+        await Scenario()
+            .BeforeScenario(_ =>
+            {
+                FluentHttpDefaults.Serializers.Default = new SystemTextJsonSerializerProvider(new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = null // PascalCase
+                });
+                return Task.CompletedTask;
+            })
+            .Step("Custom default serializer is used as fallback", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();
 
@@ -108,13 +138,12 @@ public class FluentHttpSettingsTests : Test
                     .Post();
 
                 Assert.IsTrue(response.IsSuccessful);
-                // Serializer uses camelCase, so testProperty
-                Assert.Contains("testProperty", response.Content);
+                // Default uses PascalCase, so TestProperty stays as-is
+                Assert.Contains("TestProperty", response.Content);
             })
             .AfterScenario(_ =>
             {
-                FluentHttpDefaults.JsonOptions = null;
-                FluentHttpDefaults.Serializer = null;
+                FluentHttpDefaults.Serializers.Clear();
                 return Task.CompletedTask;
             })
             .Run();
@@ -124,12 +153,6 @@ public class FluentHttpSettingsTests : Test
     public async Task DefaultSettings_WorksNormally()
     {
         await Scenario()
-            .BeforeScenario(_ =>
-            {
-                FluentHttpDefaults.JsonOptions = null;
-                FluentHttpDefaults.Serializer = null;
-                return Task.CompletedTask;
-            })
             .Step("Request works normally with default settings", async _ =>
             {
                 var client = SuiteData.HttpClientFactory.CreateClient();

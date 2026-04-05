@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Fuzn.FluentHttp.Internals;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 
@@ -10,7 +11,7 @@ namespace Fuzn.FluentHttp;
 public class FluentHttpResponse : IDisposable
 {
     private readonly List<Cookie>? _cookies;
-    private readonly ISerializerProvider _serializer;
+    private readonly SerializerResolver _resolver;
     private readonly byte[] _rawBytes;
     private int _disposed;
 
@@ -18,16 +19,16 @@ public class FluentHttpResponse : IDisposable
         HttpResponseMessage response,
         CookieContainer? cookieContainer,
         byte[] rawBytes,
-        ISerializerProvider serializer)
+        SerializerResolver resolver)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(response);
         ArgumentNullException.ThrowIfNull(rawBytes);
-        ArgumentNullException.ThrowIfNull(serializer);
+        ArgumentNullException.ThrowIfNull(resolver);
 
         RequestMessage = request;
         _rawBytes = rawBytes;
-        _serializer = serializer;
+        _resolver = resolver;
         InnerResponse = response;
 
         // Decode the content using the encoding specified in Content-Type header
@@ -57,7 +58,7 @@ public class FluentHttpResponse : IDisposable
 
         RequestMessage = other.RequestMessage;
         _rawBytes = other._rawBytes;
-        _serializer = other._serializer;
+        _resolver = other._resolver;
         _cookies = other._cookies;
         InnerResponse = other.InnerResponse;
         Content = other.Content;
@@ -154,7 +155,8 @@ public class FluentHttpResponse : IDisposable
 
         try
         {
-            return _serializer.Deserialize<T>(Content);
+            var serializer = _resolver.ResolveForResponse(ContentType);
+            return serializer.Deserialize<T>(Content);
         }
         catch (Exception ex)
         {
@@ -177,7 +179,8 @@ public class FluentHttpResponse : IDisposable
 
         try
         {
-            result = _serializer.Deserialize<T>(Content);
+            var serializer = _resolver.ResolveForResponse(ContentType);
+            result = serializer.Deserialize<T>(Content);
             return true;
         }
         catch
