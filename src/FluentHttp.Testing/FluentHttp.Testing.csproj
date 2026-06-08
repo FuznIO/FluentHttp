@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Fuzn.FluentHttp.Testing</AssemblyName>
+    <RootNamespace>Fuzn.FluentHttp.Testing</RootNamespace>
+    <OutputType>Library</OutputType>
+    <PackageId>Fuzn.FluentHttp.Testing</PackageId>
+    <Title>Fuzn.FluentHttp.Testing</Title>
+    <Description>In-memory testing support for Fuzn.FluentHttp. Provides a fluent HttpMessageHandler mock for stubbing HTTP responses, simulating failures and timeouts, and asserting on the requests your code sends - with no live server.</Description>
+    <PackageTags>http;httpclient;fluent;testing;mock;unittest;fakehttp;test</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <InternalsVisibleTo Include="Fuzn.FluentHttp.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FluentHttp\FluentHttp.csproj" />
+  </ItemGroup>
+
+</Project>

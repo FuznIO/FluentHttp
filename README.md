@@ -308,6 +308,88 @@ Console.WriteLine(response);  // Prints status, headers, and content
 var request = builder.BuildRequest(HttpMethod.Post);
 ```
 
+## Unit Testing
+
+The companion package **`Fuzn.FluentHttp.Testing`** lets you unit test code that uses FluentHttp without making live HTTP calls. It provides `FluentHttpMockHandler`, an `HttpMessageHandler` that returns canned responses and captures the requests your code sends.
+
+```bash
+dotnet add package Fuzn.FluentHttp.Testing
+```
+
+### Stub a response
+
+```csharp
+var handler = new FluentHttpMockHandler();
+handler.WhenGet("/api/person/1")
+    .RespondWithJson(new PersonDto { Id = 1, Name = "John Doe" });
+
+// Build an HttpClient backed by the mock (or pass `handler` to your own HttpClient).
+var client = handler.CreateClient("https://api.example.com/");
+
+var response = await client.Url("/api/person/1").Get();
+Assert.AreEqual("John Doe", response.ContentAs<PersonDto>()!.Name);
+```
+
+`When(method, url)`, `WhenGet`/`WhenPost`/`WhenPut`/`WhenPatch`/`WhenDelete`, and `WhenAny` register stubs. URL patterns may be relative or absolute and may contain `*` wildcards. Constrain further with `WithHeader`, `WithQueryParam`, and `WithContent`. Respond with `RespondWith` (status, optional JSON), `RespondWithJson`, `RespondWithContent` (raw string + content type), a custom `HttpResponseMessage`, or a factory.
+
+### Verify what was sent
+
+```csharp
+var handler = new FluentHttpMockHandler();
+var stub = handler.WhenPost("/api/person*").WithHeader("Authorization");
+stub.RespondWith(HttpStatusCode.Created);
+
+var client = handler.ToHttpClient();
+await client.Url("https://api.example.com/api/person")
+    .WithAuthBearer("token")
+    .WithContent(new PersonDto { Name = "Jane" })
+    .Post();
+
+handler.VerifyMatched(stub, 1);
+var sent = handler.Requests.Single();
+Assert.IsTrue(sent.HasHeader("Authorization", "Bearer token"));
+Assert.AreEqual("Jane", sent.ContentAs<PersonDto>()!.Name);
+```
+
+### Simulate failures and timeouts
+
+```csharp
+var handler = new FluentHttpMockHandler()
+    .WithFallback(MockFallbackBehavior.RespondNotFound); // unmatched requests → 404 (default: throw)
+
+handler.WhenGet("/api/down").RespondWithException(new HttpRequestException("connection refused"));
+handler.WhenGet("/api/slow").RespondWithTimeout();
+
+var client = handler.CreateClient("https://api.example.com/");
+
+await Assert.ThrowsAsync<HttpRequestException>(() => client.Url("/api/down").Get());
+await Assert.ThrowsAsync<TaskCanceledException>(() => client.Url("/api/slow").Get());
+```
+
+### Different response per call (sequences)
+
+Use `ThenRespondWith*` to return a different response on each successive matched request — handy for testing retry, polling, or token-refresh flows. The last response repeats once the sequence is exhausted.
+
+```csharp
+var handler = new FluentHttpMockHandler();
+
+// Polling: pending on the first call, done on the next.
+handler.WhenGet("/api/job/status")
+    .RespondWithJson(new { status = "pending" })
+    .ThenRespondWithJson(new { status = "done" });
+
+// Retry: transient failure first, success on retry.
+handler.WhenGet("/api/flaky")
+    .RespondWithException(new HttpRequestException("transient"))
+    .ThenRespondWith(HttpStatusCode.OK);
+```
+
+Every `RespondWith*`/`ThenRespondWith*` variant has a sequence form (`ThenRespondWith`, `ThenRespondWithJson`, `ThenRespondWithContent`, `ThenRespondWithException`, `ThenRespondWithTimeout`, …). A fresh `RespondWith*` call restarts the sequence.
+
+### Serialization
+
+Response bodies are serialized with FluentHttp's own serializer resolution (`FluentHttpDefaults`), so mocked JSON matches what the real server would produce. Override it for a single handler with `handler.WithSerializer(...)`.
+
 ## License
 
 MIT License - see [LICENSE](https://github.com/FuznIO/FluentHttp/blob/main/LICENSE) for details.

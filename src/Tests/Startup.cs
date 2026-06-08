@@ -10,7 +10,7 @@ public class Startup : IStartup, IBeforeSuite, IAfterSuite
     [AssemblyInitialize]
     public static async Task Init(TestContext testContext)
     {
-        await TestFuznIntegration.Init(testContext);
+        await TestFuznIntegration.Init<Startup>(testContext);
     }
 
     [AssemblyCleanup]
