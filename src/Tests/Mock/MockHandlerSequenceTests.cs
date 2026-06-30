@@ -14,7 +14,7 @@ public class MockHandlerSequenceTests : Test
         await Scenario()
             .Step("Each call returns the next response in the sequence", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/job")
                     .RespondWith(HttpStatusCode.Accepted)
                     .ThenRespondWith(HttpStatusCode.OK);
@@ -35,7 +35,7 @@ public class MockHandlerSequenceTests : Test
         await Scenario()
             .Step("After the sequence is exhausted, the last response repeats", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/job")
                     .RespondWith(HttpStatusCode.Accepted)
                     .ThenRespondWith(HttpStatusCode.OK);
@@ -57,7 +57,7 @@ public class MockHandlerSequenceTests : Test
         await Scenario()
             .Step("Polling returns pending then done", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/job/status")
                     .RespondWithJson(new PersonDto { Name = "pending" })
                     .ThenRespondWithJson(new PersonDto { Name = "done" });
@@ -78,7 +78,7 @@ public class MockHandlerSequenceTests : Test
         await Scenario()
             .Step("First call fails, retry succeeds", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/flaky")
                     .RespondWithException(new HttpRequestException("transient"))
                     .ThenRespondWith(HttpStatusCode.OK);
@@ -100,12 +100,12 @@ public class MockHandlerSequenceTests : Test
         await Scenario()
             .Step("A later RespondWith replaces the existing sequence", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
-                var stub = handler.WhenGet("/api/job");
-                stub.RespondWith(HttpStatusCode.Accepted).ThenRespondWith(HttpStatusCode.OK);
+                var handler = new MockHttpHandler();
+                var rule = handler.WhenGet("/api/job");
+                rule.RespondWith(HttpStatusCode.Accepted).ThenRespondWith(HttpStatusCode.OK);
 
                 // Reconfigure: replace the whole sequence with a single response.
-                stub.RespondWith(HttpStatusCode.InternalServerError);
+                rule.RespondWith(HttpStatusCode.InternalServerError);
                 var client = handler.CreateClient("https://api.example.com/");
 
                 var response = await client.Url("/api/job").Get();
@@ -121,10 +121,10 @@ public class MockHandlerSequenceTests : Test
         await Scenario()
             .Step("ThenRespondWith without a preceding RespondWith throws", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
-                var stub = handler.WhenGet("/api/job");
+                var handler = new MockHttpHandler();
+                var rule = handler.WhenGet("/api/job");
 
-                Assert.Throws<InvalidOperationException>(() => stub.ThenRespondWith(HttpStatusCode.OK));
+                Assert.Throws<InvalidOperationException>(() => rule.ThenRespondWith(HttpStatusCode.OK));
             })
             .Run();
     }

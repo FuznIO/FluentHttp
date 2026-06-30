@@ -13,11 +13,11 @@ public class MockHandlerFallbackTests : Test
         await Scenario()
             .Step("Unmatched request throws by default", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/known").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
-                await Assert.ThrowsAsync<FluentHttpMockException>(
+                await Assert.ThrowsAsync<MockHttpException>(
                     () => client.Url("/api/unknown").Get());
             })
             .Run();
@@ -29,7 +29,7 @@ public class MockHandlerFallbackTests : Test
         await Scenario()
             .Step("Unmatched request returns 404 when configured", async _ =>
             {
-                var handler = new FluentHttpMockHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
+                var handler = new MockHttpHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
                 var client = handler.CreateClient("https://api.example.com/");
 
                 var response = await client.Url("/api/unknown").Get();
@@ -45,7 +45,7 @@ public class MockHandlerFallbackTests : Test
         await Scenario()
             .Step("UnmatchedCount increments per miss", async _ =>
             {
-                var handler = new FluentHttpMockHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
+                var handler = new MockHttpHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
                 var client = handler.CreateClient("https://api.example.com/");
 
                 await client.Url("/api/a").Get();

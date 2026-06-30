@@ -12,9 +12,9 @@ public class MockHandlerMatchingTests : Test
     public async Task When_MethodAndRelativeUrl_Matches()
     {
         await Scenario()
-            .Step("GET stub matches relative URL", async _ =>
+            .Step("GET rule matches relative URL", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/person/1").RespondWithJson(new PersonDto { Id = 1, Name = "John" });
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -30,9 +30,9 @@ public class MockHandlerMatchingTests : Test
     public async Task When_WrongMethod_DoesNotMatch()
     {
         await Scenario()
-            .Step("POST request does not match GET stub", async _ =>
+            .Step("POST request does not match GET rule", async _ =>
             {
-                var handler = new FluentHttpMockHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
+                var handler = new MockHttpHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
                 handler.WhenGet("/api/person/1").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -49,7 +49,7 @@ public class MockHandlerMatchingTests : Test
         await Scenario()
             .Step("Wildcard pattern matches any path segment", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/person/*").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -66,7 +66,7 @@ public class MockHandlerMatchingTests : Test
         await Scenario()
             .Step("Absolute URL pattern matches", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("https://api.example.com/api/person/1").RespondWith(HttpStatusCode.OK);
                 var client = handler.ToHttpClient();
 
@@ -83,7 +83,7 @@ public class MockHandlerMatchingTests : Test
         await Scenario()
             .Step("WhenAny matches both GET and DELETE", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenAny("/api/resource").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -100,9 +100,9 @@ public class MockHandlerMatchingTests : Test
     public async Task When_HeaderMatcher_Constrains()
     {
         await Scenario()
-            .Step("Header matcher selects the correct stub", async _ =>
+            .Step("Header matcher selects the correct rule", async _ =>
             {
-                var handler = new FluentHttpMockHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
+                var handler = new MockHttpHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
                 handler.WhenGet("/api/data").WithHeader("X-Tenant", "acme").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -119,9 +119,9 @@ public class MockHandlerMatchingTests : Test
     public async Task When_QueryParamMatcher_Constrains()
     {
         await Scenario()
-            .Step("Query param matcher selects the correct stub", async _ =>
+            .Step("Query param matcher selects the correct rule", async _ =>
             {
-                var handler = new FluentHttpMockHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
+                var handler = new MockHttpHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
                 handler.WhenGet("/api/search*").WithQueryParam("q", "fluent").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -138,9 +138,9 @@ public class MockHandlerMatchingTests : Test
     public async Task When_BodyMatcher_Constrains()
     {
         await Scenario()
-            .Step("Body object matcher selects the correct stub", async _ =>
+            .Step("Body object matcher selects the correct rule", async _ =>
             {
-                var handler = new FluentHttpMockHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
+                var handler = new MockHttpHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
                 handler.WhenPost("/api/person")
                     .WithContent(new PersonDto { Name = "Jane" })
                     .RespondWith(HttpStatusCode.Created);
@@ -156,12 +156,12 @@ public class MockHandlerMatchingTests : Test
     }
 
     [Test]
-    public async Task When_MultipleStubs_FirstMatchWins()
+    public async Task When_MultipleRules_FirstMatchWins()
     {
         await Scenario()
-            .Step("Stubs are evaluated in registration order", async _ =>
+            .Step("Rules are evaluated in registration order", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/*").RespondWith(HttpStatusCode.OK, new PersonDto { Name = "first" });
                 handler.WhenGet("/api/person").RespondWith(HttpStatusCode.OK, new PersonDto { Name = "second" });
                 var client = handler.CreateClient("https://api.example.com/");

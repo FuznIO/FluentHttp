@@ -6,12 +6,12 @@ namespace Fuzn.FluentHttp.Testing;
 /// <summary>
 /// An <see cref="HttpMessageHandler"/> that intercepts requests and returns configured responses,
 /// allowing FluentHttp-based code to be unit tested without making live HTTP calls.
-/// Configure stubs with the <c>When*</c> methods, then build an <see cref="HttpClient"/> via
+/// Configure rules with the <c>When*</c> methods, then build an <see cref="HttpClient"/> via
 /// <see cref="CreateClient(string)"/> or <see cref="ToHttpClient"/>.
 /// </summary>
-public class FluentHttpMockHandler : HttpMessageHandler
+public class MockHttpHandler : HttpMessageHandler
 {
-    private readonly List<FluentHttpMockStub> _stubs = [];
+    private readonly List<MockRule> _rules = [];
     private readonly List<CapturedRequest> _requests = [];
     private readonly Lock _gate = new();
 
@@ -32,74 +32,74 @@ public class FluentHttpMockHandler : HttpMessageHandler
     }
 
     /// <summary>
-    /// Gets the number of requests that did not match any stub.
+    /// Gets the number of requests that did not match any rule.
     /// </summary>
     public int UnmatchedCount => Volatile.Read(ref _unmatchedCount);
 
     internal ISerializerProvider Serializer => _serializer;
 
     /// <summary>
-    /// Configures a stub matching the given HTTP method and URL pattern.
+    /// Configures a rule matching the given HTTP method and URL pattern.
     /// The pattern may be relative or absolute and may contain <c>*</c> wildcards.
     /// </summary>
     /// <param name="method">The HTTP method to match.</param>
     /// <param name="urlPattern">The URL pattern to match.</param>
-    /// <returns>A stub to configure matchers and the response.</returns>
-    public FluentHttpMockStub When(HttpMethod method, string urlPattern)
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule When(HttpMethod method, string urlPattern)
     {
         ArgumentNullException.ThrowIfNull(method);
-        return AddStub(method, urlPattern);
+        return AddRule(method, urlPattern);
     }
 
     /// <summary>
-    /// Configures a stub matching any HTTP method against the given URL pattern.
+    /// Configures a rule matching any HTTP method against the given URL pattern.
     /// </summary>
     /// <param name="urlPattern">The URL pattern to match.</param>
-    /// <returns>A stub to configure matchers and the response.</returns>
-    public FluentHttpMockStub WhenAny(string urlPattern) => AddStub(null, urlPattern);
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenAny(string urlPattern) => AddRule(null, urlPattern);
 
     /// <summary>
-    /// Configures a stub matching an HTTP GET against the given URL pattern.
+    /// Configures a rule matching an HTTP GET against the given URL pattern.
     /// </summary>
     /// <param name="urlPattern">The URL pattern to match.</param>
-    /// <returns>A stub to configure matchers and the response.</returns>
-    public FluentHttpMockStub WhenGet(string urlPattern) => AddStub(HttpMethod.Get, urlPattern);
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenGet(string urlPattern) => AddRule(HttpMethod.Get, urlPattern);
 
     /// <summary>
-    /// Configures a stub matching an HTTP POST against the given URL pattern.
+    /// Configures a rule matching an HTTP POST against the given URL pattern.
     /// </summary>
     /// <param name="urlPattern">The URL pattern to match.</param>
-    /// <returns>A stub to configure matchers and the response.</returns>
-    public FluentHttpMockStub WhenPost(string urlPattern) => AddStub(HttpMethod.Post, urlPattern);
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenPost(string urlPattern) => AddRule(HttpMethod.Post, urlPattern);
 
     /// <summary>
-    /// Configures a stub matching an HTTP PUT against the given URL pattern.
+    /// Configures a rule matching an HTTP PUT against the given URL pattern.
     /// </summary>
     /// <param name="urlPattern">The URL pattern to match.</param>
-    /// <returns>A stub to configure matchers and the response.</returns>
-    public FluentHttpMockStub WhenPut(string urlPattern) => AddStub(HttpMethod.Put, urlPattern);
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenPut(string urlPattern) => AddRule(HttpMethod.Put, urlPattern);
 
     /// <summary>
-    /// Configures a stub matching an HTTP PATCH against the given URL pattern.
+    /// Configures a rule matching an HTTP PATCH against the given URL pattern.
     /// </summary>
     /// <param name="urlPattern">The URL pattern to match.</param>
-    /// <returns>A stub to configure matchers and the response.</returns>
-    public FluentHttpMockStub WhenPatch(string urlPattern) => AddStub(HttpMethod.Patch, urlPattern);
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenPatch(string urlPattern) => AddRule(HttpMethod.Patch, urlPattern);
 
     /// <summary>
-    /// Configures a stub matching an HTTP DELETE against the given URL pattern.
+    /// Configures a rule matching an HTTP DELETE against the given URL pattern.
     /// </summary>
     /// <param name="urlPattern">The URL pattern to match.</param>
-    /// <returns>A stub to configure matchers and the response.</returns>
-    public FluentHttpMockStub WhenDelete(string urlPattern) => AddStub(HttpMethod.Delete, urlPattern);
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenDelete(string urlPattern) => AddRule(HttpMethod.Delete, urlPattern);
 
     /// <summary>
-    /// Sets the behavior used when an incoming request does not match any stub. Defaults to
+    /// Sets the behavior used when an incoming request does not match any rule. Defaults to
     /// <see cref="MockFallbackBehavior.Throw"/>.
     /// </summary>
     /// <param name="behavior">The fallback behavior.</param>
     /// <returns>The current handler for method chaining.</returns>
-    public FluentHttpMockHandler WithFallback(MockFallbackBehavior behavior)
+    public MockHttpHandler WithFallback(MockFallbackBehavior behavior)
     {
         _fallback = behavior;
         return this;
@@ -111,7 +111,7 @@ public class FluentHttpMockHandler : HttpMessageHandler
     /// </summary>
     /// <param name="serializer">The serializer provider to use.</param>
     /// <returns>The current handler for method chaining.</returns>
-    public FluentHttpMockHandler WithSerializer(ISerializerProvider serializer)
+    public MockHttpHandler WithSerializer(ISerializerProvider serializer)
     {
         ArgumentNullException.ThrowIfNull(serializer);
         _serializer = serializer;
@@ -119,42 +119,42 @@ public class FluentHttpMockHandler : HttpMessageHandler
     }
 
     /// <summary>
-    /// Asserts that the given stub matched exactly the expected number of times.
+    /// Asserts that the given rule matched exactly the expected number of times.
     /// </summary>
-    /// <param name="stub">The stub to verify.</param>
+    /// <param name="rule">The rule to verify.</param>
     /// <param name="expectedCount">The expected match count.</param>
-    /// <exception cref="FluentHttpMockException">Thrown when the actual count differs.</exception>
-    public void VerifyMatched(FluentHttpMockStub stub, int expectedCount)
+    /// <exception cref="MockHttpException">Thrown when the actual count differs.</exception>
+    public void VerifyMatched(MockRule rule, int expectedCount)
     {
-        ArgumentNullException.ThrowIfNull(stub);
+        ArgumentNullException.ThrowIfNull(rule);
 
-        if (stub.MatchCount != expectedCount)
-            throw new FluentHttpMockException(
-                $"Expected stub to match {expectedCount} time(s), but it matched {stub.MatchCount} time(s).");
+        if (rule.MatchCount != expectedCount)
+            throw new MockHttpException(
+                $"Expected rule to match {expectedCount} time(s), but it matched {rule.MatchCount} time(s).");
     }
 
     /// <summary>
-    /// Asserts that every request received matched a stub.
+    /// Asserts that every request received matched a rule.
     /// </summary>
-    /// <exception cref="FluentHttpMockException">Thrown when one or more requests went unmatched.</exception>
+    /// <exception cref="MockHttpException">Thrown when one or more requests went unmatched.</exception>
     public void VerifyNoUnmatched()
     {
         if (UnmatchedCount > 0)
-            throw new FluentHttpMockException(
-                $"Expected all requests to match a stub, but {UnmatchedCount} request(s) went unmatched.");
+            throw new MockHttpException(
+                $"Expected all requests to match a rule, but {UnmatchedCount} request(s) went unmatched.");
     }
 
     /// <summary>
-    /// Clears captured requests and unmatched count and resets each stub's match count.
-    /// Configured stubs are retained.
+    /// Clears captured requests and unmatched count and resets each rule's match count.
+    /// Configured rules are retained.
     /// </summary>
     public void Reset()
     {
         lock (_gate)
         {
             _requests.Clear();
-            foreach (var stub in _stubs)
-                stub.ResetMatchCount();
+            foreach (var rule in _rules)
+                rule.ResetMatchCount();
         }
 
         Volatile.Write(ref _unmatchedCount, 0);
@@ -197,10 +197,10 @@ public class FluentHttpMockHandler : HttpMessageHandler
         var body = await RequestBodyReader.ReadAsStringAsync(request.Content, cancellationToken);
         Capture(request, body);
 
-        FluentHttpMockStub? matched;
+        MockRule? matched;
         lock (_gate)
         {
-            matched = _stubs.FirstOrDefault(s => s.Matches(request, body));
+            matched = _rules.FirstOrDefault(s => s.Matches(request, body));
         }
 
         if (matched is not null)
@@ -211,18 +211,18 @@ public class FluentHttpMockHandler : HttpMessageHandler
         if (_fallback == MockFallbackBehavior.RespondNotFound)
             return new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request };
 
-        throw new FluentHttpMockException(
-            $"No stub matched the request: {request.Method} {request.RequestUri}. " +
-            "Configure a stub with When*(), or use WithFallback(MockFallbackBehavior.RespondNotFound).");
+        throw new MockHttpException(
+            $"No rule matched the request: {request.Method} {request.RequestUri}. " +
+            "Configure a rule with When*(), or use WithFallback(MockFallbackBehavior.RespondNotFound).");
     }
 
-    private FluentHttpMockStub AddStub(HttpMethod? method, string urlPattern)
+    private MockRule AddRule(HttpMethod? method, string urlPattern)
     {
-        var stub = new FluentHttpMockStub(this, method, urlPattern);
+        var rule = new MockRule(this, method, urlPattern);
         lock (_gate)
-            _stubs.Add(stub);
+            _rules.Add(rule);
 
-        return stub;
+        return rule;
     }
 
     private void Capture(HttpRequestMessage request, string? body)

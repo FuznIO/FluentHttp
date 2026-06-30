@@ -8,7 +8,7 @@ namespace Fuzn.FluentHttp.Tests.Mock;
 /// Mirrors the live authentication scenarios by asserting on the captured Authorization header (no TestApi).
 /// </summary>
 [TestClass]
-public class MockedAuthenticationTests : Test
+public class MockAuthenticationTests : Test
 {
     [Test]
     public async Task WithAuthBearer_SendsBearerHeader()
@@ -16,7 +16,7 @@ public class MockedAuthenticationTests : Test
         await Scenario()
             .Step("Bearer token is sent in the Authorization header", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/auth/bearer").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -34,7 +34,7 @@ public class MockedAuthenticationTests : Test
         await Scenario()
             .Step("Basic credentials are base64-encoded in the Authorization header", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/auth/basic").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -53,7 +53,7 @@ public class MockedAuthenticationTests : Test
         await Scenario()
             .Step("API key is sent in the configured header", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/auth/apikey").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -66,12 +66,12 @@ public class MockedAuthenticationTests : Test
     }
 
     [Test]
-    public async Task Unauthorized_WhenStubReturns401()
+    public async Task Unauthorized_WhenRuleReturns401()
     {
         await Scenario()
-            .Step("Missing auth maps to a 401 stub", async _ =>
+            .Step("Missing auth maps to a 401 rule", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/auth/bearer").WithHeader("Authorization").RespondWith(HttpStatusCode.OK);
                 handler.WhenGet("/api/auth/bearer").RespondWith(HttpStatusCode.Unauthorized);
                 var client = handler.CreateClient("https://api.example.com/");

@@ -6,7 +6,7 @@
     <OutputType>Library</OutputType>
     <PackageId>Fuzn.FluentHttp.Testing</PackageId>
     <Title>Fuzn.FluentHttp.Testing</Title>
-    <Description>In-memory testing support for Fuzn.FluentHttp. Provides a fluent HttpMessageHandler mock for stubbing HTTP responses, simulating failures and timeouts, and asserting on the requests your code sends - with no live server.</Description>
+    <Description>In-memory testing support for Fuzn.FluentHttp. Provides MockHttpHandler, a fluent HttpMessageHandler mock for mocking HTTP responses, simulating failures and timeouts, and asserting on the requests your code sends - with no live server.</Description>
     <PackageTags>http;httpclient;fluent;testing;mock;unittest;fakehttp;test</PackageTags>
   </PropertyGroup>
 

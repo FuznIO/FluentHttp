@@ -9,12 +9,12 @@ namespace Fuzn.FluentHttp.Tests.Mock;
 public class MockHandlerStreamingTests : Test
 {
     [Test]
-    public async Task GetStream_ReadsMockedContentAsStream()
+    public async Task GetStream_ReadsMockContentAsStream()
     {
         await Scenario()
             .Step("Streaming download reads the mocked body", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/download")
                     .RespondWithContent("streamed-payload", "application/octet-stream");
                 var client = handler.CreateClient("https://api.example.com/");
@@ -34,7 +34,7 @@ public class MockHandlerStreamingTests : Test
         await Scenario()
             .Step("Streaming download surfaces the mocked status code", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/missing").RespondWith(HttpStatusCode.NotFound);
                 var client = handler.CreateClient("https://api.example.com/");
 

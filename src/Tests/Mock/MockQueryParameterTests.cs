@@ -8,7 +8,7 @@ namespace Fuzn.FluentHttp.Tests.Mock;
 /// Mirrors the live query-parameter scenarios by asserting on what the mock captured (no TestApi).
 /// </summary>
 [TestClass]
-public class MockedQueryParameterTests : Test
+public class MockQueryParameterTests : Test
 {
     [Test]
     public async Task WithQueryParam_IsAppendedToUrl()
@@ -16,7 +16,7 @@ public class MockedQueryParameterTests : Test
         await Scenario()
             .Step("Single query parameter is sent", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/query*").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -34,7 +34,7 @@ public class MockedQueryParameterTests : Test
         await Scenario()
             .Step("Multiple query parameters are sent", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/query*").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -56,7 +56,7 @@ public class MockedQueryParameterTests : Test
         await Scenario()
             .Step("Query parameter values are URL-encoded but decode back to the original", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/query*").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 

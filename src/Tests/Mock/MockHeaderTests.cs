@@ -8,7 +8,7 @@ namespace Fuzn.FluentHttp.Tests.Mock;
 /// Mirrors the live header scenarios by asserting on what the mock captured (no TestApi).
 /// </summary>
 [TestClass]
-public class MockedHeaderTests : Test
+public class MockHeaderTests : Test
 {
     [Test]
     public async Task WithHeader_IsSentOnRequest()
@@ -16,7 +16,7 @@ public class MockedHeaderTests : Test
         await Scenario()
             .Step("Custom header is sent on the request", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/headers").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -34,7 +34,7 @@ public class MockedHeaderTests : Test
         await Scenario()
             .Step("Multiple headers are sent on the request", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/headers").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -59,7 +59,7 @@ public class MockedHeaderTests : Test
         await Scenario()
             .Step("User-Agent header is sent on the request", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/headers").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 

@@ -3,7 +3,7 @@ using System.Web;
 namespace Fuzn.FluentHttp.Testing;
 
 /// <summary>
-/// An immutable record of a request that was sent through a <see cref="FluentHttpMockHandler"/>.
+/// An immutable record of a request that was sent through a <see cref="MockHttpHandler"/>.
 /// Use it to assert on what FluentHttp actually sent (method, URL, headers, body).
 /// </summary>
 public sealed class CapturedRequest

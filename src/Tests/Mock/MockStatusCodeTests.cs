@@ -8,7 +8,7 @@ namespace Fuzn.FluentHttp.Tests.Mock;
 /// Mirrors the live status-code scenarios, served entirely from an in-memory mock (no TestApi).
 /// </summary>
 [TestClass]
-public class MockedStatusCodeTests : Test
+public class MockStatusCodeTests : Test
 {
     [Test]
     public async Task Ok_IsSuccessful()
@@ -16,7 +16,7 @@ public class MockedStatusCodeTests : Test
         await Scenario()
             .Step("200 OK is reported as successful", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/status/ok").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -34,7 +34,7 @@ public class MockedStatusCodeTests : Test
         await Scenario()
             .Step("404 Not Found is reported as not successful", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/status/notfound").RespondWith(HttpStatusCode.NotFound);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -52,7 +52,7 @@ public class MockedStatusCodeTests : Test
         await Scenario()
             .Step("500 causes EnsureSuccessful to throw", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/status/error").RespondWith(HttpStatusCode.InternalServerError);
                 var client = handler.CreateClient("https://api.example.com/");
 

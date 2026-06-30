@@ -14,7 +14,7 @@ public class MockHandlerResponseTests : Test
         await Scenario()
             .Step("JSON response is deserializable and typed", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/person/1")
                     .RespondWithJson(new PersonDto { Id = 1, Name = "John", Email = "john@x.com", Age = 30 });
                 var client = handler.CreateClient("https://api.example.com/");
@@ -36,7 +36,7 @@ public class MockHandlerResponseTests : Test
         await Scenario()
             .Step("Status-only response", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenDelete("/api/person/1").RespondWith(HttpStatusCode.NoContent);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -54,7 +54,7 @@ public class MockHandlerResponseTests : Test
         await Scenario()
             .Step("Status plus JSON body overload", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenPost("/api/person")
                     .RespondWith(HttpStatusCode.Created, new PersonDto { Id = 7, Name = "New" });
                 var client = handler.CreateClient("https://api.example.com/");
@@ -73,7 +73,7 @@ public class MockHandlerResponseTests : Test
         await Scenario()
             .Step("Raw string content response", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/text").RespondWithContent("hello world", "text/plain");
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -91,7 +91,7 @@ public class MockHandlerResponseTests : Test
         await Scenario()
             .Step("Custom response header is present", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/data")
                     .WithResponseHeader("X-Custom", "abc")
                     .RespondWith(HttpStatusCode.OK);
@@ -111,7 +111,7 @@ public class MockHandlerResponseTests : Test
         await Scenario()
             .Step("Response factory echoes request info", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/echo*").RespondWith(request =>
                     new HttpResponseMessage(HttpStatusCode.OK)
                     {
@@ -136,7 +136,7 @@ public class MockHandlerResponseTests : Test
                 {
                     Content = new StringContent("queued")
                 };
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenPost("/api/jobs").RespondWith(custom);
                 var client = handler.CreateClient("https://api.example.com/");
 

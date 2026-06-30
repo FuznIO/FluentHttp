@@ -9,7 +9,7 @@ namespace Fuzn.FluentHttp.Tests.Mock;
 /// Mirrors the live deserialization scenarios using a mock response (no TestApi).
 /// </summary>
 [TestClass]
-public class MockedDeserializationTests : Test
+public class MockDeserializationTests : Test
 {
     [Test]
     public async Task ContentAs_DeserializesPerson()
@@ -17,7 +17,7 @@ public class MockedDeserializationTests : Test
         await Scenario()
             .Step("Response body deserializes into a typed object", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/deserialize/person")
                     .RespondWithJson(new PersonDto { Id = 1, Name = "John Doe", Email = "john@example.com", Age = 42 });
                 var client = handler.CreateClient("https://api.example.com/");
@@ -38,7 +38,7 @@ public class MockedDeserializationTests : Test
         await Scenario()
             .Step("Generic Get<T> exposes typed data", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/deserialize/person")
                     .RespondWithJson(new PersonDto { Id = 5, Name = "Jane" });
                 var client = handler.CreateClient("https://api.example.com/");

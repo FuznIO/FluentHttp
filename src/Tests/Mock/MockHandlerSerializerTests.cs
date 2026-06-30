@@ -15,7 +15,7 @@ public class MockHandlerSerializerTests : Test
         await Scenario()
             .Step("Default mock serializer matches the library default (camelCase)", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/person").RespondWithJson(new PersonDto { Name = "John" });
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -35,7 +35,7 @@ public class MockHandlerSerializerTests : Test
                 var pascalCase = new SystemTextJsonSerializerProvider(
                     new JsonSerializerOptions { PropertyNamingPolicy = null });
 
-                var handler = new FluentHttpMockHandler().WithSerializer(pascalCase);
+                var handler = new MockHttpHandler().WithSerializer(pascalCase);
                 handler.WhenGet("/api/person").RespondWithJson(new PersonDto { Name = "John" });
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -55,7 +55,7 @@ public class MockHandlerSerializerTests : Test
                 var pascalCase = new SystemTextJsonSerializerProvider(
                     new JsonSerializerOptions { PropertyNamingPolicy = null });
 
-                var handler = new FluentHttpMockHandler().WithSerializer(pascalCase);
+                var handler = new MockHttpHandler().WithSerializer(pascalCase);
                 handler.WhenPost("/api/person")
                     .WithContent(new PersonDto { Name = "Jane" })
                     .RespondWith(HttpStatusCode.Created);

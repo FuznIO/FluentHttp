@@ -14,16 +14,16 @@ public class MockHandlerVerificationTests : Test
         await Scenario()
             .Step("VerifyMatched succeeds when count matches", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
-                var stub = handler.WhenGet("/api/ping");
-                stub.RespondWith(HttpStatusCode.OK);
+                var handler = new MockHttpHandler();
+                var rule = handler.WhenGet("/api/ping");
+                rule.RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
                 await client.Url("/api/ping").Get();
                 await client.Url("/api/ping").Get();
 
-                Assert.AreEqual(2, stub.MatchCount);
-                handler.VerifyMatched(stub, 2);
+                Assert.AreEqual(2, rule.MatchCount);
+                handler.VerifyMatched(rule, 2);
             })
             .Run();
     }
@@ -34,14 +34,14 @@ public class MockHandlerVerificationTests : Test
         await Scenario()
             .Step("VerifyMatched throws when count differs", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
-                var stub = handler.WhenGet("/api/ping");
-                stub.RespondWith(HttpStatusCode.OK);
+                var handler = new MockHttpHandler();
+                var rule = handler.WhenGet("/api/ping");
+                rule.RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
                 await client.Url("/api/ping").Get();
 
-                Assert.Throws<FluentHttpMockException>(() => handler.VerifyMatched(stub, 2));
+                Assert.Throws<MockHttpException>(() => handler.VerifyMatched(rule, 2));
             })
             .Run();
     }
@@ -52,7 +52,7 @@ public class MockHandlerVerificationTests : Test
         await Scenario()
             .Step("Captured request exposes what FluentHttp sent", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenPost("/api/person*").RespondWith(HttpStatusCode.Created);
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -77,14 +77,14 @@ public class MockHandlerVerificationTests : Test
         await Scenario()
             .Step("VerifyNoUnmatched flags missed requests", async _ =>
             {
-                var handler = new FluentHttpMockHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
+                var handler = new MockHttpHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
                 handler.WhenGet("/api/known").RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
                 await client.Url("/api/known").Get();
                 await client.Url("/api/unknown").Get();
 
-                Assert.Throws<FluentHttpMockException>(() => handler.VerifyNoUnmatched());
+                Assert.Throws<MockHttpException>(() => handler.VerifyNoUnmatched());
             })
             .Run();
     }
@@ -93,23 +93,23 @@ public class MockHandlerVerificationTests : Test
     public async Task Reset_ClearsCapturesAndCounts()
     {
         await Scenario()
-            .Step("Reset clears captures and match counts but keeps stubs", async _ =>
+            .Step("Reset clears captures and match counts but keeps rules", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
-                var stub = handler.WhenGet("/api/ping");
-                stub.RespondWith(HttpStatusCode.OK);
+                var handler = new MockHttpHandler();
+                var rule = handler.WhenGet("/api/ping");
+                rule.RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 
                 await client.Url("/api/ping").Get();
                 handler.Reset();
 
-                Assert.AreEqual(0, stub.MatchCount);
+                Assert.AreEqual(0, rule.MatchCount);
                 Assert.IsEmpty(handler.Requests);
 
-                // Stub still works after reset.
+                // Rule still works after reset.
                 var response = await client.Url("/api/ping").Get();
                 Assert.IsTrue(response.IsSuccessful);
-                Assert.AreEqual(1, stub.MatchCount);
+                Assert.AreEqual(1, rule.MatchCount);
             })
             .Run();
     }

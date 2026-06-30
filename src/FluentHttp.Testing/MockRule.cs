@@ -7,13 +7,13 @@ using Fuzn.FluentHttp.Testing.Internals;
 namespace Fuzn.FluentHttp.Testing;
 
 /// <summary>
-/// A single configured stub: a set of matchers describing which requests it handles, paired with
+/// A single configured rule: a set of matchers describing which requests it handles, paired with
 /// the response (or failure) it produces. Created via the <c>When*</c> methods on
-/// <see cref="FluentHttpMockHandler"/>.
+/// <see cref="MockHttpHandler"/>.
 /// </summary>
-public sealed class FluentHttpMockStub
+public sealed class MockRule
 {
-    private readonly FluentHttpMockHandler _owner;
+    private readonly MockHttpHandler _owner;
     private readonly HttpMethod? _method;
     private readonly UrlMatcher _urlMatcher;
     private readonly List<Func<HttpRequestMessage, string?, bool>> _matchers = [];
@@ -24,7 +24,7 @@ public sealed class FluentHttpMockStub
     private TimeSpan _delay = TimeSpan.Zero;
     private int _matchCount;
 
-    internal FluentHttpMockStub(FluentHttpMockHandler owner, HttpMethod? method, string urlPattern)
+    internal MockRule(MockHttpHandler owner, HttpMethod? method, string urlPattern)
     {
         ArgumentNullException.ThrowIfNull(owner);
 
@@ -34,7 +34,7 @@ public sealed class FluentHttpMockStub
     }
 
     /// <summary>
-    /// Gets the number of times this stub has matched an incoming request.
+    /// Gets the number of times this rule has matched an incoming request.
     /// </summary>
     public int MatchCount => _matchCount;
 
@@ -43,8 +43,8 @@ public sealed class FluentHttpMockStub
     /// </summary>
     /// <param name="name">The header name (case-insensitive).</param>
     /// <param name="value">The expected value, or <c>null</c> to match any value.</param>
-    /// <returns>The current stub for method chaining.</returns>
-    public FluentHttpMockStub WithHeader(string name, string? value = null)
+    /// <returns>The current rule for method chaining.</returns>
+    public MockRule WithHeader(string name, string? value = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
@@ -64,8 +64,8 @@ public sealed class FluentHttpMockStub
     /// </summary>
     /// <param name="name">The query parameter name.</param>
     /// <param name="value">The expected value, or <c>null</c> to match any value.</param>
-    /// <returns>The current stub for method chaining.</returns>
-    public FluentHttpMockStub WithQueryParam(string name, string? value = null)
+    /// <returns>The current rule for method chaining.</returns>
+    public MockRule WithQueryParam(string name, string? value = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
@@ -85,8 +85,8 @@ public sealed class FluentHttpMockStub
     /// Requires the request body to equal the specified string exactly.
     /// </summary>
     /// <param name="body">The expected request body.</param>
-    /// <returns>The current stub for method chaining.</returns>
-    public FluentHttpMockStub WithContent(string body)
+    /// <returns>The current rule for method chaining.</returns>
+    public MockRule WithContent(string body)
     {
         ArgumentNullException.ThrowIfNull(body);
 
@@ -98,8 +98,8 @@ public sealed class FluentHttpMockStub
     /// Requires the request body to equal the given object once serialized with the handler's serializer.
     /// </summary>
     /// <param name="body">The expected request body object.</param>
-    /// <returns>The current stub for method chaining.</returns>
-    public FluentHttpMockStub WithContent(object body)
+    /// <returns>The current rule for method chaining.</returns>
+    public MockRule WithContent(object body)
     {
         ArgumentNullException.ThrowIfNull(body);
 
@@ -117,8 +117,8 @@ public sealed class FluentHttpMockStub
     /// string (empty string when there is no body).
     /// </summary>
     /// <param name="predicate">The predicate the body must satisfy.</param>
-    /// <returns>The current stub for method chaining.</returns>
-    public FluentHttpMockStub WithContentMatching(Func<string, bool> predicate)
+    /// <returns>The current rule for method chaining.</returns>
+    public MockRule WithContentMatching(Func<string, bool> predicate)
     {
         ArgumentNullException.ThrowIfNull(predicate);
 
@@ -127,12 +127,12 @@ public sealed class FluentHttpMockStub
     }
 
     /// <summary>
-    /// Adds a header to the response this stub produces.
+    /// Adds a header to the response this rule produces.
     /// </summary>
     /// <param name="name">The response header name.</param>
     /// <param name="value">The response header value.</param>
-    /// <returns>The current stub for method chaining.</returns>
-    public FluentHttpMockStub WithResponseHeader(string name, string value)
+    /// <returns>The current rule for method chaining.</returns>
+    public MockRule WithResponseHeader(string name, string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(value);
@@ -146,8 +146,8 @@ public sealed class FluentHttpMockStub
     /// Useful for exercising client-side timeouts.
     /// </summary>
     /// <param name="delay">The delay before the response is produced.</param>
-    /// <returns>The current stub for method chaining.</returns>
-    public FluentHttpMockStub WithDelay(TimeSpan delay)
+    /// <returns>The current rule for method chaining.</returns>
+    public MockRule WithDelay(TimeSpan delay)
     {
         _delay = delay;
         return this;
@@ -155,12 +155,12 @@ public sealed class FluentHttpMockStub
 
     /// <summary>
     /// Responds with the given status code and, optionally, a JSON body. Starts a new response sequence,
-    /// replacing any previously configured responses for this stub.
+    /// replacing any previously configured responses for this rule.
     /// </summary>
     /// <param name="statusCode">The HTTP status code to return.</param>
     /// <param name="jsonBody">An optional object serialized as JSON for the response body.</param>
-    /// <returns>The current stub, for sequencing with <c>ThenRespondWith*</c>.</returns>
-    public FluentHttpMockStub RespondWith(HttpStatusCode statusCode, object? jsonBody = null)
+    /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
+    public MockRule RespondWith(HttpStatusCode statusCode, object? jsonBody = null)
         => ConfigureStatus(NewPrimary(), statusCode, jsonBody);
 
     /// <summary>
@@ -168,8 +168,8 @@ public sealed class FluentHttpMockStub
     /// </summary>
     /// <param name="body">The object to serialize as the response body.</param>
     /// <param name="statusCode">The HTTP status code to return. Defaults to 200 OK.</param>
-    /// <returns>The current stub, for sequencing with <c>ThenRespondWith*</c>.</returns>
-    public FluentHttpMockStub RespondWithJson(object body, HttpStatusCode statusCode = HttpStatusCode.OK)
+    /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
+    public MockRule RespondWithJson(object body, HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         ArgumentNullException.ThrowIfNull(body);
         return ConfigureStatus(NewPrimary(), statusCode, body);
@@ -181,16 +181,16 @@ public sealed class FluentHttpMockStub
     /// <param name="body">The response body.</param>
     /// <param name="contentType">The Content-Type for the body (e.g., "text/plain").</param>
     /// <param name="statusCode">The HTTP status code to return. Defaults to 200 OK.</param>
-    /// <returns>The current stub, for sequencing with <c>ThenRespondWith*</c>.</returns>
-    public FluentHttpMockStub RespondWithContent(string body, string contentType, HttpStatusCode statusCode = HttpStatusCode.OK)
+    /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
+    public MockRule RespondWithContent(string body, string contentType, HttpStatusCode statusCode = HttpStatusCode.OK)
         => ConfigureContent(NewPrimary(), body, contentType, statusCode);
 
     /// <summary>
     /// Responds with a fully custom <see cref="HttpResponseMessage"/>. Starts a new response sequence.
     /// </summary>
     /// <param name="response">The response to return.</param>
-    /// <returns>The current stub, for sequencing with <c>ThenRespondWith*</c>.</returns>
-    public FluentHttpMockStub RespondWith(HttpResponseMessage response)
+    /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
+    public MockRule RespondWith(HttpResponseMessage response)
         => ConfigureCustom(NewPrimary(), response);
 
     /// <summary>
@@ -198,8 +198,8 @@ public sealed class FluentHttpMockStub
     /// Starts a new response sequence.
     /// </summary>
     /// <param name="responseFactory">The factory invoked for each matched request.</param>
-    /// <returns>The current stub, for sequencing with <c>ThenRespondWith*</c>.</returns>
-    public FluentHttpMockStub RespondWith(Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
+    /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
+    public MockRule RespondWith(Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
         => ConfigureFactory(NewPrimary(), responseFactory);
 
     /// <summary>
@@ -207,16 +207,16 @@ public sealed class FluentHttpMockStub
     /// Starts a new response sequence.
     /// </summary>
     /// <param name="exception">The exception to throw.</param>
-    /// <returns>The current stub, for sequencing with <c>ThenRespondWith*</c>.</returns>
-    public FluentHttpMockStub RespondWithException(Exception exception)
+    /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
+    public MockRule RespondWithException(Exception exception)
         => ConfigureException(NewPrimary(), exception);
 
     /// <summary>
     /// Simulates a timeout by cancelling the request (throwing <see cref="TaskCanceledException"/>).
     /// Combine with <see cref="WithDelay"/> to exercise a client-side timeout race. Starts a new response sequence.
     /// </summary>
-    /// <returns>The current stub, for sequencing with <c>ThenRespondWith*</c>.</returns>
-    public FluentHttpMockStub RespondWithTimeout()
+    /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
+    public MockRule RespondWithTimeout()
         => ConfigureTimeout(NewPrimary());
 
     /// <summary>
@@ -225,9 +225,9 @@ public sealed class FluentHttpMockStub
     /// </summary>
     /// <param name="statusCode">The HTTP status code to return.</param>
     /// <param name="jsonBody">An optional object serialized as JSON for the response body.</param>
-    /// <returns>The current stub, for further sequencing.</returns>
+    /// <returns>The current rule, for further sequencing.</returns>
     /// <exception cref="InvalidOperationException">Thrown when called before a <c>RespondWith*</c> method.</exception>
-    public FluentHttpMockStub ThenRespondWith(HttpStatusCode statusCode, object? jsonBody = null)
+    public MockRule ThenRespondWith(HttpStatusCode statusCode, object? jsonBody = null)
         => ConfigureStatus(NewNext(), statusCode, jsonBody);
 
     /// <summary>
@@ -235,9 +235,9 @@ public sealed class FluentHttpMockStub
     /// </summary>
     /// <param name="body">The object to serialize as the response body.</param>
     /// <param name="statusCode">The HTTP status code to return. Defaults to 200 OK.</param>
-    /// <returns>The current stub, for further sequencing.</returns>
+    /// <returns>The current rule, for further sequencing.</returns>
     /// <exception cref="InvalidOperationException">Thrown when called before a <c>RespondWith*</c> method.</exception>
-    public FluentHttpMockStub ThenRespondWithJson(object body, HttpStatusCode statusCode = HttpStatusCode.OK)
+    public MockRule ThenRespondWithJson(object body, HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         ArgumentNullException.ThrowIfNull(body);
         return ConfigureStatus(NewNext(), statusCode, body);
@@ -249,9 +249,9 @@ public sealed class FluentHttpMockStub
     /// <param name="body">The response body.</param>
     /// <param name="contentType">The Content-Type for the body (e.g., "text/plain").</param>
     /// <param name="statusCode">The HTTP status code to return. Defaults to 200 OK.</param>
-    /// <returns>The current stub, for further sequencing.</returns>
+    /// <returns>The current rule, for further sequencing.</returns>
     /// <exception cref="InvalidOperationException">Thrown when called before a <c>RespondWith*</c> method.</exception>
-    public FluentHttpMockStub ThenRespondWithContent(string body, string contentType, HttpStatusCode statusCode = HttpStatusCode.OK)
+    public MockRule ThenRespondWithContent(string body, string contentType, HttpStatusCode statusCode = HttpStatusCode.OK)
         => ConfigureContent(NewNext(), body, contentType, statusCode);
 
     /// <summary>
@@ -259,9 +259,9 @@ public sealed class FluentHttpMockStub
     /// The last response repeats once exhausted.
     /// </summary>
     /// <param name="response">The response to return.</param>
-    /// <returns>The current stub, for further sequencing.</returns>
+    /// <returns>The current rule, for further sequencing.</returns>
     /// <exception cref="InvalidOperationException">Thrown when called before a <c>RespondWith*</c> method.</exception>
-    public FluentHttpMockStub ThenRespondWith(HttpResponseMessage response)
+    public MockRule ThenRespondWith(HttpResponseMessage response)
         => ConfigureCustom(NewNext(), response);
 
     /// <summary>
@@ -269,26 +269,26 @@ public sealed class FluentHttpMockStub
     /// The last response repeats once exhausted.
     /// </summary>
     /// <param name="responseFactory">The factory invoked for the matched request.</param>
-    /// <returns>The current stub, for further sequencing.</returns>
+    /// <returns>The current rule, for further sequencing.</returns>
     /// <exception cref="InvalidOperationException">Thrown when called before a <c>RespondWith*</c> method.</exception>
-    public FluentHttpMockStub ThenRespondWith(Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
+    public MockRule ThenRespondWith(Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
         => ConfigureFactory(NewNext(), responseFactory);
 
     /// <summary>
     /// Adds a transport failure as the next response in the sequence. The last response repeats once exhausted.
     /// </summary>
     /// <param name="exception">The exception to throw.</param>
-    /// <returns>The current stub, for further sequencing.</returns>
+    /// <returns>The current rule, for further sequencing.</returns>
     /// <exception cref="InvalidOperationException">Thrown when called before a <c>RespondWith*</c> method.</exception>
-    public FluentHttpMockStub ThenRespondWithException(Exception exception)
+    public MockRule ThenRespondWithException(Exception exception)
         => ConfigureException(NewNext(), exception);
 
     /// <summary>
     /// Adds a timeout as the next response in the sequence. The last response repeats once exhausted.
     /// </summary>
-    /// <returns>The current stub, for further sequencing.</returns>
+    /// <returns>The current rule, for further sequencing.</returns>
     /// <exception cref="InvalidOperationException">Thrown when called before a <c>RespondWith*</c> method.</exception>
-    public FluentHttpMockStub ThenRespondWithTimeout()
+    public MockRule ThenRespondWithTimeout()
         => ConfigureTimeout(NewNext());
 
     internal void ResetMatchCount() => Interlocked.Exchange(ref _matchCount, 0);
@@ -361,7 +361,7 @@ public sealed class FluentHttpMockStub
         return spec;
     }
 
-    private FluentHttpMockStub ConfigureStatus(ResponseSpec spec, HttpStatusCode statusCode, object? jsonBody)
+    private MockRule ConfigureStatus(ResponseSpec spec, HttpStatusCode statusCode, object? jsonBody)
     {
         spec.Mode = ResponseMode.Built;
         spec.StatusCode = statusCode;
@@ -369,7 +369,7 @@ public sealed class FluentHttpMockStub
         return this;
     }
 
-    private FluentHttpMockStub ConfigureContent(ResponseSpec spec, string body, string contentType, HttpStatusCode statusCode)
+    private MockRule ConfigureContent(ResponseSpec spec, string body, string contentType, HttpStatusCode statusCode)
     {
         ArgumentNullException.ThrowIfNull(body);
         ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
@@ -381,7 +381,7 @@ public sealed class FluentHttpMockStub
         return this;
     }
 
-    private FluentHttpMockStub ConfigureCustom(ResponseSpec spec, HttpResponseMessage response)
+    private MockRule ConfigureCustom(ResponseSpec spec, HttpResponseMessage response)
     {
         ArgumentNullException.ThrowIfNull(response);
 
@@ -390,7 +390,7 @@ public sealed class FluentHttpMockStub
         return this;
     }
 
-    private FluentHttpMockStub ConfigureFactory(ResponseSpec spec, Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
+    private MockRule ConfigureFactory(ResponseSpec spec, Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
     {
         ArgumentNullException.ThrowIfNull(responseFactory);
 
@@ -399,7 +399,7 @@ public sealed class FluentHttpMockStub
         return this;
     }
 
-    private FluentHttpMockStub ConfigureException(ResponseSpec spec, Exception exception)
+    private MockRule ConfigureException(ResponseSpec spec, Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
 
@@ -408,7 +408,7 @@ public sealed class FluentHttpMockStub
         return this;
     }
 
-    private FluentHttpMockStub ConfigureTimeout(ResponseSpec spec)
+    private MockRule ConfigureTimeout(ResponseSpec spec)
     {
         spec.Mode = ResponseMode.Timeout;
         return this;

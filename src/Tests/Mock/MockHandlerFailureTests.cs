@@ -13,7 +13,7 @@ public class MockHandlerFailureTests : Test
         await Scenario()
             .Step("Configured transport exception propagates", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/down").RespondWithException(new HttpRequestException("connection refused"));
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -31,7 +31,7 @@ public class MockHandlerFailureTests : Test
         await Scenario()
             .Step("Configured timeout throws TaskCanceledException", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/slow").RespondWithTimeout();
                 var client = handler.CreateClient("https://api.example.com/");
 
@@ -47,7 +47,7 @@ public class MockHandlerFailureTests : Test
         await Scenario()
             .Step("Delay longer than the client timeout cancels the request", async _ =>
             {
-                var handler = new FluentHttpMockHandler();
+                var handler = new MockHttpHandler();
                 handler.WhenGet("/api/slow")
                     .WithDelay(TimeSpan.FromSeconds(5))
                     .RespondWith(HttpStatusCode.OK);
