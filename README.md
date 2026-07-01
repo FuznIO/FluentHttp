@@ -330,7 +330,7 @@ var response = await client.Url("/api/person/1").Get();
 Assert.AreEqual("John Doe", response.ContentAs<PersonDto>()!.Name);
 ```
 
-`When(method, url)`, `WhenGet`/`WhenPost`/`WhenPut`/`WhenPatch`/`WhenDelete`, and `WhenAny` register mock rules. URL patterns may be relative or absolute and may contain `*` wildcards. Constrain further with `WithHeader`, `WithQueryParam`, and `WithContent`. Respond with `RespondWith` (status, optional JSON), `RespondWithJson`, `RespondWithContent` (raw string + content type), a custom `HttpResponseMessage`, or a factory.
+`When(method, url)`, `WhenGet`/`WhenPost`/`WhenPut`/`WhenPatch`/`WhenDelete`, and `WhenAny` register mock rules. URL patterns may be relative or absolute and may contain `*` wildcards. Constrain further with `WithHeader`, `WithQueryParam`, and `WithContent`. Respond with `RespondWith` (status, optional JSON), `RespondWithJson`, `RespondWithContent` (raw string + content type), a custom `HttpResponseMessage`, or a synchronous or asynchronous factory. Mock rules are evaluated in registration order and the **first match wins**, so register more specific rules before broader wildcard ones.
 
 ### Verify what was sent
 
@@ -349,6 +349,25 @@ handler.VerifyMatched(rule, 1);
 var sent = handler.Requests.Single();
 Assert.IsTrue(sent.HasHeader("Authorization", "Bearer token"));
 Assert.AreEqual("Jane", sent.ContentAs<PersonDto>()!.Name);
+```
+
+Beyond `VerifyMatched(rule, count)`, assert directly over captured requests with `handler.VerifyRequest(predicate)`, `VerifyRequest(predicate, count)`, and `VerifyNoRequest(predicate)`, or inspect `handler.Requests` — each `CapturedRequest` exposes `Method`, `RequestUri`, headers, `Content`, `ContentBytes` (raw bytes for binary/multipart bodies), and `ContentAs<T>()`.
+
+### Test typed and named clients (dependency injection)
+
+When your code resolves an `HttpClient` from `IHttpClientFactory` (named or typed clients), register the mock as the **primary** message handler with `UseMockHandler` — any `DelegatingHandler`s on the client still run in front of it:
+
+```csharp
+var handler = new MockHttpHandler();
+handler.WhenGet("/api/person/1").RespondWithJson(new PersonDto { Id = 1, Name = "John Doe" });
+
+var services = new ServiceCollection();
+services.AddHttpClient<PersonApiClient>(c => c.BaseAddress = new Uri("https://api.example.com/"))
+    .UseMockHandler(handler);
+
+using var provider = services.BuildServiceProvider();
+var client = provider.GetRequiredService<PersonApiClient>();
+// PersonApiClient's requests are now served by the mock — no network, no test server.
 ```
 
 ### Simulate failures and timeouts

@@ -78,6 +78,23 @@ public class MockHandlerMatchingTests : Test
     }
 
     [Test]
+    public async Task When_WildcardHostPattern_Matches()
+    {
+        await Scenario()
+            .Step("Absolute pattern with a wildcard host matches the request URL", async _ =>
+            {
+                var handler = new MockHttpHandler();
+                handler.WhenGet("https://*/api/person/1").RespondWith(HttpStatusCode.OK);
+                var client = handler.CreateClient("https://api.example.com/");
+
+                var response = await client.Url("/api/person/1").Get();
+
+                Assert.IsTrue(response.IsSuccessful);
+            })
+            .Run();
+    }
+
+    [Test]
     public async Task WhenAny_MatchesAnyMethod()
     {
         await Scenario()

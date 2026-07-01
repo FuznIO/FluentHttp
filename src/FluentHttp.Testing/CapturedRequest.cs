@@ -15,6 +15,7 @@ public sealed class CapturedRequest
         Uri requestUri,
         IReadOnlyDictionary<string, string[]> headers,
         string? content,
+        byte[]? contentBytes,
         string? contentType,
         ISerializerProvider serializer)
     {
@@ -22,6 +23,7 @@ public sealed class CapturedRequest
         RequestUri = requestUri;
         Headers = headers;
         Content = content;
+        ContentBytes = contentBytes;
         ContentType = contentType;
         _serializer = serializer;
     }
@@ -43,8 +45,16 @@ public sealed class CapturedRequest
 
     /// <summary>
     /// Gets the request body as a string, or <c>null</c> if the request had no body.
+    /// Decoded using the request's declared charset, falling back to UTF-8. For binary
+    /// payloads, prefer <see cref="ContentBytes"/>.
     /// </summary>
     public string? Content { get; }
+
+    /// <summary>
+    /// Gets the raw request body bytes, or <c>null</c> if the request had no body.
+    /// Use this to assert on binary or multipart payloads that do not round-trip as text.
+    /// </summary>
+    public byte[]? ContentBytes { get; }
 
     /// <summary>
     /// Gets the Content-Type of the request body, or <c>null</c> if there was no body.

@@ -36,7 +36,7 @@ public sealed class MockRule
     /// <summary>
     /// Gets the number of times this rule has matched an incoming request.
     /// </summary>
-    public int MatchCount => _matchCount;
+    public int MatchCount => Volatile.Read(ref _matchCount);
 
     /// <summary>
     /// Requires the request to contain the specified header, optionally with a specific value.
@@ -203,6 +203,15 @@ public sealed class MockRule
         => ConfigureFactory(NewPrimary(), responseFactory);
 
     /// <summary>
+    /// Responds using an asynchronous factory that builds an <see cref="HttpResponseMessage"/> from the
+    /// incoming request. Starts a new response sequence.
+    /// </summary>
+    /// <param name="responseFactory">The asynchronous factory invoked for each matched request.</param>
+    /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
+    public MockRule RespondWith(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> responseFactory)
+        => ConfigureAsyncFactory(NewPrimary(), responseFactory);
+
+    /// <summary>
     /// Throws the given exception instead of returning a response, simulating a transport failure.
     /// Starts a new response sequence.
     /// </summary>
@@ -275,6 +284,16 @@ public sealed class MockRule
         => ConfigureFactory(NewNext(), responseFactory);
 
     /// <summary>
+    /// Adds the next response in the sequence, built by an asynchronous factory from the incoming request.
+    /// The last response repeats once exhausted.
+    /// </summary>
+    /// <param name="responseFactory">The asynchronous factory invoked for the matched request.</param>
+    /// <returns>The current rule, for further sequencing.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when called before a <c>RespondWith*</c> method.</exception>
+    public MockRule ThenRespondWith(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> responseFactory)
+        => ConfigureAsyncFactory(NewNext(), responseFactory);
+
+    /// <summary>
     /// Adds a transport failure as the next response in the sequence. The last response repeats once exhausted.
     /// </summary>
     /// <param name="exception">The exception to throw.</param>
@@ -317,30 +336,23 @@ public sealed class MockRule
         if (_delay > TimeSpan.Zero)
             await Task.Delay(_delay, cancellationToken);
 
-        if (_responses.Count == 0)
-            return BuildResponse(request, new ResponseSpec());
-
         // Advance through the sequence; the last response repeats once exhausted.
-        var spec = _responses[Math.Min(attempt - 1, _responses.Count - 1)];
+        var spec = _responses.Count == 0
+            ? new ResponseSpec()
+            : _responses[Math.Min(attempt - 1, _responses.Count - 1)];
 
-        switch (spec.Mode)
+        var response = spec.Mode switch
         {
-            case ResponseMode.Exception:
-                throw spec.Exception!;
+            ResponseMode.Exception => throw spec.Exception!,
+            ResponseMode.Timeout => throw new TaskCanceledException("The mocked request was configured to time out."),
+            ResponseMode.Custom => await CloneResponseAsync(spec, request, cancellationToken),
+            ResponseMode.Factory => spec.ResponseFactory!(request),
+            ResponseMode.AsyncFactory => await spec.AsyncResponseFactory!(request, cancellationToken),
+            _ => BuildResponse(request, spec),
+        };
 
-            case ResponseMode.Timeout:
-                throw new TaskCanceledException("The mocked request was configured to time out.");
-
-            case ResponseMode.Custom:
-                return spec.CustomResponse!;
-
-            case ResponseMode.Factory:
-                return spec.ResponseFactory!(request);
-
-            case ResponseMode.Built:
-            default:
-                return BuildResponse(request, spec);
-        }
+        ApplyResponseHeaders(response);
+        return response;
     }
 
     private ResponseSpec NewPrimary()
@@ -399,6 +411,15 @@ public sealed class MockRule
         return this;
     }
 
+    private MockRule ConfigureAsyncFactory(ResponseSpec spec, Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> responseFactory)
+    {
+        ArgumentNullException.ThrowIfNull(responseFactory);
+
+        spec.Mode = ResponseMode.AsyncFactory;
+        spec.AsyncResponseFactory = responseFactory;
+        return this;
+    }
+
     private MockRule ConfigureException(ResponseSpec spec, Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
@@ -432,13 +453,46 @@ public sealed class MockRule
             response.Content = new StringContent(string.Empty);
         }
 
+        return response;
+    }
+
+    private void ApplyResponseHeaders(HttpResponseMessage response)
+    {
         foreach (var header in _responseHeaders)
         {
             if (!response.Headers.TryAddWithoutValidation(header.Key, header.Value))
-                response.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                response.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
+    }
+
+    private static async Task<HttpResponseMessage> CloneResponseAsync(ResponseSpec spec, HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var source = spec.CustomResponse!;
+
+        var clone = new HttpResponseMessage(source.StatusCode)
+        {
+            RequestMessage = request,
+            ReasonPhrase = source.ReasonPhrase,
+            Version = source.Version,
+        };
+
+        if (source.Content is not null)
+        {
+            // Buffer the source body once so each matched request gets an independent, re-readable copy.
+            // A single HttpResponseMessage instance would otherwise be disposed/consumed after the first match.
+            spec.CustomBodyBytes ??= await source.Content.ReadAsByteArrayAsync(cancellationToken);
+
+            var content = new ByteArrayContent(spec.CustomBodyBytes);
+            foreach (var header in source.Content.Headers)
+                content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+
+            clone.Content = content;
         }
 
-        return response;
+        foreach (var header in source.Headers)
+            clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+
+        return clone;
     }
 
     private static bool TryGetHeaderValues(HttpRequestMessage request, string name, out IEnumerable<string> values)
@@ -464,6 +518,7 @@ public sealed class MockRule
         Built,
         Custom,
         Factory,
+        AsyncFactory,
         Exception,
         Timeout
     }
@@ -477,6 +532,8 @@ public sealed class MockRule
         public string? StringBodyContentType { get; set; }
         public HttpResponseMessage? CustomResponse { get; set; }
         public Func<HttpRequestMessage, HttpResponseMessage>? ResponseFactory { get; set; }
+        public Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? AsyncResponseFactory { get; set; }
+        public byte[]? CustomBodyBytes { get; set; }
         public Exception? Exception { get; set; }
     }
 }

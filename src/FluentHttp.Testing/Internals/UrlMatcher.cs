@@ -18,7 +18,13 @@ internal sealed class UrlMatcher
         ArgumentException.ThrowIfNullOrWhiteSpace(pattern);
 
         Pattern = pattern;
-        _isAbsolute = Uri.TryCreate(pattern, UriKind.Absolute, out _);
+
+        // A pattern is absolute only when it carries a scheme separator. We deliberately avoid
+        // Uri.TryCreate(..., UriKind.Absolute) here: on Unix it reports relative paths like
+        // "/api/x" as absolute "file" URIs (see FluentHttpRequest's IsHttpScheme guard and the
+        // uri-tryparse-linux fix), and it rejects wildcard hosts like "https://*/x". A simple
+        // "contains '://'" test classifies relative paths, absolute URLs, and wildcard hosts correctly.
+        _isAbsolute = pattern.Contains("://", StringComparison.Ordinal);
         _regex = BuildRegex(pattern);
     }
 

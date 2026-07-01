@@ -145,6 +145,58 @@ public class MockHttpHandler : HttpMessageHandler
     }
 
     /// <summary>
+    /// Counts the captured requests that satisfy the given predicate.
+    /// </summary>
+    /// <param name="predicate">The predicate a captured request must satisfy.</param>
+    /// <returns>The number of matching captured requests.</returns>
+    public int CountRequests(Func<CapturedRequest, bool> predicate)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        lock (_gate)
+            return _requests.Count(predicate);
+    }
+
+    /// <summary>
+    /// Asserts that at least one captured request satisfies the given predicate.
+    /// </summary>
+    /// <param name="predicate">The predicate a captured request must satisfy.</param>
+    /// <exception cref="MockHttpException">Thrown when no captured request matches.</exception>
+    public void VerifyRequest(Func<CapturedRequest, bool> predicate)
+    {
+        if (CountRequests(predicate) == 0)
+            throw new MockHttpException(
+                "Expected at least one captured request to match the predicate, but none did.");
+    }
+
+    /// <summary>
+    /// Asserts that exactly <paramref name="expectedCount"/> captured requests satisfy the given predicate.
+    /// </summary>
+    /// <param name="predicate">The predicate a captured request must satisfy.</param>
+    /// <param name="expectedCount">The expected number of matching requests.</param>
+    /// <exception cref="MockHttpException">Thrown when the actual count differs.</exception>
+    public void VerifyRequest(Func<CapturedRequest, bool> predicate, int expectedCount)
+    {
+        var actual = CountRequests(predicate);
+        if (actual != expectedCount)
+            throw new MockHttpException(
+                $"Expected {expectedCount} captured request(s) to match the predicate, but {actual} did.");
+    }
+
+    /// <summary>
+    /// Asserts that no captured request satisfies the given predicate.
+    /// </summary>
+    /// <param name="predicate">The predicate that no captured request may satisfy.</param>
+    /// <exception cref="MockHttpException">Thrown when one or more captured requests match.</exception>
+    public void VerifyNoRequest(Func<CapturedRequest, bool> predicate)
+    {
+        var actual = CountRequests(predicate);
+        if (actual != 0)
+            throw new MockHttpException(
+                $"Expected no captured request to match the predicate, but {actual} did.");
+    }
+
+    /// <summary>
     /// Clears captured requests and unmatched count and resets each rule's match count.
     /// Configured rules are retained.
     /// </summary>
@@ -194,8 +246,9 @@ public class MockHttpHandler : HttpMessageHandler
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var body = await RequestBodyReader.ReadAsStringAsync(request.Content, cancellationToken);
-        Capture(request, body);
+        var bodyBytes = await RequestBodyReader.ReadAsByteArrayAsync(request.Content, cancellationToken);
+        var body = bodyBytes is null ? null : RequestBodyReader.Decode(request.Content, bodyBytes);
+        Capture(request, body, bodyBytes);
 
         MockRule? matched;
         lock (_gate)
@@ -225,7 +278,7 @@ public class MockHttpHandler : HttpMessageHandler
         return rule;
     }
 
-    private void Capture(HttpRequestMessage request, string? body)
+    private void Capture(HttpRequestMessage request, string? body, byte[]? bodyBytes)
     {
         var headers = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
 
@@ -243,6 +296,7 @@ public class MockHttpHandler : HttpMessageHandler
             request.RequestUri!,
             headers,
             body,
+            bodyBytes,
             request.Content?.Headers.ContentType?.ToString(),
             _serializer);
 
