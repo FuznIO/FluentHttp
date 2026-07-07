@@ -80,10 +80,10 @@ public class MockHandlerEnhancementsTests : Test
     }
 
     [Test]
-    public async Task VerifyRequest_AssertsOverCapturedRequests()
+    public async Task Requests_CanBeAssertedOverWithLinq()
     {
         await Scenario()
-            .Step("VerifyRequest / VerifyNoRequest / CountRequests assert over captures", async _ =>
+            .Step("Assert over handler.Requests with the test framework", async _ =>
             {
                 var handler = new MockHttpHandler();
                 handler.WhenAny("/api/*").RespondWith(HttpStatusCode.OK);
@@ -92,11 +92,10 @@ public class MockHandlerEnhancementsTests : Test
                 await client.Url("/api/a").WithAuthBearer("t1").Get();
                 await client.Url("/api/b").Post();
 
-                handler.VerifyRequest(r => r.Method == HttpMethod.Get);
-                handler.VerifyRequest(r => r.HasHeader("Authorization", "Bearer t1"), 1);
-                handler.VerifyNoRequest(r => r.Method == HttpMethod.Delete);
-                Assert.AreEqual(2, handler.CountRequests(_ => true));
-                Assert.Throws<MockHttpException>(() => handler.VerifyRequest(r => r.Method == HttpMethod.Delete));
+                Assert.HasCount(2, handler.Requests);
+                Assert.IsTrue(handler.Requests.Any(r => r.Method == HttpMethod.Get));
+                Assert.AreEqual(1, handler.Requests.Count(r => r.Headers.TryGetValue("Authorization", out var a) && a.Contains("Bearer t1")));
+                Assert.IsFalse(handler.Requests.Any(r => r.Method == HttpMethod.Delete));
             })
             .Run();
     }

@@ -23,7 +23,7 @@ public class MockAuthenticationTests : Test
                 await client.Url("/api/auth/bearer").WithAuthBearer("my-token").Get();
 
                 var sent = handler.Requests.Single();
-                Assert.IsTrue(sent.HasHeader("Authorization", "Bearer my-token"));
+                Assert.IsTrue(sent.Headers["Authorization"].Contains("Bearer my-token"));
             })
             .Run();
     }
@@ -42,7 +42,7 @@ public class MockAuthenticationTests : Test
 
                 var expected = "Basic " + Convert.ToBase64String("user:pass"u8.ToArray());
                 var sent = handler.Requests.Single();
-                Assert.IsTrue(sent.HasHeader("Authorization", expected));
+                Assert.IsTrue(sent.Headers["Authorization"].Contains(expected));
             })
             .Run();
     }
@@ -60,7 +60,7 @@ public class MockAuthenticationTests : Test
                 await client.Url("/api/auth/apikey").WithAuthApiKey("secret-key").Get();
 
                 var sent = handler.Requests.Single();
-                Assert.IsTrue(sent.HasHeader("X-API-Key", "secret-key"));
+                Assert.IsTrue(sent.Headers["X-API-Key"].Contains("secret-key"));
             })
             .Run();
     }

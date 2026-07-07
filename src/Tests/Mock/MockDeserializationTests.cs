@@ -19,7 +19,7 @@ public class MockDeserializationTests : Test
             {
                 var handler = new MockHttpHandler();
                 handler.WhenGet("/api/deserialize/person")
-                    .RespondWithJson(new PersonDto { Id = 1, Name = "John Doe", Email = "john@example.com", Age = 42 });
+                    .RespondWithContent(new PersonDto { Id = 1, Name = "John Doe", Email = "john@example.com", Age = 42 });
                 var client = handler.CreateClient("https://api.example.com/");
 
                 var response = await client.Url("/api/deserialize/person").Get();
@@ -40,7 +40,7 @@ public class MockDeserializationTests : Test
             {
                 var handler = new MockHttpHandler();
                 handler.WhenGet("/api/deserialize/person")
-                    .RespondWithJson(new PersonDto { Id = 5, Name = "Jane" });
+                    .RespondWithContent(new PersonDto { Id = 5, Name = "Jane" });
                 var client = handler.CreateClient("https://api.example.com/");
 
                 var response = await client.Url("/api/deserialize/person").Get<PersonDto>();

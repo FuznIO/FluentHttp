@@ -9,10 +9,10 @@ namespace Fuzn.FluentHttp.Tests.Mock;
 public class MockHandlerVerificationTests : Test
 {
     [Test]
-    public async Task VerifyMatched_PassesForExpectedCount()
+    public async Task MatchCount_ReflectsNumberOfMatches()
     {
         await Scenario()
-            .Step("VerifyMatched succeeds when count matches", async _ =>
+            .Step("A rule's MatchCount tracks how many requests it handled", async _ =>
             {
                 var handler = new MockHttpHandler();
                 var rule = handler.WhenGet("/api/ping");
@@ -23,25 +23,6 @@ public class MockHandlerVerificationTests : Test
                 await client.Url("/api/ping").Get();
 
                 Assert.AreEqual(2, rule.MatchCount);
-                handler.VerifyMatched(rule, 2);
-            })
-            .Run();
-    }
-
-    [Test]
-    public async Task VerifyMatched_ThrowsForWrongCount()
-    {
-        await Scenario()
-            .Step("VerifyMatched throws when count differs", async _ =>
-            {
-                var handler = new MockHttpHandler();
-                var rule = handler.WhenGet("/api/ping");
-                rule.RespondWith(HttpStatusCode.OK);
-                var client = handler.CreateClient("https://api.example.com/");
-
-                await client.Url("/api/ping").Get();
-
-                Assert.Throws<MockHttpException>(() => handler.VerifyMatched(rule, 2));
             })
             .Run();
     }
@@ -64,52 +45,9 @@ public class MockHandlerVerificationTests : Test
 
                 var sent = handler.Requests.Single();
                 Assert.AreEqual(HttpMethod.Post, sent.Method);
-                Assert.IsTrue(sent.HasHeader("Authorization", "Bearer token-123"));
-                Assert.IsTrue(sent.HasQueryParam("notify", "true"));
+                Assert.IsTrue(sent.Headers["Authorization"].Contains("Bearer token-123"));
+                Assert.AreEqual("true", sent.Query["notify"].Single());
                 Assert.AreEqual("Jane", sent.ContentAs<PersonDto>()!.Name);
-            })
-            .Run();
-    }
-
-    [Test]
-    public async Task VerifyNoUnmatched_ThrowsWhenARequestMissed()
-    {
-        await Scenario()
-            .Step("VerifyNoUnmatched flags missed requests", async _ =>
-            {
-                var handler = new MockHttpHandler().WithFallback(MockFallbackBehavior.RespondNotFound);
-                handler.WhenGet("/api/known").RespondWith(HttpStatusCode.OK);
-                var client = handler.CreateClient("https://api.example.com/");
-
-                await client.Url("/api/known").Get();
-                await client.Url("/api/unknown").Get();
-
-                Assert.Throws<MockHttpException>(() => handler.VerifyNoUnmatched());
-            })
-            .Run();
-    }
-
-    [Test]
-    public async Task Reset_ClearsCapturesAndCounts()
-    {
-        await Scenario()
-            .Step("Reset clears captures and match counts but keeps rules", async _ =>
-            {
-                var handler = new MockHttpHandler();
-                var rule = handler.WhenGet("/api/ping");
-                rule.RespondWith(HttpStatusCode.OK);
-                var client = handler.CreateClient("https://api.example.com/");
-
-                await client.Url("/api/ping").Get();
-                handler.Reset();
-
-                Assert.AreEqual(0, rule.MatchCount);
-                Assert.IsEmpty(handler.Requests);
-
-                // Rule still works after reset.
-                var response = await client.Url("/api/ping").Get();
-                Assert.IsTrue(response.IsSuccessful);
-                Assert.AreEqual(1, rule.MatchCount);
             })
             .Run();
     }

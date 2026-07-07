@@ -42,14 +42,14 @@ public class MockHandlerFailureTests : Test
     }
 
     [Test]
-    public async Task WithDelay_AndClientTimeout_CancelsRequest()
+    public async Task WithResponseDelay_AndClientTimeout_CancelsRequest()
     {
         await Scenario()
             .Step("Delay longer than the client timeout cancels the request", async _ =>
             {
                 var handler = new MockHttpHandler();
                 handler.WhenGet("/api/slow")
-                    .WithDelay(TimeSpan.FromSeconds(5))
+                    .WithResponseDelay(TimeSpan.FromSeconds(5))
                     .RespondWith(HttpStatusCode.OK);
                 var client = handler.CreateClient("https://api.example.com/");
 

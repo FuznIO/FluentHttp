@@ -7,17 +7,14 @@ namespace Fuzn.FluentHttp.Testing;
 /// An <see cref="HttpMessageHandler"/> that intercepts requests and returns configured responses,
 /// allowing FluentHttp-based code to be unit tested without making live HTTP calls.
 /// Configure rules with the <c>When*</c> methods, then build an <see cref="HttpClient"/> via
-/// <see cref="CreateClient(string)"/> or <see cref="ToHttpClient"/>.
+/// <see cref="CreateClient(string)"/> (or <see cref="CreateClient()"/> for absolute URLs).
 /// </summary>
 public class MockHttpHandler : HttpMessageHandler
 {
     private readonly List<MockRule> _rules = [];
     private readonly List<CapturedRequest> _requests = [];
     private readonly Lock _gate = new();
-
-    private MockFallbackBehavior _fallback = MockFallbackBehavior.Throw;
-    private ISerializerProvider _serializer = FluentHttpDefaults.Serializers.Default;
-    private int _unmatchedCount;
+    private ISerializerProvider? _serializerOverride;
 
     /// <summary>
     /// Gets the requests captured by this handler, in the order they were received.
@@ -32,11 +29,13 @@ public class MockHttpHandler : HttpMessageHandler
     }
 
     /// <summary>
-    /// Gets the number of requests that did not match any rule.
+    /// Resolves the serializer for a body with the given content type, the same way FluentHttp does:
+    /// an explicit <see cref="WithSerializer"/> override wins; otherwise the global
+    /// <see cref="FluentHttpDefaults.Serializers"/> registry is resolved by content type, falling back to its default.
+    /// Resolution happens per call so it reflects the serializer configuration in effect at request time.
     /// </summary>
-    public int UnmatchedCount => Volatile.Read(ref _unmatchedCount);
-
-    internal ISerializerProvider Serializer => _serializer;
+    internal ISerializerProvider ResolveSerializer(string? contentType)
+        => _serializerOverride ?? FluentHttpDefaults.Serializers.ResolveOrDefault(contentType);
 
     /// <summary>
     /// Configures a rule matching the given HTTP method and URL pattern.
@@ -52,11 +51,29 @@ public class MockHttpHandler : HttpMessageHandler
     }
 
     /// <summary>
+    /// Configures a rule matching the given HTTP method against any URL.
+    /// </summary>
+    /// <param name="method">The HTTP method to match.</param>
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule When(HttpMethod method)
+    {
+        ArgumentNullException.ThrowIfNull(method);
+        return AddRule(method, "*");
+    }
+
+    /// <summary>
     /// Configures a rule matching any HTTP method against the given URL pattern.
     /// </summary>
     /// <param name="urlPattern">The URL pattern to match.</param>
     /// <returns>A rule to configure matchers and the response.</returns>
     public MockRule WhenAny(string urlPattern) => AddRule(null, urlPattern);
+
+    /// <summary>
+    /// Configures a rule matching any HTTP method against any URL. Useful when the test exercises a
+    /// single endpoint and the exact method and URL do not matter.
+    /// </summary>
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenAny() => AddRule(null, "*");
 
     /// <summary>
     /// Configures a rule matching an HTTP GET against the given URL pattern.
@@ -66,11 +83,23 @@ public class MockHttpHandler : HttpMessageHandler
     public MockRule WhenGet(string urlPattern) => AddRule(HttpMethod.Get, urlPattern);
 
     /// <summary>
+    /// Configures a rule matching an HTTP GET against any URL.
+    /// </summary>
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenGet() => AddRule(HttpMethod.Get, "*");
+
+    /// <summary>
     /// Configures a rule matching an HTTP POST against the given URL pattern.
     /// </summary>
     /// <param name="urlPattern">The URL pattern to match.</param>
     /// <returns>A rule to configure matchers and the response.</returns>
     public MockRule WhenPost(string urlPattern) => AddRule(HttpMethod.Post, urlPattern);
+
+    /// <summary>
+    /// Configures a rule matching an HTTP POST against any URL.
+    /// </summary>
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenPost() => AddRule(HttpMethod.Post, "*");
 
     /// <summary>
     /// Configures a rule matching an HTTP PUT against the given URL pattern.
@@ -80,11 +109,23 @@ public class MockHttpHandler : HttpMessageHandler
     public MockRule WhenPut(string urlPattern) => AddRule(HttpMethod.Put, urlPattern);
 
     /// <summary>
+    /// Configures a rule matching an HTTP PUT against any URL.
+    /// </summary>
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenPut() => AddRule(HttpMethod.Put, "*");
+
+    /// <summary>
     /// Configures a rule matching an HTTP PATCH against the given URL pattern.
     /// </summary>
     /// <param name="urlPattern">The URL pattern to match.</param>
     /// <returns>A rule to configure matchers and the response.</returns>
     public MockRule WhenPatch(string urlPattern) => AddRule(HttpMethod.Patch, urlPattern);
+
+    /// <summary>
+    /// Configures a rule matching an HTTP PATCH against any URL.
+    /// </summary>
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenPatch() => AddRule(HttpMethod.Patch, "*");
 
     /// <summary>
     /// Configures a rule matching an HTTP DELETE against the given URL pattern.
@@ -94,123 +135,45 @@ public class MockHttpHandler : HttpMessageHandler
     public MockRule WhenDelete(string urlPattern) => AddRule(HttpMethod.Delete, urlPattern);
 
     /// <summary>
-    /// Sets the behavior used when an incoming request does not match any rule. Defaults to
-    /// <see cref="MockFallbackBehavior.Throw"/>.
+    /// Configures a rule matching an HTTP DELETE against any URL.
     /// </summary>
-    /// <param name="behavior">The fallback behavior.</param>
-    /// <returns>The current handler for method chaining.</returns>
-    public MockHttpHandler WithFallback(MockFallbackBehavior behavior)
-    {
-        _fallback = behavior;
-        return this;
-    }
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenDelete() => AddRule(HttpMethod.Delete, "*");
 
     /// <summary>
-    /// Overrides the serializer used to serialize response bodies and to match/deserialize request bodies.
-    /// Defaults to <see cref="FluentHttpDefaults.Serializers"/>' default serializer.
+    /// Configures a rule matching an HTTP HEAD against the given URL pattern.
+    /// </summary>
+    /// <param name="urlPattern">The URL pattern to match.</param>
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenHead(string urlPattern) => AddRule(HttpMethod.Head, urlPattern);
+
+    /// <summary>
+    /// Configures a rule matching an HTTP HEAD against any URL.
+    /// </summary>
+    /// <returns>A rule to configure matchers and the response.</returns>
+    public MockRule WhenHead() => AddRule(HttpMethod.Head, "*");
+
+    /// <summary>
+    /// Overrides serializer resolution with an explicit serializer for all bodies. By default the handler
+    /// resolves the serializer the same way FluentHttp does - by the message's Content-Type against the global
+    /// <see cref="FluentHttpDefaults.Serializers"/> registry, falling back to its default. Set this only when
+    /// the code under test uses a per-request serializer the handler cannot otherwise see.
     /// </summary>
     /// <param name="serializer">The serializer provider to use.</param>
     /// <returns>The current handler for method chaining.</returns>
     public MockHttpHandler WithSerializer(ISerializerProvider serializer)
     {
         ArgumentNullException.ThrowIfNull(serializer);
-        _serializer = serializer;
+        _serializerOverride = serializer;
         return this;
     }
 
     /// <summary>
-    /// Asserts that the given rule matched exactly the expected number of times.
+    /// Creates an <see cref="HttpClient"/> backed by this handler with no base address.
+    /// Use absolute URLs with the returned client, or when the code under test sets its own base address.
     /// </summary>
-    /// <param name="rule">The rule to verify.</param>
-    /// <param name="expectedCount">The expected match count.</param>
-    /// <exception cref="MockHttpException">Thrown when the actual count differs.</exception>
-    public void VerifyMatched(MockRule rule, int expectedCount)
-    {
-        ArgumentNullException.ThrowIfNull(rule);
-
-        if (rule.MatchCount != expectedCount)
-            throw new MockHttpException(
-                $"Expected rule to match {expectedCount} time(s), but it matched {rule.MatchCount} time(s).");
-    }
-
-    /// <summary>
-    /// Asserts that every request received matched a rule.
-    /// </summary>
-    /// <exception cref="MockHttpException">Thrown when one or more requests went unmatched.</exception>
-    public void VerifyNoUnmatched()
-    {
-        if (UnmatchedCount > 0)
-            throw new MockHttpException(
-                $"Expected all requests to match a rule, but {UnmatchedCount} request(s) went unmatched.");
-    }
-
-    /// <summary>
-    /// Counts the captured requests that satisfy the given predicate.
-    /// </summary>
-    /// <param name="predicate">The predicate a captured request must satisfy.</param>
-    /// <returns>The number of matching captured requests.</returns>
-    public int CountRequests(Func<CapturedRequest, bool> predicate)
-    {
-        ArgumentNullException.ThrowIfNull(predicate);
-
-        lock (_gate)
-            return _requests.Count(predicate);
-    }
-
-    /// <summary>
-    /// Asserts that at least one captured request satisfies the given predicate.
-    /// </summary>
-    /// <param name="predicate">The predicate a captured request must satisfy.</param>
-    /// <exception cref="MockHttpException">Thrown when no captured request matches.</exception>
-    public void VerifyRequest(Func<CapturedRequest, bool> predicate)
-    {
-        if (CountRequests(predicate) == 0)
-            throw new MockHttpException(
-                "Expected at least one captured request to match the predicate, but none did.");
-    }
-
-    /// <summary>
-    /// Asserts that exactly <paramref name="expectedCount"/> captured requests satisfy the given predicate.
-    /// </summary>
-    /// <param name="predicate">The predicate a captured request must satisfy.</param>
-    /// <param name="expectedCount">The expected number of matching requests.</param>
-    /// <exception cref="MockHttpException">Thrown when the actual count differs.</exception>
-    public void VerifyRequest(Func<CapturedRequest, bool> predicate, int expectedCount)
-    {
-        var actual = CountRequests(predicate);
-        if (actual != expectedCount)
-            throw new MockHttpException(
-                $"Expected {expectedCount} captured request(s) to match the predicate, but {actual} did.");
-    }
-
-    /// <summary>
-    /// Asserts that no captured request satisfies the given predicate.
-    /// </summary>
-    /// <param name="predicate">The predicate that no captured request may satisfy.</param>
-    /// <exception cref="MockHttpException">Thrown when one or more captured requests match.</exception>
-    public void VerifyNoRequest(Func<CapturedRequest, bool> predicate)
-    {
-        var actual = CountRequests(predicate);
-        if (actual != 0)
-            throw new MockHttpException(
-                $"Expected no captured request to match the predicate, but {actual} did.");
-    }
-
-    /// <summary>
-    /// Clears captured requests and unmatched count and resets each rule's match count.
-    /// Configured rules are retained.
-    /// </summary>
-    public void Reset()
-    {
-        lock (_gate)
-        {
-            _requests.Clear();
-            foreach (var rule in _rules)
-                rule.ResetMatchCount();
-        }
-
-        Volatile.Write(ref _unmatchedCount, 0);
-    }
+    /// <returns>A configured <see cref="HttpClient"/>.</returns>
+    public HttpClient CreateClient() => new(this, disposeHandler: false);
 
     /// <summary>
     /// Creates an <see cref="HttpClient"/> backed by this handler with the given base address.
@@ -234,19 +197,12 @@ public class MockHttpHandler : HttpMessageHandler
         return new HttpClient(this, disposeHandler: false) { BaseAddress = baseAddress };
     }
 
-    /// <summary>
-    /// Creates an <see cref="HttpClient"/> backed by this handler with no base address.
-    /// Use absolute URLs with the returned client.
-    /// </summary>
-    /// <returns>A configured <see cref="HttpClient"/>.</returns>
-    public HttpClient ToHttpClient() => new(this, disposeHandler: false);
-
     /// <inheritdoc />
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var bodyBytes = await RequestBodyReader.ReadAsByteArrayAsync(request.Content, cancellationToken);
+        var bodyBytes = await RequestBodyReader.ReadAsByteArray(request.Content, cancellationToken);
         var body = bodyBytes is null ? null : RequestBodyReader.Decode(request.Content, bodyBytes);
         Capture(request, body, bodyBytes);
 
@@ -257,16 +213,12 @@ public class MockHttpHandler : HttpMessageHandler
         }
 
         if (matched is not null)
-            return await matched.CreateResponseAsync(request, cancellationToken);
-
-        Interlocked.Increment(ref _unmatchedCount);
-
-        if (_fallback == MockFallbackBehavior.RespondNotFound)
-            return new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request };
+            return await matched.CreateResponse(request, cancellationToken);
 
         throw new MockHttpException(
             $"No rule matched the request: {request.Method} {request.RequestUri}. " +
-            "Configure a rule with When*(), or use WithFallback(MockFallbackBehavior.RespondNotFound).");
+            "Configure a rule with When*(). To return a response for otherwise-unmatched requests, " +
+            "register a catch-all rule last, e.g. WhenAny().RespondWith(HttpStatusCode.NotFound).");
     }
 
     private MockRule AddRule(HttpMethod? method, string urlPattern)
@@ -298,7 +250,7 @@ public class MockHttpHandler : HttpMessageHandler
             body,
             bodyBytes,
             request.Content?.Headers.ContentType?.ToString(),
-            _serializer);
+            ResolveSerializer);
 
         lock (_gate)
             _requests.Add(captured);

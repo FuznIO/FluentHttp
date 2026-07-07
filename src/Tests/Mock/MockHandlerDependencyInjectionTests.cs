@@ -16,7 +16,7 @@ public class MockHandlerDependencyInjectionTests : Test
             .Step("A named HttpClient from IHttpClientFactory is served by the mock", async _ =>
             {
                 var handler = new MockHttpHandler();
-                handler.WhenGet("/api/person/1").RespondWithJson(new PersonDto { Id = 1, Name = "DI" });
+                handler.WhenGet("/api/person/1").RespondWithContent(new PersonDto { Id = 1, Name = "DI" });
 
                 var services = new ServiceCollection();
                 services.AddHttpClient("api", c => c.BaseAddress = new Uri("https://api.example.com/"))
@@ -29,7 +29,7 @@ public class MockHandlerDependencyInjectionTests : Test
 
                 Assert.IsTrue(response.IsSuccessful);
                 Assert.AreEqual("DI", response.ContentAs<PersonDto>()!.Name);
-                handler.VerifyRequest(r => r.Method == HttpMethod.Get && r.RequestUri.AbsolutePath == "/api/person/1");
+                Assert.IsTrue(handler.Requests.Any(r => r.Method == HttpMethod.Get && r.RequestUri.AbsolutePath == "/api/person/1"));
             })
             .Run();
     }
@@ -43,7 +43,7 @@ public class MockHandlerDependencyInjectionTests : Test
                 var handler = new MockHttpHandler()
                     .WithSerializer(new CustomJsonSerializerProvider());
                 handler.WhenGet("/api/deserialize/person")
-                    .RespondWithJson(new PersonDto { Id = 9, Name = "Typed" });
+                    .RespondWithContent(new PersonDto { Id = 9, Name = "Typed" });
 
                 var services = new ServiceCollection();
                 services.AddHttpClient<TestApiHttpClient>(c => c.BaseAddress = new Uri("https://api.example.com/"))

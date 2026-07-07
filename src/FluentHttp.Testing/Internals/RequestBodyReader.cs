@@ -10,7 +10,7 @@ internal static class RequestBodyReader
     /// <summary>
     /// Reads the content as a byte array, returning <c>null</c> when there is no content body.
     /// </summary>
-    internal static async Task<byte[]?> ReadAsByteArrayAsync(HttpContent? content, CancellationToken cancellationToken)
+    internal static async Task<byte[]?> ReadAsByteArray(HttpContent? content, CancellationToken cancellationToken)
     {
         if (content is null)
             return null;

@@ -52,15 +52,15 @@ public class MockHandlerSequenceTests : Test
     }
 
     [Test]
-    public async Task ThenRespondWithJson_ReturnsDifferentBodiesPerCall()
+    public async Task ThenRespondWithContent_ReturnsDifferentBodiesPerCall()
     {
         await Scenario()
             .Step("Polling returns pending then done", async _ =>
             {
                 var handler = new MockHttpHandler();
                 handler.WhenGet("/api/job/status")
-                    .RespondWithJson(new PersonDto { Name = "pending" })
-                    .ThenRespondWithJson(new PersonDto { Name = "done" });
+                    .RespondWithContent(new PersonDto { Name = "pending" })
+                    .ThenRespondWithContent(new PersonDto { Name = "done" });
                 var client = handler.CreateClient("https://api.example.com/");
 
                 var first = await client.Url("/api/job/status").Get<PersonDto>();

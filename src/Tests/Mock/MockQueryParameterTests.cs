@@ -23,7 +23,7 @@ public class MockQueryParameterTests : Test
                 await client.Url("/api/query").WithQueryParam("name", "value").Get();
 
                 var sent = handler.Requests.Single();
-                Assert.IsTrue(sent.HasQueryParam("name", "value"));
+                Assert.AreEqual("value", sent.Query["name"].Single());
             })
             .Run();
     }
@@ -44,8 +44,8 @@ public class MockQueryParameterTests : Test
                     .Get();
 
                 var sent = handler.Requests.Single();
-                Assert.IsTrue(sent.HasQueryParam("page", "2"));
-                Assert.IsTrue(sent.HasQueryParam("size", "50"));
+                Assert.AreEqual("2", sent.Query["page"].Single());
+                Assert.AreEqual("50", sent.Query["size"].Single());
             })
             .Run();
     }
@@ -63,7 +63,28 @@ public class MockQueryParameterTests : Test
                 await client.Url("/api/query").WithQueryParam("q", "a b&c").Get();
 
                 var sent = handler.Requests.Single();
-                Assert.IsTrue(sent.HasQueryParam("q", "a b&c"));
+                Assert.AreEqual("a b&c", sent.Query["q"].Single());
+            })
+            .Run();
+    }
+
+    [Test]
+    public async Task Query_KeepsAllValuesOfARepeatedParameter()
+    {
+        await Scenario()
+            .Step("A repeated query parameter keeps every value", async _ =>
+            {
+                var handler = new MockHttpHandler();
+                handler.WhenGet("/api/search*").RespondWith(HttpStatusCode.OK);
+                var client = handler.CreateClient("https://api.example.com/");
+
+                await client.Url("/api/search")
+                    .WithQueryParam("tag", "a")
+                    .WithQueryParam("tag", "b")
+                    .Get();
+
+                var sent = handler.Requests.Single();
+                CollectionAssert.AreEquivalent(new[] { "a", "b" }, sent.Query["tag"]);
             })
             .Run();
     }

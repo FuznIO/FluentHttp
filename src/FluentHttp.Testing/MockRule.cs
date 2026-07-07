@@ -60,6 +60,23 @@ public sealed class MockRule
     }
 
     /// <summary>
+    /// Requires the request to contain the specified header with at least one value satisfying the predicate.
+    /// </summary>
+    /// <param name="name">The header name (case-insensitive).</param>
+    /// <param name="valuePredicate">The predicate a header value must satisfy.</param>
+    /// <returns>The current rule for method chaining.</returns>
+    public MockRule WithHeader(string name, Func<string, bool> valuePredicate)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(valuePredicate);
+
+        _matchers.Add((request, _) =>
+            TryGetHeaderValues(request, name, out var values) && values.Any(valuePredicate));
+
+        return this;
+    }
+
+    /// <summary>
     /// Requires the request URL to contain the specified query parameter, optionally with a specific value.
     /// </summary>
     /// <param name="name">The query parameter name.</param>
@@ -82,6 +99,26 @@ public sealed class MockRule
     }
 
     /// <summary>
+    /// Requires the request URL to contain the specified query parameter with a value satisfying the predicate.
+    /// </summary>
+    /// <param name="name">The query parameter name.</param>
+    /// <param name="valuePredicate">The predicate the query parameter value must satisfy.</param>
+    /// <returns>The current rule for method chaining.</returns>
+    public MockRule WithQueryParam(string name, Func<string, bool> valuePredicate)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(valuePredicate);
+
+        _matchers.Add((request, _) =>
+        {
+            var query = HttpUtility.ParseQueryString(request.RequestUri?.Query ?? string.Empty);
+            return query.AllKeys.Contains(name) && valuePredicate(query[name] ?? string.Empty);
+        });
+
+        return this;
+    }
+
+    /// <summary>
     /// Requires the request body to equal the specified string exactly.
     /// </summary>
     /// <param name="body">The expected request body.</param>
@@ -95,7 +132,8 @@ public sealed class MockRule
     }
 
     /// <summary>
-    /// Requires the request body to equal the given object once serialized with the handler's serializer.
+    /// Requires the request body to equal the given object once serialized with the serializer FluentHttp
+    /// resolves for the request's Content-Type.
     /// </summary>
     /// <param name="body">The expected request body object.</param>
     /// <returns>The current rule for method chaining.</returns>
@@ -103,9 +141,10 @@ public sealed class MockRule
     {
         ArgumentNullException.ThrowIfNull(body);
 
-        _matchers.Add((_, actual) =>
+        _matchers.Add((request, actual) =>
         {
-            var expected = _owner.Serializer.Serialize(body);
+            var contentType = request.Content?.Headers.ContentType?.ToString();
+            var expected = _owner.ResolveSerializer(contentType).Serialize(body);
             return string.Equals(actual, expected, StringComparison.Ordinal);
         });
 
@@ -118,11 +157,25 @@ public sealed class MockRule
     /// </summary>
     /// <param name="predicate">The predicate the body must satisfy.</param>
     /// <returns>The current rule for method chaining.</returns>
-    public MockRule WithContentMatching(Func<string, bool> predicate)
+    public MockRule WithContent(Func<string, bool> predicate)
     {
         ArgumentNullException.ThrowIfNull(predicate);
 
         _matchers.Add((_, actual) => predicate(actual ?? string.Empty));
+        return this;
+    }
+
+    /// <summary>
+    /// Requires the request to satisfy a custom predicate. Use this as an escape hatch for matching logic
+    /// the typed matchers do not cover (for example, combining several headers with the path or method).
+    /// </summary>
+    /// <param name="predicate">The predicate the request must satisfy.</param>
+    /// <returns>The current rule for method chaining.</returns>
+    public MockRule WithRequest(Func<HttpRequestMessage, bool> predicate)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        _matchers.Add((request, _) => predicate(request));
         return this;
     }
 
@@ -147,43 +200,35 @@ public sealed class MockRule
     /// </summary>
     /// <param name="delay">The delay before the response is produced.</param>
     /// <returns>The current rule for method chaining.</returns>
-    public MockRule WithDelay(TimeSpan delay)
+    public MockRule WithResponseDelay(TimeSpan delay)
     {
         _delay = delay;
         return this;
     }
 
     /// <summary>
-    /// Responds with the given status code and, optionally, a JSON body. Starts a new response sequence,
-    /// replacing any previously configured responses for this rule.
+    /// Responds with the given status code and no body. Starts a new response sequence, replacing any
+    /// previously configured responses for this rule.
     /// </summary>
     /// <param name="statusCode">The HTTP status code to return.</param>
-    /// <param name="jsonBody">An optional object serialized as JSON for the response body.</param>
     /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
-    public MockRule RespondWith(HttpStatusCode statusCode, object? jsonBody = null)
-        => ConfigureStatus(NewPrimary(), statusCode, jsonBody);
+    public MockRule RespondWith(HttpStatusCode statusCode)
+        => ConfigureBuilt(NewPrimary(), statusCode, body: null, contentType: null);
 
     /// <summary>
-    /// Responds with a JSON body serialized using the handler's serializer. Starts a new response sequence.
+    /// Responds with a body and content type. Mirrors <c>WithContent</c> on the request side: a string body
+    /// is sent as-is, and any other object is serialized with the serializer registered for the content type.
+    /// <paramref name="contentType"/> defaults to <c>application/json</c>. Starts a new response sequence.
     /// </summary>
-    /// <param name="body">The object to serialize as the response body.</param>
+    /// <param name="body">The response body - a string is sent raw; any other object is serialized.</param>
+    /// <param name="contentType">The Content-Type for the body. Defaults to <c>application/json</c>.</param>
     /// <param name="statusCode">The HTTP status code to return. Defaults to 200 OK.</param>
     /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
-    public MockRule RespondWithJson(object body, HttpStatusCode statusCode = HttpStatusCode.OK)
+    public MockRule RespondWithContent(object body, string? contentType = null, HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         ArgumentNullException.ThrowIfNull(body);
-        return ConfigureStatus(NewPrimary(), statusCode, body);
+        return ConfigureBuilt(NewPrimary(), statusCode, body, contentType);
     }
-
-    /// <summary>
-    /// Responds with a raw string body and the given content type. Starts a new response sequence.
-    /// </summary>
-    /// <param name="body">The response body.</param>
-    /// <param name="contentType">The Content-Type for the body (e.g., "text/plain").</param>
-    /// <param name="statusCode">The HTTP status code to return. Defaults to 200 OK.</param>
-    /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
-    public MockRule RespondWithContent(string body, string contentType, HttpStatusCode statusCode = HttpStatusCode.OK)
-        => ConfigureContent(NewPrimary(), body, contentType, statusCode);
 
     /// <summary>
     /// Responds with a fully custom <see cref="HttpResponseMessage"/>. Starts a new response sequence.
@@ -222,46 +267,36 @@ public sealed class MockRule
 
     /// <summary>
     /// Simulates a timeout by cancelling the request (throwing <see cref="TaskCanceledException"/>).
-    /// Combine with <see cref="WithDelay"/> to exercise a client-side timeout race. Starts a new response sequence.
+    /// Combine with <see cref="WithResponseDelay"/> to exercise a client-side timeout race. Starts a new response sequence.
     /// </summary>
     /// <returns>The current rule, for sequencing with <c>ThenRespondWith*</c>.</returns>
     public MockRule RespondWithTimeout()
         => ConfigureTimeout(NewPrimary());
 
     /// <summary>
-    /// Adds the next response in the sequence: returned on the following matched request after the
-    /// previously configured response(s). The last response in the sequence repeats once exhausted.
+    /// Adds the next response in the sequence with the given status code and no body. The last response in
+    /// the sequence repeats once exhausted.
     /// </summary>
     /// <param name="statusCode">The HTTP status code to return.</param>
-    /// <param name="jsonBody">An optional object serialized as JSON for the response body.</param>
     /// <returns>The current rule, for further sequencing.</returns>
     /// <exception cref="InvalidOperationException">Thrown when called before a <c>RespondWith*</c> method.</exception>
-    public MockRule ThenRespondWith(HttpStatusCode statusCode, object? jsonBody = null)
-        => ConfigureStatus(NewNext(), statusCode, jsonBody);
+    public MockRule ThenRespondWith(HttpStatusCode statusCode)
+        => ConfigureBuilt(NewNext(), statusCode, body: null, contentType: null);
 
     /// <summary>
-    /// Adds the next response in the sequence with a JSON body. The last response repeats once exhausted.
+    /// Adds the next response in the sequence with a body and content type (see <see cref="RespondWithContent"/>).
+    /// The last response repeats once exhausted.
     /// </summary>
-    /// <param name="body">The object to serialize as the response body.</param>
+    /// <param name="body">The response body - a string is sent raw; any other object is serialized.</param>
+    /// <param name="contentType">The Content-Type for the body. Defaults to <c>application/json</c>.</param>
     /// <param name="statusCode">The HTTP status code to return. Defaults to 200 OK.</param>
     /// <returns>The current rule, for further sequencing.</returns>
     /// <exception cref="InvalidOperationException">Thrown when called before a <c>RespondWith*</c> method.</exception>
-    public MockRule ThenRespondWithJson(object body, HttpStatusCode statusCode = HttpStatusCode.OK)
+    public MockRule ThenRespondWithContent(object body, string? contentType = null, HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         ArgumentNullException.ThrowIfNull(body);
-        return ConfigureStatus(NewNext(), statusCode, body);
+        return ConfigureBuilt(NewNext(), statusCode, body, contentType);
     }
-
-    /// <summary>
-    /// Adds the next response in the sequence with a raw string body. The last response repeats once exhausted.
-    /// </summary>
-    /// <param name="body">The response body.</param>
-    /// <param name="contentType">The Content-Type for the body (e.g., "text/plain").</param>
-    /// <param name="statusCode">The HTTP status code to return. Defaults to 200 OK.</param>
-    /// <returns>The current rule, for further sequencing.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when called before a <c>RespondWith*</c> method.</exception>
-    public MockRule ThenRespondWithContent(string body, string contentType, HttpStatusCode statusCode = HttpStatusCode.OK)
-        => ConfigureContent(NewNext(), body, contentType, statusCode);
 
     /// <summary>
     /// Adds the next response in the sequence as a fully custom <see cref="HttpResponseMessage"/>.
@@ -310,7 +345,6 @@ public sealed class MockRule
     public MockRule ThenRespondWithTimeout()
         => ConfigureTimeout(NewNext());
 
-    internal void ResetMatchCount() => Interlocked.Exchange(ref _matchCount, 0);
 
     internal bool Matches(HttpRequestMessage request, string? body)
     {
@@ -329,7 +363,7 @@ public sealed class MockRule
         return true;
     }
 
-    internal async Task<HttpResponseMessage> CreateResponseAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    internal async Task<HttpResponseMessage> CreateResponse(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var attempt = Interlocked.Increment(ref _matchCount);
 
@@ -345,7 +379,7 @@ public sealed class MockRule
         {
             ResponseMode.Exception => throw spec.Exception!,
             ResponseMode.Timeout => throw new TaskCanceledException("The mocked request was configured to time out."),
-            ResponseMode.Custom => await CloneResponseAsync(spec, request, cancellationToken),
+            ResponseMode.Custom => await CloneResponse(spec, request, cancellationToken),
             ResponseMode.Factory => spec.ResponseFactory!(request),
             ResponseMode.AsyncFactory => await spec.AsyncResponseFactory!(request, cancellationToken),
             _ => BuildResponse(request, spec),
@@ -373,23 +407,12 @@ public sealed class MockRule
         return spec;
     }
 
-    private MockRule ConfigureStatus(ResponseSpec spec, HttpStatusCode statusCode, object? jsonBody)
+    private MockRule ConfigureBuilt(ResponseSpec spec, HttpStatusCode statusCode, object? body, string? contentType)
     {
         spec.Mode = ResponseMode.Built;
         spec.StatusCode = statusCode;
-        spec.JsonBody = jsonBody;
-        return this;
-    }
-
-    private MockRule ConfigureContent(ResponseSpec spec, string body, string contentType, HttpStatusCode statusCode)
-    {
-        ArgumentNullException.ThrowIfNull(body);
-        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
-
-        spec.Mode = ResponseMode.Built;
-        spec.StatusCode = statusCode;
-        spec.StringBody = body;
-        spec.StringBodyContentType = contentType;
+        spec.Body = body;
+        spec.BodyContentType = contentType;
         return this;
     }
 
@@ -439,20 +462,20 @@ public sealed class MockRule
     {
         var response = new HttpResponseMessage(spec.StatusCode) { RequestMessage = request };
 
-        if (spec.JsonBody is not null)
-        {
-            var json = _owner.Serializer.Serialize(spec.JsonBody);
-            response.Content = new StringContent(json, Encoding.UTF8, "application/json");
-        }
-        else if (spec.StringBody is not null)
-        {
-            response.Content = new StringContent(spec.StringBody, Encoding.UTF8, spec.StringBodyContentType!);
-        }
-        else
+        if (spec.Body is null)
         {
             response.Content = new StringContent(string.Empty);
+            return response;
         }
 
+        // Mirror FluentHttp's WithContent: a string is sent as-is; any other object is serialized with
+        // the serializer registered for the content type (defaulting to application/json).
+        var contentType = spec.BodyContentType ?? "application/json";
+        var body = spec.Body is string raw
+            ? raw
+            : _owner.ResolveSerializer(contentType).Serialize(spec.Body);
+
+        response.Content = new StringContent(body, Encoding.UTF8, contentType);
         return response;
     }
 
@@ -465,7 +488,7 @@ public sealed class MockRule
         }
     }
 
-    private static async Task<HttpResponseMessage> CloneResponseAsync(ResponseSpec spec, HttpRequestMessage request, CancellationToken cancellationToken)
+    private static async Task<HttpResponseMessage> CloneResponse(ResponseSpec spec, HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var source = spec.CustomResponse!;
 
@@ -527,9 +550,8 @@ public sealed class MockRule
     {
         public ResponseMode Mode { get; set; } = ResponseMode.Built;
         public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.OK;
-        public object? JsonBody { get; set; }
-        public string? StringBody { get; set; }
-        public string? StringBodyContentType { get; set; }
+        public object? Body { get; set; }
+        public string? BodyContentType { get; set; }
         public HttpResponseMessage? CustomResponse { get; set; }
         public Func<HttpRequestMessage, HttpResponseMessage>? ResponseFactory { get; set; }
         public Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? AsyncResponseFactory { get; set; }

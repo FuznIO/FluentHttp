@@ -5,13 +5,16 @@ namespace Fuzn.FluentHttp.Testing.Internals;
 
 /// <summary>
 /// Compiles a URL pattern (optionally containing <c>*</c> wildcards) into a matcher that can
-/// be tested against a request URI. Absolute patterns are matched against the full request URI;
-/// relative patterns are matched against the request's path and query.
+/// be tested against a request URI. Absolute patterns are matched against the request URI, relative
+/// patterns against the request path. A pattern that contains a <c>?</c> also matches against the
+/// request's query string; a pattern without one matches the path alone and ignores any query, so the
+/// query can be constrained separately with <c>WithQueryParam</c>.
 /// </summary>
 internal sealed class UrlMatcher
 {
     private readonly Regex _regex;
     private readonly bool _isAbsolute;
+    private readonly bool _includesQuery;
 
     internal UrlMatcher(string pattern)
     {
@@ -25,6 +28,11 @@ internal sealed class UrlMatcher
         // uri-tryparse-linux fix), and it rejects wildcard hosts like "https://*/x". A simple
         // "contains '://'" test classifies relative paths, absolute URLs, and wildcard hosts correctly.
         _isAbsolute = pattern.Contains("://", StringComparison.Ordinal);
+
+        // Only match against the query string when the pattern explicitly includes one. Otherwise a
+        // request's query would defeat an exact path pattern and make WithQueryParam unusable.
+        _includesQuery = pattern.Contains('?', StringComparison.Ordinal);
+
         _regex = BuildRegex(pattern);
     }
 
@@ -35,9 +43,13 @@ internal sealed class UrlMatcher
 
     internal bool IsMatch(Uri requestUri)
     {
-        var target = _isAbsolute
-            ? requestUri.GetLeftPart(UriPartial.Query)
-            : requestUri.PathAndQuery;
+        var target = (_isAbsolute, _includesQuery) switch
+        {
+            (true, true) => requestUri.GetLeftPart(UriPartial.Query),
+            (true, false) => requestUri.GetLeftPart(UriPartial.Path),
+            (false, true) => requestUri.PathAndQuery,
+            (false, false) => requestUri.AbsolutePath,
+        };
 
         return _regex.IsMatch(target);
     }

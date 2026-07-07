@@ -4,11 +4,11 @@ namespace Fuzn.FluentHttp.Testing;
 
 /// <summary>
 /// An immutable record of a request that was sent through a <see cref="MockHttpHandler"/>.
-/// Use it to assert on what FluentHttp actually sent (method, URL, headers, body).
+/// Use it to assert on what FluentHttp actually sent (method, URL, headers, query, body).
 /// </summary>
 public sealed class CapturedRequest
 {
-    private readonly ISerializerProvider _serializer;
+    private readonly Func<string?, ISerializerProvider> _resolveSerializer;
 
     internal CapturedRequest(
         HttpMethod method,
@@ -17,15 +17,16 @@ public sealed class CapturedRequest
         string? content,
         byte[]? contentBytes,
         string? contentType,
-        ISerializerProvider serializer)
+        Func<string?, ISerializerProvider> resolveSerializer)
     {
         Method = method;
         RequestUri = requestUri;
         Headers = headers;
+        Query = ParseQuery(requestUri);
         Content = content;
         ContentBytes = contentBytes;
         ContentType = contentType;
-        _serializer = serializer;
+        _resolveSerializer = resolveSerializer;
     }
 
     /// <summary>
@@ -39,9 +40,15 @@ public sealed class CapturedRequest
     public Uri RequestUri { get; }
 
     /// <summary>
-    /// Gets all request headers, including content headers, keyed by header name.
+    /// Gets all request headers, including content headers, keyed by name (case-insensitive).
     /// </summary>
     public IReadOnlyDictionary<string, string[]> Headers { get; }
+
+    /// <summary>
+    /// Gets the request's query parameters, parsed from the URL and keyed by name. A repeated parameter
+    /// (e.g. <c>?tag=a&amp;tag=b</c>) keeps all of its values; use <see cref="RequestUri"/> for the raw string.
+    /// </summary>
+    public IReadOnlyDictionary<string, string[]> Query { get; }
 
     /// <summary>
     /// Gets the request body as a string, or <c>null</c> if the request had no body.
@@ -62,41 +69,8 @@ public sealed class CapturedRequest
     public string? ContentType { get; }
 
     /// <summary>
-    /// Determines whether a header with the given name was present, optionally matching a value.
-    /// </summary>
-    /// <param name="name">The header name (case-insensitive).</param>
-    /// <param name="value">The expected value, or <c>null</c> to match any value.</param>
-    /// <returns><c>true</c> if a matching header was present; otherwise, <c>false</c>.</returns>
-    public bool HasHeader(string name, string? value = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        var match = Headers.FirstOrDefault(h => string.Equals(h.Key, name, StringComparison.OrdinalIgnoreCase));
-        if (match.Key is null)
-            return false;
-
-        return value is null || match.Value.Contains(value, StringComparer.Ordinal);
-    }
-
-    /// <summary>
-    /// Determines whether the request URL contained the given query parameter, optionally matching a value.
-    /// </summary>
-    /// <param name="name">The query parameter name.</param>
-    /// <param name="value">The expected value, or <c>null</c> to match any value.</param>
-    /// <returns><c>true</c> if a matching query parameter was present; otherwise, <c>false</c>.</returns>
-    public bool HasQueryParam(string name, string? value = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        var query = HttpUtility.ParseQueryString(RequestUri.Query);
-        if (!query.AllKeys.Contains(name))
-            return false;
-
-        return value is null || string.Equals(query[name], value, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// Deserializes the captured request body into the specified type using the handler's serializer.
+    /// Deserializes the captured request body into the specified type using the serializer FluentHttp
+    /// resolves for the request's Content-Type.
     /// </summary>
     /// <typeparam name="T">The type to deserialize the body into.</typeparam>
     /// <returns>The deserialized object, or default if the body is empty.</returns>
@@ -105,6 +79,20 @@ public sealed class CapturedRequest
         if (string.IsNullOrEmpty(Content))
             return default;
 
-        return _serializer.Deserialize<T>(Content);
+        return _resolveSerializer(ContentType).Deserialize<T>(Content);
+    }
+
+    private static IReadOnlyDictionary<string, string[]> ParseQuery(Uri requestUri)
+    {
+        var parsed = HttpUtility.ParseQueryString(requestUri.Query);
+        var query = new Dictionary<string, string[]>(StringComparer.Ordinal);
+
+        foreach (var key in parsed.AllKeys)
+        {
+            if (key is not null)
+                query[key] = parsed.GetValues(key) ?? [];
+        }
+
+        return query;
     }
 }

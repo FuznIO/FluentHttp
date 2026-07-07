@@ -23,7 +23,7 @@ public class MockHeaderTests : Test
                 await client.Url("/api/headers").WithHeader("X-Custom", "custom-value").Get();
 
                 var sent = handler.Requests.Single();
-                Assert.IsTrue(sent.HasHeader("X-Custom", "custom-value"));
+                Assert.IsTrue(sent.Headers["X-Custom"].Contains("custom-value"));
             })
             .Run();
     }
@@ -47,8 +47,8 @@ public class MockHeaderTests : Test
                     .Get();
 
                 var sent = handler.Requests.Single();
-                Assert.IsTrue(sent.HasHeader("X-One", "1"));
-                Assert.IsTrue(sent.HasHeader("X-Two", "2"));
+                Assert.IsTrue(sent.Headers["X-One"].Contains("1"));
+                Assert.IsTrue(sent.Headers["X-Two"].Contains("2"));
             })
             .Run();
     }
@@ -66,7 +66,7 @@ public class MockHeaderTests : Test
                 await client.Url("/api/headers").WithUserAgent("FluentHttp-Test/1.0").Get();
 
                 var sent = handler.Requests.Single();
-                Assert.IsTrue(sent.HasHeader("User-Agent", "FluentHttp-Test/1.0"));
+                Assert.IsTrue(sent.Headers["User-Agent"].Contains("FluentHttp-Test/1.0"));
             })
             .Run();
     }

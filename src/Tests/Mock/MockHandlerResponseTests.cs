@@ -9,14 +9,14 @@ namespace Fuzn.FluentHttp.Tests.Mock;
 public class MockHandlerResponseTests : Test
 {
     [Test]
-    public async Task RespondWithJson_SerializesBodyAndSetsContentType()
+    public async Task RespondWithContent_SerializesObjectAsJson()
     {
         await Scenario()
             .Step("JSON response is deserializable and typed", async _ =>
             {
                 var handler = new MockHttpHandler();
                 handler.WhenGet("/api/person/1")
-                    .RespondWithJson(new PersonDto { Id = 1, Name = "John", Email = "john@x.com", Age = 30 });
+                    .RespondWithContent(new PersonDto { Id = 1, Name = "John", Email = "john@x.com", Age = 30 });
                 var client = handler.CreateClient("https://api.example.com/");
 
                 var response = await client.Url("/api/person/1").Get();
@@ -56,7 +56,7 @@ public class MockHandlerResponseTests : Test
             {
                 var handler = new MockHttpHandler();
                 handler.WhenPost("/api/person")
-                    .RespondWith(HttpStatusCode.Created, new PersonDto { Id = 7, Name = "New" });
+                    .RespondWithContent(new PersonDto { Id = 7, Name = "New" }, statusCode: HttpStatusCode.Created);
                 var client = handler.CreateClient("https://api.example.com/");
 
                 var response = await client.Url("/api/person").WithContent(new PersonDto { Name = "New" }).Post();
