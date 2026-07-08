@@ -8,17 +8,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Build
 dotnet build src
 
-# Run all tests
-dotnet test src
+# Run all tests (run from src/ so global.json selects the MTP runner)
+cd src && dotnet test
 
 # Run a single test by name
-dotnet test src --filter "FullyQualifiedName~Fuzn.FluentHttp.Tests.ClassName.MethodName"
+cd src && dotnet test --filter "FullyQualifiedName~Fuzn.FluentHttp.Tests.ClassName.MethodName"
 
 # Pack NuGet package
 dotnet pack src/FluentHttp/FluentHttp.csproj --configuration Release
 ```
 
-Solution file: `src/FluentHttp.slnx`. All dotnet commands use `src` as the path argument.
+Solution file: `src/FluentHttp.slnx`. `dotnet build`/`dotnet pack` take `src` as the path argument. Tests run on Microsoft.Testing.Platform (opted in via `src/global.json`), which the SDK discovers from the working directory — so run `dotnet test` from inside `src/`. On the .NET 10 SDK, `dotnet test` no longer accepts a bare directory path.
 
 ## Project Structure
 

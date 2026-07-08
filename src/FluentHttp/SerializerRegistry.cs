@@ -49,6 +49,14 @@ public class SerializerRegistry
     }
 
     /// <summary>
+    /// Resolves a serializer for the given content type, falling back to <see cref="Default"/>
+    /// when no content-type-specific serializer is registered.
+    /// </summary>
+    /// <param name="contentType">The content type to resolve a serializer for.</param>
+    /// <returns>The matching serializer provider, or <see cref="Default"/> if none matches.</returns>
+    public ISerializerProvider ResolveOrDefault(string? contentType) => Resolve(contentType) ?? Default;
+
+    /// <summary>
     /// Gets the registered content types.
     /// </summary>
     internal IReadOnlyCollection<string> ContentTypes => _serializers.Keys;

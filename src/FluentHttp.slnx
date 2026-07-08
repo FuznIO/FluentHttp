@@ -5,6 +5,7 @@
     <File Path="Directory.Build.props" />
   </Folder>
   <Project Path="FluentHttp/FluentHttp.csproj" />
+  <Project Path="FluentHttp.Testing/FluentHttp.Testing.csproj" />
   <Project Path="TestApi/TestApi.csproj" />
   <Project Path="Tests/Tests.csproj" Id="b4468df4-1918-441f-8ebe-659d9d6d2d39" />
 </Solution>

@@ -19,12 +19,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Fuzn.TestFuzn.Adapters.MSTest" Version="0.6.5-beta" />
+    <PackageReference Include="Fuzn.TestFuzn.Adapters.MSTest" Version="0.7.3" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.2" />
+    <PackageReference Include="MSTest.Sdk" Version="4.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FluentHttp\FluentHttp.csproj" />
+    <ProjectReference Include="..\FluentHttp.Testing\FluentHttp.Testing.csproj" />
     <ProjectReference Include="..\TestApi\TestApi.csproj" />
   </ItemGroup>
 

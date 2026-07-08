@@ -1,4 +1,5 @@
 using Fuzn.FluentHttp.TestApi.Models;
+using Fuzn.FluentHttp.Tests.Live;
 
 namespace Fuzn.FluentHttp.Tests;
 
