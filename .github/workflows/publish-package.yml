@@ -57,10 +57,12 @@ jobs:
     - name: Pack
       run: |
         dotnet pack src/FluentHttp/FluentHttp.csproj --configuration Release --no-build /p:Version=${{ steps.get-version.outputs.version }}
-
+        dotnet pack src/FluentHttp.Testing/FluentHttp.Testing.csproj --configuration Release --no-build /p:Version=${{ steps.get-version.outputs.version }}
 
     - name: Push to NuGet
-      run: dotnet nuget push src/FluentHttp/bin/Release/*.nupkg --skip-duplicate --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+      run: |
+        dotnet nuget push src/FluentHttp/bin/Release/*.nupkg --skip-duplicate --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+        dotnet nuget push src/FluentHttp.Testing/bin/Release/*.nupkg --skip-duplicate --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
@@ -70,5 +72,6 @@ jobs:
         generate_release_notes: true
         files: |
           src/FluentHttp/bin/Release/*.nupkg
+          src/FluentHttp.Testing/bin/Release/*.nupkg
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
